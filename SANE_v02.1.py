@@ -15,7 +15,7 @@ db = mysql.connect(
 
 class SaneProbabilityEstimator:
 
-    def __init__(self, conn, table_train, target, model_id):
+    def __init__(self, conn, table_train, target, model_id='table_name'):
         '''
         This method takes the most commonly used parameters from the user during initialization
         of the classifier
@@ -25,7 +25,9 @@ class SaneProbabilityEstimator:
         '''
         self.connection = conn
         self.table_train = table_train
-
+        
+        # Default value = last column (the query code below fetches the column, but need to
+        # figure out how to store it in the col variable)
 #        if target == None:
 #            self.target = SELECT
 #                            COLUMN_NAME,
@@ -39,17 +41,15 @@ class SaneProbabilityEstimator:
 #            self.target = target
 
         self.target = target # TODO default value: last column
-        if model_id == None:
-            self.model_id = 'table_name'
-        else:
-            self.model_id = model_id
+        self.model_id = 'table_name'
 
 # TODO use SQL alchemy or similar framework that works for all SQL DB types
     def execute(self, desc, query):
         cursor = self.connection.cursor()
         print('Query: ' + query)
         cursor.execute(query)
-        cursor.close()
+#        cursor.fetchall()   # This fetch all is buggy at the moment, but can be used to fetch query results
+        cursor.close()       # for the accuracy method
         print('OK: ' + desc)
         print()
 
@@ -74,7 +74,7 @@ class SaneProbabilityEstimator:
     # TODO idea: optimize feature list using "random restaurant" similar to random forest,
     #  but using decision "tables" instead of "trees" <-- advanced stuff
 
-    def train(self, features, bins, seed, train_test_ratio):
+    def train(self, features, bins=np.arange(start=1, end=11), seed=1, train_test_ratio=0.8):
         '''
         Hyperparameter initialization:
         - Feature(s) = Array of features
@@ -90,21 +90,9 @@ class SaneProbabilityEstimator:
 
         # TODO array of features
         self.features = features # TODO default: all columns
-
-        if bins == None:
-            self.bins = np.arange(start=1, end=11)
-        else:
-            self.bins = np.array(bins + 1)
-
-        if seed == None:
-            self.seed = 1
-        else:
-            self.seed = seed
-
-        if train_test_ratio == None:
-            self.train_test_ratio = 0.8
-        else:
-            self.train_test_ratio = train_test_ratio
+        self.bins = np.array(bins + 1)
+        self.seed = seed
+        self.train_test_ratio = train_test_ratio
 
         self.execute('Setting seed and train/test split ratio', '''
             SET @random_seed = {};
@@ -238,7 +226,6 @@ class SaneProbabilityEstimator:
 ## * Optimize n Buckets for 1 feature
 ## * Visualize 1D and 2D Decision Table
 ## * Load Data into a DB Table
-## * Split Training / Test
 ## * Remove Model from DB (drop all tables for model_id)
 
 
