@@ -74,7 +74,7 @@ class SaneProbabilityEstimator:
     # TODO idea: optimize feature list using "random restaurant" similar to random forest,
     #  but using decision "tables" instead of "trees" <-- advanced stuff
 
-    def train(self, features, bins=np.arange(start=1, end=11), seed=1, train_test_ratio=0.8):
+    def train(self, features, bins=np.arange(1, 11), seed=1, train_test_ratio=0.8):
         '''
         Hyperparameter initialization:
         - Feature(s) = Array of features
@@ -220,19 +220,6 @@ class SaneProbabilityEstimator:
             left outer join {}_p using(id);
         ''').format(self.model_id, self.model_id)
 
-
-## Other userful functions / methods for data scientists:
-## * Get list of features ranked by 1D prediction accuracy
-## * Optimize n Buckets for 1 feature
-## * Visualize 1D and 2D Decision Table
-## * Load Data into a DB Table
-## * Remove Model from DB (drop all tables for model_id)
-
-
-
-# I think we may want to have the user pass in the target and feature
-# variables similar to how it is done in scikit - I.e: Numpy arrays, etc.
-# MK --> perhaps SQLalchemy can be of help here.
 
 #classifier = SaneProbabilityEstimator(db, 'covtypall', 'Cover_Type', 'covtyptest')
 #classifier.hyperparameters('Elevation', 44)
