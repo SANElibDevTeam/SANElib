@@ -1,5 +1,14 @@
 
 tmplt = {}
+
+tmplt["_train"] = '''
+(select * from {{ input.table_train }} where rand ({{ input.seed }}) < {{ input.ratio }});
+'''
+
+tmplt["_test"] = '''
+(select * from {{ input.table_train }} where rand ({{ input.seed }}) >= {{ input.ratio }});
+'''
+
 tmplt["_qt"] ='''
 select y, 
 {% for i in input.numFeatures %} xq{{ loop.index }},  min(xn{{ loop.index }}) as mn{{ loop.index }}, \
