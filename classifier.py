@@ -68,6 +68,16 @@ class SaneProbabilityEstimator:
         # TODO array of bins
         self.bins = bins; #TODO default:
         self.catFeatures = catFeatures
+        
+        self.materializedView(
+            'Splitting table into training set',
+            self.model_id + '_train',
+            Template(sql.tmplt['_train']).render(input=self))
+
+        self.materializedView(
+            'Splitting table into test set',
+            self.model_id + '_test',
+            Template(sql.tmplt['_test']).render(input=self))
 
     def trainingAccuracy(self):
         '''
@@ -84,8 +94,13 @@ class SaneProbabilityEstimator:
         self.train(self.table_train)
 
     def train(self, table_train):
+        
+        # Really we need to be feeding the train set (0.8) of original table into this --> training phase
+        # Then, invoking the predict method on the test set (0.2) of the original table --> prediction phase on new data
+        
         '''
         This function is the training phase:
+        - input data is training set
         - the input data table is quantized (equal size) and indexed.
         - This quantized index then represents an in-database model for probability estimation
         '''
@@ -107,6 +122,7 @@ class SaneProbabilityEstimator:
     def predict(self, table_eval):
         '''
         This function estimates the probabilities for the evaluation data
+        table_eval is test set
         '''
         self.table_eval = table_eval;
         self.materializedView(
