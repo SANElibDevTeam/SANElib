@@ -1,5 +1,6 @@
 import sqlTemplates as sql
 from jinja2 import Template
+import pandas as pd
 
 class SaneProbabilityEstimator:
 
@@ -136,5 +137,7 @@ class SaneProbabilityEstimator:
                 '''.format(
                     self.model_id,
                     self.model_id))
-        accuracy = [result[2] for result in results]
-        return accuracy
+
+        df = pd.DataFrame(results)
+        df.columns = ['Total', 'TP', 'Accuracy']
+        print(df)
