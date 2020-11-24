@@ -4,17 +4,35 @@ import pandas as pd
 
 class SaneProbabilityEstimator:
 
-    def __init__(self, conn, table_train, target, model_id):
-        '''
+    def __init__(self, conn, table_train, target=None, model_id='table_name'):
+        """
         This method takes the most commonly used parameters from the user during initialization of the classifier
         - conn = database connection (format: variable)
         - target = target variable (what you are wanting to predict) (format: str)
         - table_name = name of the table that is in the database (format: str)
-        '''
+        """
         self.connection = conn
         self.table_train = table_train
-        self.target = target # TODO default value: last column
-        self.model_id = model_id # TODO default value: table name
+        self.model_id = model_id
+
+        if target is None:
+            col = self.executeQuery('If last column (DESC), else first column (ASC)', '''
+                SELECT
+                COLUMN_NAME
+                ORDINAL_POSITION
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_NAME = '{}'  #table_train
+                ORDER BY ORDINAL_POSITION DESC
+                LIMIT 1;
+                '''.format(table_train))
+
+            # ".fetchall" returns a list of tuples so this
+            # for loop manually parses for the last column in table
+            for index, tuple in enumerate(col):
+                self.target = tuple[col]
+        else:
+            self.target = target
+
 
 # TODO use SQL alchemy or similar framework that works for all SQL DB types
     def execute(self, desc, query):
@@ -54,20 +72,42 @@ class SaneProbabilityEstimator:
     # Until convergence => find method that scales well for large data set with acceptable performance
     # Idea 3: linear in feature list, but evolutionary in n-buckets
     # TODO idea: optimize feature list using "random restaurant" simliar to random forest, but using decision "tables" instead of "trees" <-- advanced stuff
-    def hyperparameters(self, numFeatures, bins, catFeatures):
-        '''
+    def hyperparameters(self, catFeatures, bins=50, seed=1, ratio=0.8, numFeatures=None):
+        """
         This function sets the hyperparameters
         - features to estimate the probability of the target
         - features = right now it is just a string, but I think we may want to explore
                      having the user put the feature(s) into a numpy array. Similiar to
                      how the scikit-learn ML algorithms want them. (format:str)
         - Bins/buckets = # of bins
-        '''
-        # TODO array of features
-        self.numFeatures = numFeatures # TODO default: all columns
-        # TODO array of bins
-        self.bins = bins; #TODO default:
+        """
+
+        if numFeatures is None:
+            allColumns = self.executeQuery('Querying for all of the columns', '''
+            SELECT COLUMN_NAME
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_NAME = '{}';  #table_train
+            '''.format(self.table_train))
+
+            self.numFeatures = [element for index, tuple in enumerate(allColumns) for index, element in enumerate(tuple)]
+        else:
+            self.numFeatures = numFeatures
+
+        self.bins = bins
         self.catFeatures = catFeatures
+        self.seed = seed
+        self.ratio = ratio
+
+        self.materializedView(
+            'Splitting table into training set',
+            self.model_id + '_train',
+            Template(sql.tmplt['_train']).render(input=self))
+
+        self.materializedView(
+            'Splitting table into test set',
+            self.model_id + '_test',
+            Template(sql.tmplt['_test']).render(input=self))
+
 
     def trainingAccuracy(self):
         '''
@@ -84,13 +124,19 @@ class SaneProbabilityEstimator:
         self.train(self.table_train)
 
     def train(self, table_train):
-        '''
+
+        # Really we need to be feeding the train set (0.8) of original table into this --> training phase
+        # invoking the predict method on the test set (0.2) of the original table --> prediction phase on new data
+
+        """
         This function is the training phase:
         - the input data table is quantized (equal size) and indexed.
         - This quantized index then represents an in-database model for probability estimation
-        '''
+        """
+
         # make sure only 1 query is executed per call. So it works in PyCharm.
         # TODO Generate queries using n features x1, x2, ..., xn; differentiate between numerical and categorical
+
         self.materializedView(
             'Quantization of training table',
             self.model_id + '_qt',
@@ -104,11 +150,12 @@ class SaneProbabilityEstimator:
             self.model_id + '_m',
             Template(sql.tmplt['_m']).render(input=self))
 
-    def predict(self, table_eval):
-        '''
+    def predict(self, table_eval):  # table_eval is the test set
+        """
         This function estimates the probabilities for the evaluation data
-        '''
-        self.table_eval = table_eval;
+        """
+
+        self.table_eval = table_eval
         self.materializedView(
             'Quantization metadata for evaluation table',
             self.model_id + '_qe',
@@ -123,9 +170,9 @@ class SaneProbabilityEstimator:
             Template(sql.tmplt['_p_update']).render(input=self))
 
     def accuracy(self):
-        '''
+        """
         Computing the accuracy of the model and returning the results to the user
-        '''
+        """
 
         results = self.executeQuery('Computing evaluation accuracy', '''
             select
