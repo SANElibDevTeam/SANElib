@@ -110,10 +110,11 @@ class SaneProbabilityEstimator:
 
 
     def trainingAccuracy(self):
-        '''
-               This function evaluates the hyperparameters quickly on the training set.
-               possible parameters: size of internal modeling / validation split to make it faster
-        '''
+        """
+         This function evaluates the hyperparameters quickly on the training set.
+         possible parameters: size of internal modeling / validation split to make it faster
+        """
+        
         self.train('''(select * from {} where rand() < 0.8) as t'''
                      .format(self.table_train))
         self.predict('''(select * from {} where rand() >= 0.2) as t'''
@@ -124,12 +125,12 @@ class SaneProbabilityEstimator:
         self.train(self.table_train)
 
     def train(self, table_train):
-
-        # Really we need to be feeding the train set (0.8) of original table into this --> training phase
-        # invoking the predict method on the test set (0.2) of the original table --> prediction phase on new data
-
         """
+        # Really we need to be feeding the train set (0.8) of original table into this --> training phase
+        # Then, invoking the predict method on the test set (0.2) of the original table --> prediction phase on new data
+        
         This function is the training phase:
+        - input data is training set
         - the input data table is quantized (equal size) and indexed.
         - This quantized index then represents an in-database model for probability estimation
         """
@@ -154,8 +155,9 @@ class SaneProbabilityEstimator:
         """
         This function estimates the probabilities for the evaluation data
         """
-
+        
         self.table_eval = table_eval
+        
         self.materializedView(
             'Quantization metadata for evaluation table',
             self.model_id + '_qe',

@@ -6,12 +6,13 @@
 
 import mysql.connector as mysql
 import classifier
+import constants as cons
 
 db = mysql.connect(
-    host="localhost",
-    user="root",
-    passwd="ahjsdnva8s79d",
-    database='dbml')
+    host=cons.DB_HOST,
+    user=cons.DB_USER,
+    passwd=cons.DB_PW,
+    database=cons.DB_NAME)
 
 #classifier = SaneProbabilityEstimator(db, 'iris', 'class', 'irismodel')
 
