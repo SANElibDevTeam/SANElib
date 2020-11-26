@@ -1,5 +1,6 @@
-
 tmplt = {}
+
+# def hyperparameters():
 
 tmplt["_train"] = '''
 (select * from {{ input.table_train }} where rand ({{ input.seed }}) < {{ input.ratio }});
@@ -9,6 +10,8 @@ tmplt["_test"] = '''
 (select * from {{ input.table_train }} where rand ({{ input.seed }}) >= {{ input.ratio }});
 '''
 
+# def train():
+# Changed line 29 = {{input.model_id}}_train from {{input.table_train}}
 tmplt["_qt"] ='''
 select y, 
 {% for i in input.numFeatures %} xq{{ loop.index }},  min(xn{{ loop.index }}) as mn{{ loop.index }}, \
@@ -23,7 +26,7 @@ CEIL({{ input.bins[loop.index0] }} *RANK() OVER (ORDER BY {{ i }} )*1.0/COUNT(*)
 {% for i in input.numFeatures %} {{ i }} as xn{{ loop.index }}, {% endfor %}
 {% for i in input.catFeatures %} {{ i }} as xc{{ loop.index }}, {% endfor %}
 {{ input.target }} as y
-	from {{ input.table_train }} )a
+	from {{ input.model_id }}_train )a
 group by y
 	{% for i in input.numFeatures %} ,xq{{ loop.index }}  {% endfor %}
     {% for i in input.catFeatures %} ,xc{{ loop.index }}  {% endfor %};
@@ -92,13 +95,15 @@ group by y,
     n__, n_y
     ;'''
 
+# def predict():
+
 tmplt["_qe"] = '''select t.*
 {% for i in input.numFeatures %} ,x{{ loop.index }}.xq as xq{{ loop.index }}{% endfor %}
  	from (select row_number() over() as id, {{ input.target }} as y 
     -- qe_nf
     {% for i in input.numFeatures %} ,{{ i }} as xn{{ loop.index }} {% endfor %}
     {% for i in input.catFeatures %} ,{{ i }} as xc{{ loop.index }} {% endfor %}
- from {{ input.table_eval }}) -- table_eval
+ from {{ input.model_id }}_test) -- table_eval
     as t
     {% for i in input.numFeatures %}join (select i, xq, mn, mx, tmn, tmx, \
     LEAD(mn, 1) OVER (ORDER BY xq) as mx_ from {{ input.model_id }}_qmt 

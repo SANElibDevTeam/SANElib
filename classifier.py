@@ -72,8 +72,35 @@ class SaneProbabilityEstimator:
     # Until convergence => find method that scales well for large data set with acceptable performance
     # Idea 3: linear in feature list, but evolutionary in n-buckets
     # TODO idea: optimize feature list using "random restaurant" simliar to random forest, but using decision "tables" instead of "trees" <-- advanced stuff
-    def hyperparameters(self, catFeatures, bins=50, seed=1, ratio=0.8, numFeatures=None):
+
+
+    def trainingAccuracy(self):
         """
+         This function evaluates the hyperparameters quickly on the training set.
+         possible parameters: size of internal modeling / validation split to make it faster
+        """
+        
+        self.train('''(select * from {} where rand() < 0.8) as t'''
+                     .format(self.table_train))
+        self.predict('''(select * from {} where rand() >= 0.2) as t'''
+                .format(self.table_train))
+        return self.accuracy()
+
+
+    def train(self):
+        self.train(self.table_train)
+
+
+    def train(self, table_train, catFeatures, bins=50, seed=1, ratio=0.8, numFeatures=None):
+        """
+        1.) Need to be feeding the train set (0.8) of original table into this --> training phase
+        2.) Then, invoking the predict method on the test set (0.2) of the original table --> prediction phase on new data
+        
+        This function is the training phase:
+        - input data is training set
+        - the input data table is quantized (equal size) and indexed.
+        - This quantized index then represents an in-database model for probability estimation
+
         This function sets the hyperparameters
         - features to estimate the probability of the target
         - features = right now it is just a string, but I think we may want to explore
@@ -108,34 +135,6 @@ class SaneProbabilityEstimator:
             self.model_id + '_test',
             Template(sql.tmplt['_test']).render(input=self))
 
-
-    def trainingAccuracy(self):
-        """
-         This function evaluates the hyperparameters quickly on the training set.
-         possible parameters: size of internal modeling / validation split to make it faster
-        """
-        
-        self.train('''(select * from {} where rand() < 0.8) as t'''
-                     .format(self.table_train))
-        self.predict('''(select * from {} where rand() >= 0.2) as t'''
-                .format(self.table_train))
-        return self.accuracy()
-
-    def train(self):
-        self.train(self.table_train)
-
-    def train(self, table_train):
-        """
-        # Really we need to be feeding the train set (0.8) of original table into this --> training phase
-        # Then, invoking the predict method on the test set (0.2) of the original table --> prediction phase on new data
-        
-        This function is the training phase:
-        - input data is training set
-        - the input data table is quantized (equal size) and indexed.
-        - This quantized index then represents an in-database model for probability estimation
-        """
-
-        # make sure only 1 query is executed per call. So it works in PyCharm.
         # TODO Generate queries using n features x1, x2, ..., xn; differentiate between numerical and categorical
 
         self.materializedView(
