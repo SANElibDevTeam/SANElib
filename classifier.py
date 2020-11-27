@@ -1,6 +1,10 @@
+from sqlalchemy.engine.url import URL
 import sqlTemplates as sql
 from jinja2 import Template
 import pandas as pd
+from sqlalchemy import create_engine
+from sqlalchemy import text
+
 
 class SaneProbabilityEstimator:
 
@@ -11,7 +15,7 @@ class SaneProbabilityEstimator:
         - target = target variable (what you are wanting to predict) (format: str)
         - table_name = name of the table that is in the database (format: str)
         """
-        self.connection = conn
+        self.engine = self.set_connection(conn)
         self.table_train = table_train
         self.model_id = model_id
 
@@ -26,31 +30,47 @@ class SaneProbabilityEstimator:
                 LIMIT 1;
                 '''.format(table_train))
 
-            # ".fetchall" returns a list of tuples so this
+            # ".fetchall" returns a list of RowProxys (SQLAlchemy) so this
             # for loop manually parses for the last column in table
-            for index, tuple in enumerate(col):
-                self.target = tuple[col]
+            for index, element in enumerate(col):
+                element=tuple(element)
+                self.target = element[index]
+                print(self.target)
         else:
             self.target = target
 
 
+    def set_connection(self,db):
+        """
+        :param db: dict with connection information for DB
+        :return: SQLAlchemy Engine
+        """
+        return create_engine(URL(**db))
+
+    def get_connection(self):
+        """
+        :return: Connection to self.engine
+        """
+        return self.engine.connect()
+
 # TODO use SQL alchemy or similar framework that works for all SQL DB types
     def execute(self, desc, query):
-        cursor = self.connection.cursor()
+        connection = self.get_connection()
         print(desc + '\nQuery: ' + query)
-        cursor.execute(query)
-        cursor.close()
+        connection.execute(text(query))
+        connection.close()
         print('OK: ' + desc)
         print()
 
     def executeQuery(self, desc, query):
-        cursor = self.connection.cursor()
+        connection = self.get_connection()
         print('Query: ' + query)
-        cursor.execute(query)
-        results = cursor.fetchall()
-        cursor.close()
+        results = connection.execute(text(query))
+        results = results.fetchall()
+        connection.close()
         print('OK: ' + desc)
         print()
+
         return results
 
     def materializedView(self, desc, tablename, query):
@@ -189,3 +209,6 @@ class SaneProbabilityEstimator:
         df = pd.DataFrame(results)
         df.columns = ['Total', 'TP', 'Accuracy']
         print(df)
+
+
+
