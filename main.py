@@ -3,16 +3,18 @@
 # (c) 2020  Michael Kaufmann, Gabriel Stechschulte, Anna Huber, HSLU
 
 # coding: utf-8
-
-import mysql.connector as mysql
 import classifier
 import constants as cons
 
-db = mysql.connect(
-    host=cons.DB_HOST,
-    user=cons.DB_USER,
-    passwd=cons.DB_PW,
-    database=cons.DB_NAME)
+db = {
+        'drivername': 'mysql+mysqlconnector',
+        'host': cons.DB_HOST,
+        'port': cons.DB_PORT,
+        'username': cons.DB_USER,
+        'password': cons.DB_PW,
+        'database': cons.DB_NAME,
+        'query': {'charset': 'utf8'}
+    }
 
 #classifier = SaneProbabilityEstimator(db, 'iris', 'class', 'irismodel')
 
