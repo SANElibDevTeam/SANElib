@@ -21,7 +21,7 @@ count(*) as n
  from ( -- a
 	select
 {% for i in input.numFeatures %}\
-CEIL({{ input.bins[loop.index0] }} *RANK() OVER (ORDER BY {{ i }} )*1.0/COUNT(*) OVER()) as xq{{ loop.index }},\
+CEIL({{ input.bins }} *RANK() OVER (ORDER BY {{ i }} )*1.0/COUNT(*) OVER()) as xq{{ loop.index }},\
 {% endfor %}
 {% for i in input.numFeatures %} {{ i }} as xn{{ loop.index }}, {% endfor %}
 {% for i in input.catFeatures %} {{ i }} as xc{{ loop.index }}, {% endfor %}
@@ -103,7 +103,7 @@ tmplt["_qe"] = '''select t.*
     -- qe_nf
     {% for i in input.numFeatures %} ,{{ i }} as xn{{ loop.index }} {% endfor %}
     {% for i in input.catFeatures %} ,{{ i }} as xc{{ loop.index }} {% endfor %}
- from {{ input.model_id }}_test) -- table_eval
+ from {{ input.table_eval }}) -- table_eval
     as t
     {% for i in input.numFeatures %}join (select i, xq, mn, mx, tmn, tmx, \
     LEAD(mn, 1) OVER (ORDER BY xq) as mx_ from {{ input.model_id }}_qmt 
@@ -112,6 +112,7 @@ tmplt["_qe"] = '''select t.*
 		and (x{{ loop.index }}.mn <= xn{{ loop.index }} or x{{ loop.index }}.mn = x{{ loop.index }}.tmn))
 	{% endfor %}
 ''';
+
 
 tmplt["_qe_ix"] = '''create index ix1 on {{ input.model_id }}_qe(
 {% for i in input.numFeatures %} xq{{ loop.index }} , {% endfor %}
@@ -165,3 +166,37 @@ where n =  (select max(n) from (select y, sum(n) as n from {{ input.model_id }}_
 where y_ is null
 ;'''
 
+tmplt["_m1d"] ='''
+{% for nf in input.numFeatures %}
+{% if loop.index > 1 %}union {% endif %}\
+select f, x, y, count(*) over(partition by x, y) as nxy, count(*) over (partition by x) as nx_, count(*) over (partition by y) as n_y, count(*) over() as n__ 
+from ( select
+        "{{ nf }}" as f,
+		CEIL({{ input.bins}}*RANK() OVER (ORDER BY {{ nf }} )*1.0/COUNT(*) OVER()) as x,
+        {{ input.target }} as y
+from table_train ) a 
+{% endfor %}
+{% for cf in input.catFeatures %}
+{% if loop.index + input.numFeatures|length  > 1 %} union {% endif %}\
+select f, x, y, count(*) over(partition by x, y) as nxy, count(*) over (partition by x) as nx_, count(*) over (partition by y) as n_y, count(*) over() as n__ 
+from ( select
+        "{{ cf }}" as f,
+		{{ cf }} as x,
+        {{ input.target }} as y
+from table_train ) a 
+{% endfor %}
+;'''
+
+
+tmplt["_m1d_mi"] ='''select f, 
+sum(
+	(nxy*1.0/n__)
+    *log(2,
+		(nxy*1.0/n__)
+        /( (n_y*1.0/n__) * (nx_*1.0/n__) )
+        ) ) as mi
+from {{ input.model_id }}_m1d as m
+group by f 
+order by mi desc
+;
+'''

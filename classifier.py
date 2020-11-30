@@ -1,10 +1,6 @@
-from sqlalchemy.engine.url import URL
 import sqlTemplates as sql
 from jinja2 import Template
 import pandas as pd
-from sqlalchemy import create_engine
-from sqlalchemy import text
-
 
 class SaneProbabilityEstimator:
 
@@ -15,7 +11,7 @@ class SaneProbabilityEstimator:
         - target = target variable (what you are wanting to predict) (format: str)
         - table_name = name of the table that is in the database (format: str)
         """
-        self.engine = self.set_connection(conn)
+        self.connection = conn
         self.table_train = table_train
         self.model_id = model_id
 
@@ -30,47 +26,35 @@ class SaneProbabilityEstimator:
                 LIMIT 1;
                 '''.format(table_train))
 
-            # ".fetchall" returns a list of RowProxys (SQLAlchemy) so this
+            # ".fetchall" returns a list of tuples so this
             # for loop manually parses for the last column in table
-            for index, element in enumerate(col):
-                element=tuple(element)
-                self.target = element[index]
-                print(self.target)
+            for index, tuple in enumerate(col):
+                self.target = tuple[col]
         else:
             self.target = target
+        cursor = self.connection.cursor()
+        cursor.execute("rollback;")
+        cursor.close()
 
 
-    def set_connection(self,db):
-        """
-        :param db: dict with connection information for DB
-        :return: SQLAlchemy Engine
-        """
-        return create_engine(URL(**db))
-
-    def get_connection(self):
-        """
-        :return: Connection to self.engine
-        """
-        return self.engine.connect()
 
 # TODO use SQL alchemy or similar framework that works for all SQL DB types
     def execute(self, desc, query):
-        connection = self.get_connection()
+        cursor = self.connection.cursor()
         print(desc + '\nQuery: ' + query)
-        connection.execute(text(query))
-        connection.close()
+        cursor.execute(query)
+        cursor.close()
         print('OK: ' + desc)
         print()
 
     def executeQuery(self, desc, query):
-        connection = self.get_connection()
+        cursor = self.connection.cursor()
         print('Query: ' + query)
-        results = connection.execute(text(query))
-        results = results.fetchall()
-        connection.close()
+        cursor.execute(query)
+        results = cursor.fetchall()
+        cursor.close()
         print('OK: ' + desc)
         print()
-
         return results
 
     def materializedView(self, desc, tablename, query):
@@ -111,10 +95,14 @@ class SaneProbabilityEstimator:
         self.train(self.table_train)
 
 
-    def train(self, table_train, catFeatures, bins=50, seed=1, ratio=0.8, numFeatures=None):
+    def train(self, table_train, catFeatures, numFeatures, bins  ):
         """
         1.) Need to be feeding the train set (0.8) of original table into this --> training phase
+        # TODO No this test train split should be in a separate method
+        # Here you take one training table as argument that already exists.
+        # In
         2.) Then, invoking the predict method on the test set (0.2) of the original table --> prediction phase on new data
+        # No in the predict method you take the actual eval table as argument, not 20% of the train table. We'll have to talk about this.
         
         This function is the training phase:
         - input data is training set
@@ -129,7 +117,8 @@ class SaneProbabilityEstimator:
         - Bins/buckets = # of bins
         """
 
-        if numFeatures is None:
+        # TODO do the same for categorical data types, string etc.
+        if numFeatures is None: # TODO here you should take only numerical data types
             allColumns = self.executeQuery('Querying for all of the columns', '''
             SELECT COLUMN_NAME
             FROM INFORMATION_SCHEMA.COLUMNS
@@ -142,18 +131,7 @@ class SaneProbabilityEstimator:
 
         self.bins = bins
         self.catFeatures = catFeatures
-        self.seed = seed
-        self.ratio = ratio
 
-        self.materializedView(
-            'Splitting table into training set',
-            self.model_id + '_train',
-            Template(sql.tmplt['_train']).render(input=self))
-
-        self.materializedView(
-            'Splitting table into test set',
-            self.model_id + '_test',
-            Template(sql.tmplt['_test']).render(input=self))
 
         # TODO Generate queries using n features x1, x2, ..., xn; differentiate between numerical and categorical
 
@@ -210,5 +188,16 @@ class SaneProbabilityEstimator:
         df.columns = ['Total', 'TP', 'Accuracy']
         print(df)
 
-
-
+    def rank(self, table_train, catFeatures, numFeatures, bins):
+        self.numFeatures = numFeatures
+        self.bins = bins
+        self.catFeatures = catFeatures
+        self.materializedView(
+            'Computing 1d contingecies with target',
+            self.model_id + '_m1d',
+            Template(sql.tmplt['_m1d']).render(input=self))
+        results = self.executeQuery('Computing mutual information with target',
+            Template(sql.tmplt["_m1d_mi"]).render(input=self))
+        df = pd.DataFrame(results)
+        df.columns = ['f', 'mi']
+        print(df)
