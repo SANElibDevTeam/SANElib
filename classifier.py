@@ -111,7 +111,7 @@ class SaneProbabilityEstimator:
         self.train(self.table_train)
 
 
-    def train(self, table_train, catFeatures, bins=50, seed=1, ratio=0.8, numFeatures=None):
+    def train(self, table_train, catFeatures, bins=50, numFeatures=None):
         """
         1.) Need to be feeding the train set (0.8) of original table into this --> training phase
         2.) Then, invoking the predict method on the test set (0.2) of the original table --> prediction phase on new data
@@ -142,18 +142,19 @@ class SaneProbabilityEstimator:
 
         self.bins = bins
         self.catFeatures = catFeatures
-        self.seed = seed
-        self.ratio = ratio
-
-        self.materializedView(
-            'Splitting table into training set',
-            self.model_id + '_train',
-            Template(sql.tmplt['_train']).render(input=self))
-
-        self.materializedView(
-            'Splitting table into test set',
-            self.model_id + '_test',
-            Template(sql.tmplt['_test']).render(input=self))
+        # self.seed = seed
+        # self.ratio = ratio
+        #
+        # # TODO this spitting shlould be done in a separate method
+        # self.materializedView(
+        #     'Splitting table into training set',
+        #     self.model_id + '_train',
+        #     Template(sql.tmplt['_train']).render(input=self))
+        #
+        # self.materializedView(
+        #     'Splitting table into test set',
+        #     self.model_id + '_test',
+        #     Template(sql.tmplt['_test']).render(input=self))
 
         # TODO Generate queries using n features x1, x2, ..., xn; differentiate between numerical and categorical
 
@@ -174,9 +175,7 @@ class SaneProbabilityEstimator:
         """
         This function estimates the probabilities for the evaluation data
         """
-        
         self.table_eval = table_eval
-        
         self.materializedView(
             'Quantization metadata for evaluation table',
             self.model_id + '_qe',
@@ -210,5 +209,17 @@ class SaneProbabilityEstimator:
         df.columns = ['Total', 'TP', 'Accuracy']
         print(df)
 
-
+    def rank(self, table_train, catFeatures, numFeatures, bins):
+        self.numFeatures = numFeatures
+        self.bins = bins
+        self.catFeatures = catFeatures
+        self.materializedView(
+            'Computing 1d contingecies with target',
+            self.model_id + '_m1d',
+            Template(sql.tmplt['_m1d']).render(input=self))
+        results = self.executeQuery('Computing mutual information with target',
+            Template(sql.tmplt["_m1d_mi"]).render(input=self))
+        df = pd.DataFrame(results)
+        df.columns = ['f', 'mi']
+        print(df)
 
