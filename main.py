@@ -5,6 +5,10 @@
 # coding: utf-8
 import classifier
 import constants as cons
+import time
+
+# starting time
+start = time.time()
 
 db = {
         'drivername': 'mysql+mysqlconnector',
@@ -38,5 +42,11 @@ classifier.train('table_train', catFeatures, bins, numFeatures)
 classifier.predict('table_eval')
 
 classifier.accuracy()
+
+# end time
+end = time.time()
+
+# total time taken
+print(f"Runtime of the program is {end - start} seconds")
 
 # print('Training accuracy = ', classifier.trainingAccuracy())
