@@ -1,19 +1,15 @@
 tmplt = {}
 
-# def hyperparameters():
-
+# def train_test_split():
 tmplt["_train"] = '''
 (select * from {{ input.table_train }} where rand ({{ input.seed }}) < {{ input.ratio }});
 '''
 
-tmplt["_test"] = '''
+tmplt["_table_eval"] = '''
 (select * from {{ input.table_train }} where rand ({{ input.seed }}) >= {{ input.ratio }});
 '''
 
 # def train():
-# Changed line 29 = {{input.model_id}}_train from {{input.table_train}}
-# no. this should not be in the template. change the name of variable input.table_train to xy_split_train if necessary
-# => keep this generic. Changed back.
 tmplt["_qt"] ='''
 select y, 
 {% for i in input.numFeatures %} xq{{ loop.index }},  min(xn{{ loop.index }}) as mn{{ loop.index }}, \
