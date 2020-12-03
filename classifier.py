@@ -1,5 +1,5 @@
 from sqlalchemy.engine.url import URL
-import sqlTemplates as sql
+import splitting_sqlTemplates as sql
 from jinja2 import Template
 import pandas as pd
 from sqlalchemy import create_engine
@@ -40,7 +40,7 @@ class SaneProbabilityEstimator:
             self.target = target
 
 
-    def set_connection(self,db):
+    def set_connection(self, db):
         """
         :param db: dict with connection information for DB
         :return: SQLAlchemy Engine
@@ -53,7 +53,6 @@ class SaneProbabilityEstimator:
         """
         return self.engine.connect()
 
-# TODO use SQL alchemy or similar framework that works for all SQL DB types
     def execute(self, desc, query):
         connection = self.get_connection()
         print(desc + '\nQuery: ' + query)
@@ -111,6 +110,26 @@ class SaneProbabilityEstimator:
         self.train(self.table_train)
 
 
+    def train_test_split(self, seed=1, ratio=0.8):
+        """
+        Splitting table into training set and evaluation set
+        :return: table_eval
+        """
+
+        self.seed = seed
+        self.ratio = ratio
+
+        self.materializedView(
+             'Splitting table into training set',
+             self.model_id + '_train',
+             Template(sql.tmplt['_train']).render(input=self))
+
+        self.materializedView(
+             'Splitting table into test set',
+             self.model_id + '_table_eval',
+             Template(sql.tmplt['_table_eval']).render(input=self))
+
+
     def train(self, table_train, catFeatures, bins=50, numFeatures=None):
         """
         1.) Need to be feeding the train set (0.8) of original table into this --> training phase
@@ -142,19 +161,6 @@ class SaneProbabilityEstimator:
 
         self.bins = bins
         self.catFeatures = catFeatures
-        # self.seed = seed
-        # self.ratio = ratio
-        #
-        # # TODO this spitting shlould be done in a separate method
-        # self.materializedView(
-        #     'Splitting table into training set',
-        #     self.model_id + '_train',
-        #     Template(sql.tmplt['_train']).render(input=self))
-        #
-        # self.materializedView(
-        #     'Splitting table into test set',
-        #     self.model_id + '_test',
-        #     Template(sql.tmplt['_test']).render(input=self))
 
         # TODO Generate queries using n features x1, x2, ..., xn; differentiate between numerical and categorical
 
