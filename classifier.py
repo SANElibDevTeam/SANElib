@@ -1,56 +1,73 @@
+from sqlalchemy.engine.url import URL
 import sqlTemplates as sql
 from jinja2 import Template
 import pandas as pd
+from sqlalchemy import create_engine
+from sqlalchemy import text
+
 
 class SaneProbabilityEstimator:
 
-    def __init__(self, conn, table_train, target=None, model_id='table_name'):
+    def __init__(self, table_train, target=None, model_id='table_name', conn=None):
         """
         This method takes the most commonly used parameters from the user during initialization of the classifier
         - conn = database connection (format: variable)
         - target = target variable (what you are wanting to predict) (format: str)
         - table_name = name of the table that is in the database (format: str)
         """
-        self.connection = conn
-        self.table_train = table_train
-        self.model_id = model_id
 
-        if target is None:
-            col = self.executeQuery('If last column (DESC), else first column (ASC)', '''
-                SELECT
-                COLUMN_NAME
-                ORDINAL_POSITION
-                FROM INFORMATION_SCHEMA.COLUMNS
-                WHERE TABLE_NAME = '{}'  #table_train
-                ORDER BY ORDINAL_POSITION DESC
-                LIMIT 1;
-                '''.format(table_train))
-
-            # ".fetchall" returns a list of tuples so this
-            # for loop manually parses for the last column in table
-            for index, tuple in enumerate(col):
-                self.target = tuple[col]
+        # Default: Embedded sqlite3 Database
+        if conn is None:
+            # Step 1.) Create new database
+            sqlDB = sl.connect('SANE.db')
+            # Step 2.) Establish path to new database
+            self.conn = 'sqlite:///SANE.db'
+            # Step 3.) Create engine to newly connected database
+            self.engine = self.set_connection(self.conn)
+            # Step 4.) Create a table in the DB - the dataframe the user will pass in
+            table_train.to_sql(name='SANE_TABLE', con=sqlDB, if_exists='replace', index=False)
+            self.table_train = 'SANE_TABLE'
         else:
-            self.target = target
+            self.engine = self.set_connection(conn)
+            self.table_train = table_train
+
+        self.model_id = model_id
+        self.target = target
 
 
-# TODO use SQL alchemy or similar framework that works for all SQL DB types
+    def set_connection(self, db):
+        """
+        :param db: dict with connection information for DB
+        :return: SQLAlchemy Engine
+        """
+        if self.conn:
+            return create_engine(self.conn)
+        else:
+            return create_engine(URL(**db))
+
+    def get_connection(self):
+        """
+        :return: Connection to self.engine
+        """
+        return self.engine.connect()
+
     def execute(self, desc, query):
-        cursor = self.connection.cursor()
+        connection = self.get_connection()
         print(desc + '\nQuery: ' + query)
-        cursor.execute(query)
-        cursor.close()
+        connection.execute(text(query))
+        connection.close()
         print('OK: ' + desc)
         print()
 
     def executeQuery(self, desc, query):
-        cursor = self.connection.cursor()
+        connection = self.get_connection()
         print('Query: ' + query)
-        cursor.execute(query)
-        results = cursor.fetchall()
-        cursor.close()
+        results = connection.execute(text(query))
+        results = results.fetchall()
+        connection.close()
         print('OK: ' + desc)
         print()
+
         return results
 
     def materializedView(self, desc, tablename, query):
@@ -72,8 +89,55 @@ class SaneProbabilityEstimator:
     # Until convergence => find method that scales well for large data set with acceptable performance
     # Idea 3: linear in feature list, but evolutionary in n-buckets
     # TODO idea: optimize feature list using "random restaurant" simliar to random forest, but using decision "tables" instead of "trees" <-- advanced stuff
-    def hyperparameters(self, catFeatures, bins=50, seed=1, ratio=0.8, numFeatures=None):
+
+
+    def trainingAccuracy(self):
         """
+         This function evaluates the hyperparameters quickly on the training set.
+         possible parameters: size of internal modeling / validation split to make it faster
+        """
+        
+        self.train('''(select * from {} where rand() < 0.8) as t'''
+                     .format(self.table_train))
+        self.predict('''(select * from {} where rand() >= 0.2) as t'''
+                .format(self.table_train))
+        return self.accuracy()
+
+
+    def train(self):
+        self.train(self.table_train)
+
+
+    def train_test_split(self, seed=1, ratio=0.8):
+        """
+        Splitting table into training set and evaluation set
+        :return: table_eval
+        """
+
+        self.seed = seed
+        self.ratio = ratio
+
+        self.materializedView(
+             'Splitting table into training set',
+             self.model_id + '_train',
+             Template(sql.tmplt['_train']).render(input=self))
+
+        self.materializedView(
+             'Splitting table into test set',
+             self.model_id + '_table_eval',
+             Template(sql.tmplt['_table_eval']).render(input=self))
+
+
+    def train(self, table_train, catFeatures, bins=50, numFeatures=None):
+        """
+        1.) Need to be feeding the train set (0.8) of original table into this --> training phase
+        2.) Then, invoking the predict method on the test set (0.2) of the original table --> prediction phase on new data
+        
+        This function is the training phase:
+        - input data is training set
+        - the input data table is quantized (equal size) and indexed.
+        - This quantized index then represents an in-database model for probability estimation
+
         This function sets the hyperparameters
         - features to estimate the probability of the target
         - features = right now it is just a string, but I think we may want to explore
@@ -95,47 +159,7 @@ class SaneProbabilityEstimator:
 
         self.bins = bins
         self.catFeatures = catFeatures
-        self.seed = seed
-        self.ratio = ratio
 
-        self.materializedView(
-            'Splitting table into training set',
-            self.model_id + '_train',
-            Template(sql.tmplt['_train']).render(input=self))
-
-        self.materializedView(
-            'Splitting table into test set',
-            self.model_id + '_test',
-            Template(sql.tmplt['_test']).render(input=self))
-
-
-    def trainingAccuracy(self):
-        """
-         This function evaluates the hyperparameters quickly on the training set.
-         possible parameters: size of internal modeling / validation split to make it faster
-        """
-        
-        self.train('''(select * from {} where rand() < 0.8) as t'''
-                     .format(self.table_train))
-        self.predict('''(select * from {} where rand() >= 0.2) as t'''
-                .format(self.table_train))
-        return self.accuracy()
-
-    def train(self):
-        self.train(self.table_train)
-
-    def train(self, table_train):
-        """
-        # Really we need to be feeding the train set (0.8) of original table into this --> training phase
-        # Then, invoking the predict method on the test set (0.2) of the original table --> prediction phase on new data
-        
-        This function is the training phase:
-        - input data is training set
-        - the input data table is quantized (equal size) and indexed.
-        - This quantized index then represents an in-database model for probability estimation
-        """
-
-        # make sure only 1 query is executed per call. So it works in PyCharm.
         # TODO Generate queries using n features x1, x2, ..., xn; differentiate between numerical and categorical
 
         self.materializedView(
@@ -155,9 +179,7 @@ class SaneProbabilityEstimator:
         """
         This function estimates the probabilities for the evaluation data
         """
-        
         self.table_eval = table_eval
-        
         self.materializedView(
             'Quantization metadata for evaluation table',
             self.model_id + '_qe',
@@ -190,3 +212,18 @@ class SaneProbabilityEstimator:
         df = pd.DataFrame(results)
         df.columns = ['Total', 'TP', 'Accuracy']
         print(df)
+
+    def rank(self, table_train, catFeatures, numFeatures, bins):
+        self.numFeatures = numFeatures
+        self.bins = bins
+        self.catFeatures = catFeatures
+        self.materializedView(
+            'Computing 1d contingecies with target',
+            self.model_id + '_m1d',
+            Template(sql.tmplt['_m1d']).render(input=self))
+        results = self.executeQuery('Computing mutual information with target',
+            Template(sql.tmplt["_m1d_mi"]).render(input=self))
+        df = pd.DataFrame(results)
+        df.columns = ['f', 'mi']
+        print(df)
+
