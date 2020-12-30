@@ -6,6 +6,7 @@
 import classifier
 import constants as cons
 import time
+import matplotlib.pyplot as plt
 
 # starting time
 start = time.time()
@@ -23,12 +24,12 @@ db = {
 #classifier = SaneProbabilityEstimator(db, 'iris', 'class', 'irismodel')
 classifier = classifier.SaneProbabilityEstimator(db, 'table_train', 'Cover_Type', 'covtyptest2')
 
-allNumFeat = [ "Elevation", "Aspect", "Slope", "Horizontal_Distance_To_Hydrology", "Vertical_Distance_To_Hydrology", \
-                "Horizontal_Distance_To_Roadways", "Hillshade_9am", "Hillshade_Noon", "Hillshade_3pm", \
-                "Horizontal_Distance_To_Fire_Points"]
-allCatFeat = ["Wilderness_Area", "Soil_Type"]
+#allNumFeat = [ "Elevation", "Aspect", "Slope", "Horizontal_Distance_To_Hydrology", "Vertical_Distance_To_Hydrology", \
+#                "Horizontal_Distance_To_Roadways", "Hillshade_9am", "Hillshade_Noon", "Hillshade_3pm", \
+#                "Horizontal_Distance_To_Fire_Points"]
+#allCatFeat = ["Wilderness_Area", "Soil_Type"]
 
-classifier.rank('table_train', allCatFeat, allNumFeat,  50)
+#classifier.rank('table_train', allCatFeat, allNumFeat,  50)
 #classifier.rank('covtyp', allCatFeat, allNumFeat,  50)
 
 #TODO automate attribute selection based on threshold
@@ -40,6 +41,10 @@ classifier.train_test_split(1, 0.8)
 
 # Training phase: _qt is trained on 0.8 of table ; _qmt based off of _qt ; _m based off of _qt
 classifier.train('table_train', catFeatures, bins, numFeatures)
+
+# Pass what feature and the target and what dimension you want to see the density function for
+classifier.visual('Elevation', 'Cover_Type')
+
 # Predicting on test set: _qe tested on 0.2 of table ; _qe_ix based off of _qe ; _p ; _p_update
 classifier.predict('table_eval')
 
