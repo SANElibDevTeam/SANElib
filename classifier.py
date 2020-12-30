@@ -4,6 +4,8 @@ from jinja2 import Template
 import pandas as pd
 from sqlalchemy import create_engine
 from sqlalchemy import text
+import matplotlib.pyplot as plt
+from scipy.stats import gaussian_kde
 
 
 class SaneProbabilityEstimator:
@@ -176,6 +178,33 @@ class SaneProbabilityEstimator:
             'Computing predictive model as contingency table',
             self.model_id + '_m',
             Template(sql.tmplt['_m']).render(input=self))
+
+    def visual(self, feature1, target):
+
+        hist = self.executeQuery('Discretization Histogram', '''
+            select * from {};'''.format(self.table_train))
+
+        cols = self.executeQuery('Fetching columns', '''
+            SHOW columns FROM {}'''.format(self.table_train))
+
+        cols = pd.DataFrame(cols)
+        names = []
+        for row in cols[0]:
+            names.append(row)
+
+        hist_df = pd.DataFrame(hist)
+        hist_df.reset_index()
+        hist_df.columns = names
+
+        # 1d
+        #plt.hist(hist_df[feature1], bins=self.bins, density=True)
+        #plt.show()
+        hist_df[feature1].plot.kde()
+        plt.show()
+
+        # 2d
+        plt.hist2d(hist_df[target], hist_df[feature1], bins=self.bins, density=True)
+        plt.show()
 
     def predict(self, table_eval):  # table_eval is the test set
         """
