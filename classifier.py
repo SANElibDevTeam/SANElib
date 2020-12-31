@@ -200,10 +200,16 @@ class SaneProbabilityEstimator:
         #plt.hist(hist_df[feature1], bins=self.bins, density=True)
         #plt.show()
         hist_df[feature1].plot.kde()
+        plt.title('Probability Density Function of {}'.format(feature1))
+        plt.xlabel('{}'.format(feature1))
+        plt.ylabel('Density')
         plt.show()
 
         # 2d
         plt.hist2d(hist_df[target], hist_df[feature1], bins=self.bins, density=True)
+        plt.title('2d Density Plot')
+        plt.xlabel('{}'.format(target))
+        plt.ylabel('{}'.format(feature1))
         plt.show()
 
     def predict(self, table_eval):  # table_eval is the test set
