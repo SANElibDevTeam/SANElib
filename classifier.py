@@ -3,23 +3,55 @@ import sqlTemplates as sql
 from jinja2 import Template
 import pandas as pd
 from sqlalchemy import create_engine
-from sqlalchemy import text
 import matplotlib.pyplot as plt
-from scipy.stats import gaussian_kde
+from sqlalchemy import text
+import jaydebeapi
+import sqlite3 as sl
 
 
 class SaneProbabilityEstimator:
 
-    def __init__(self, conn, table_train, target=None, model_id='table_name'):
+    def __init__(self, conn=None, model_id='table_name', target=None, table_train=None, filepath=None, h2path=None):
         """
         This method takes the most commonly used parameters from the user during initialization of the classifier
         - conn = database connection (format: variable)
         - target = target variable (what you are wanting to predict) (format: str)
         - table_name = name of the table that is in the database (format: str)
         """
-        self.engine = self.set_connection(conn)
-        self.table_train = table_train
-        self.model_id = model_id
+
+        # Default: Embedded H2 Database
+        if conn is None:
+            self.name = 'H2'
+            self.h2path = h2path
+            self.filepath = filepath
+            self.table_train = 'SANE_TABLE'
+
+            self.engine = jaydebeapi.connect('org.h2.Driver',
+                                           'jdbc:h2:~/test',
+                                          ['sa', ''],
+                                          '{}'.format(self.h2path))
+
+            # This works
+            self.execute('Dropping table', '''
+                drop table if exists {}
+                ;'''.format(self.table_train))
+
+            self.execute('Creating default table', ''' 
+                create table SANE_TABLE as
+                select * from CSVREAD('{}')
+                ;'''.format(self.filepath))
+
+            # This doesn't work yet
+            #self.materializedView(
+            #    'Creating SANE Table',
+            #    'SANE_TABLE',
+            #    Template(sql.tmplt['_table']).render(input=self))
+
+            self.target = target
+
+        else:
+            self.engine = self.set_connection(conn)
+            self.table_train = table_train
 
         if target is None:
             col = self.executeQuery('If last column (DESC), else first column (ASC)', '''
@@ -35,11 +67,13 @@ class SaneProbabilityEstimator:
             # ".fetchall" returns a list of RowProxys (SQLAlchemy) so this
             # for loop manually parses for the last column in table
             for index, element in enumerate(col):
-                element=tuple(element)
+                element = tuple(element)
                 self.target = element[index]
                 print(self.target)
         else:
             self.target = target
+
+        self.model_id = model_id
 
 
     def set_connection(self, db):
@@ -53,12 +87,15 @@ class SaneProbabilityEstimator:
         """
         :return: Connection to self.engine
         """
-        return self.engine.connect()
+        if self.name:
+            return self.engine.cursor()
+        else:
+            return self.engine.connect()
 
     def execute(self, desc, query):
         connection = self.get_connection()
         print(desc + '\nQuery: ' + query)
-        connection.execute(text(query))
+        connection.execute(query)
         connection.close()
         print('OK: ' + desc)
         print()
@@ -66,7 +103,7 @@ class SaneProbabilityEstimator:
     def executeQuery(self, desc, query):
         connection = self.get_connection()
         print('Query: ' + query)
-        results = connection.execute(text(query))
+        results = connection.execute(query)
         results = results.fetchall()
         connection.close()
         print('OK: ' + desc)
@@ -179,6 +216,7 @@ class SaneProbabilityEstimator:
             self.model_id + '_m',
             Template(sql.tmplt['_m']).render(input=self))
 
+
     def visual(self, feature1, target):
 
         hist = self.executeQuery('Discretization Histogram', '''
@@ -211,6 +249,7 @@ class SaneProbabilityEstimator:
         plt.xlabel('{}'.format(target))
         plt.ylabel('{}'.format(feature1))
         plt.show()
+
 
     def predict(self, table_eval):  # table_eval is the test set
         """
