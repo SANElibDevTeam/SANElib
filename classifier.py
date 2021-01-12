@@ -183,7 +183,7 @@ class SaneProbabilityEstimator:
             self.model_id + '_m',
             Template(sql.tmplt['_m']).render(input=self))
 
-    def visualize(self, feature1):
+    def visualize1D(self, feature1):
 
         numFeats = self.numFeatures
 
