@@ -47,6 +47,6 @@
     git push
     ```
 
-9. Create pull request to merge issue branch to main branch
-
-    ![Create Pull request](Images/Untitled%202.png)
+9. Create pull request to merge issue branch to dev branch.
+Choose the branch you want to merge on the left (here New_Software_Architecture) and the dev branch on the right.
+    ![Create Pull request](Images/Pullrequest.png)

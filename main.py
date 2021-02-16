@@ -42,8 +42,9 @@ classifier.train_test_split(1, 0.8)
 # Training phase: _qt is trained on 0.8 of table ; _qmt based off of _qt ; _m based off of _qt
 classifier.train('table_train', catFeatures, bins, numFeatures)
 
-# Pass feature variable you want to see visualized - "Histogram probability estimation"
-classifier.visualize1D('Elevation')
+# Visualization methods
+classifier.visualize1D('Wilderness_Area', 'Covertype')
+classifier.visualize2D('Elevation', 'Wilderness_Area', 'CoverType')
 
 # Predicting on test set: _qe tested on 0.2 of table ; _qe_ix based off of _qe ; _p ; _p_update
 classifier.predict('table_eval')
