@@ -4,10 +4,12 @@ import pandas as pd
 import Database
 import Utils
 import Model
+from sqlalchemy import text
 
 class Analysis():
-    def __init__(self,dataset,seed=None,model_id='table_name',ratio=1.0):
-        self.utils = Utils.Utils()
+    def __init__(self,database,dataset,seed=None,model_id='table_name',ratio=1.0):
+        # self.utils = Utils.Utils()
+        self.database = database
         self.dataset = dataset
         self.model_id = model_id
         self.seed = seed
@@ -38,12 +40,12 @@ class Analysis():
         Splitting table into training set and evaluation set
         :return: table_eval
         """
-        self.utils.materializedView(
+        self.materializedView(
              'Splitting table into training set',
              self.model_id + '_train',
              Template(sql.tmplt['_train']).render(input=self))
 
-        self.utils.materializedView(
+        self.materializedView(
              'Splitting table into test set',
              self.model_id + '_table_eval',
              Template(sql.tmplt['_table_eval']).render(input=self))
@@ -54,11 +56,11 @@ class Analysis():
         self.numFeatures = numFeatures
         self.bins = bins
         self.catFeatures = catFeatures
-        self.utils.materializedView(
+        self.materializedView(
             'Computing 1d contingecies with target',
             self.model_id + '_m1d',
             Template(sql.tmplt['_m1d']).render(input=self))
-        results = self.utils.executeQuery('Computing mutual information with target',
+        results = self.executeQuery('Computing mutual information with target',
             Template(sql.tmplt["_m1d_mi"]).render(input=self))
         df = pd.DataFrame(results)
         df.columns = ['f', 'mi']
@@ -74,7 +76,6 @@ class Analysis():
         - input data is training set
         - the input data table is quantized (equal size) and indexed.
         - This quantized index then represents an in-database model for probability estimation
-
         This function sets the hyperparameters
         - features to estimate the probability of the target
         - features = right now it is just a string, but I think we may want to explore
@@ -84,14 +85,13 @@ class Analysis():
         """
 
         if numFeatures is None:
-            allColumns = self.utils.executeQuery('Querying for all of the columns', '''
+            allColumns = self.executeQuery('Querying for all of the columns', '''
             SELECT COLUMN_NAME
             FROM INFORMATION_SCHEMA.COLUMNS
             WHERE TABLE_NAME = '{}';  #table_train
             '''.format(self.table_train))
 
-            self.numFeatures = [element for index, tuple in enumerate(allColumns) for index, element in
-                                enumerate(tuple)]
+            self.numFeatures = [element for index, tuple in enumerate(allColumns) for index, element in enumerate(tuple)]
         else:
             self.numFeatures = numFeatures
 
@@ -100,17 +100,47 @@ class Analysis():
 
         # TODO Generate queries using n features x1, x2, ..., xn; differentiate between numerical and categorical
 
-        self.utils.materializedView(
+        self.materializedView(
             'Quantization of training table',
             self.model_id + '_qt',
             Template(sql.tmplt['_qt']).render(input=self))
-        self.utils.materializedView(
+        self.materializedView(
             'Quantization metadata for training table',
             self.model_id + '_qmt',
             Template(sql.tmplt['_qmt']).render(input=self))
-        self.utils.materializedView(
+        self.materializedView(
             'Computing predictive model as contingency table',
             self.model_id + '_m',
             Template(sql.tmplt['_m']).render(input=self))
-
         return Model.Model(bins)
+
+    def test(self):
+        print("hello")
+
+
+    def execute(self, desc, query):
+        connection = self.database.get_connection()
+        print(desc + '\nQuery: ' + query)
+        connection.execute(text(query))
+        connection.close()
+        print('OK: ' + desc)
+        print()
+
+    def executeQuery(self, desc, query):
+        connection = self.database.get_connection()
+        print('Query: ' + query)
+        results = connection.execute(text(query))
+        results = results.fetchall()
+        connection.close()
+        print('OK: ' + desc)
+        print()
+
+        return results
+
+    def materializedView(self, desc, tablename, query):
+        self.execute('Dropping table ' + tablename, '''
+            drop table if exists {}'''
+                .format(tablename))
+        self.execute(desc, '''
+            create table {} as '''
+                .format(tablename) + query)

@@ -7,7 +7,8 @@ import classifier
 import constants as cons
 import time
 import matplotlib.pyplot as plt
-
+import Database
+import Analysis
 # starting time
 start = time.time()
 
@@ -37,19 +38,25 @@ numFeatures = ["Elevation", "Horizontal_Distance_To_Fire_Points"]
 bins = 57
 catFeatures = ["Wilderness_Area", "Soil_Type"]
 
-classifier.train_test_split(1, 0.8)
+
+database = Database.Database(db)
+ay = Analysis.Analysis(database,"table_train")
+ay.estimate(catFeatures,bins,numFeatures)
+database.analyze(database,"table_train",1,"covtyptest2",0.8).estimate(catFeatures,bins,numFeatures).visualize1D()
+#
+# classifier.train_test_split(1, 0.8)
 
 # Training phase: _qt is trained on 0.8 of table ; _qmt based off of _qt ; _m based off of _qt
-classifier.train('table_train', catFeatures, bins, numFeatures)
+# classifier.train('table_train', catFeatures, bins, numFeatures)
 
 # Visualization methods
-classifier.visualize1D('Wilderness_Area', 'Covertype')
-classifier.visualize2D('Elevation', 'Wilderness_Area', 'CoverType')
+# classifier.visualize1D('Wilderness_Area', 'Covertype')
+# classifier.visualize2D('Elevation', 'Wilderness_Area', 'CoverType')
 
 # Predicting on test set: _qe tested on 0.2 of table ; _qe_ix based off of _qe ; _p ; _p_update
-classifier.predict('table_eval')
-
-classifier.accuracy()
+# classifier.predict('table_eval')
+#
+# classifier.accuracy()
 
 # end time
 end = time.time()
