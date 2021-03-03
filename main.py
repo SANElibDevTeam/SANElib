@@ -3,7 +3,6 @@
 # (c) 2020  Michael Kaufmann, Gabriel Stechschulte, Anna Huber, HSLU
 
 # coding: utf-8
-import classifier
 import constants as cons
 import time
 from Utils import *
