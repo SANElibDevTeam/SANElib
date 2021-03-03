@@ -2,11 +2,11 @@ tmplt = {}
 
 # def train_test_split():
 tmplt["_train"] = '''
-(select * from {{ input.table_train }} where rand ({{ input.seed }}) < {{ input.ratio }});
+(select * from {{ input.dataset }} where rand ({{ input.seed }}) < {{ input.ratio }});
 '''
 
 tmplt["_table_eval"] = '''
-(select * from {{ input.table_train }} where rand ({{ input.seed }}) >= {{ input.ratio }});
+(select * from {{ input.dataset }} where rand ({{ input.seed }}) >= {{ input.ratio }});
 '''
 
 # def train():
@@ -24,7 +24,7 @@ CEIL({{ input.bins }} *RANK() OVER (ORDER BY {{ i }} )*1.0/COUNT(*) OVER()) as x
 {% for i in input.numFeatures %} {{ i }} as xn{{ loop.index }}, {% endfor %}
 {% for i in input.catFeatures %} {{ i }} as xc{{ loop.index }}, {% endfor %}
 {{ input.target }} as y
-	from {{input.table_train}} )a
+	from {{input.train}} )a
 group by y
 	{% for i in input.numFeatures %} ,xq{{ loop.index }}  {% endfor %}
     {% for i in input.catFeatures %} ,xc{{ loop.index }}  {% endfor %};
@@ -101,7 +101,7 @@ tmplt["_qe"] = '''select t.*
     -- qe_nf
     {% for i in input.numFeatures %} ,{{ i }} as xn{{ loop.index }} {% endfor %}
     {% for i in input.catFeatures %} ,{{ i }} as xc{{ loop.index }} {% endfor %}
- from {{ input.table_eval }}) -- table_eval
+ from {{ input.eval }}) -- table_eval
     as t
     {% for i in input.numFeatures %}join (select i, xq, mn, mx, tmn, tmx, \
     LEAD(mn, 1) OVER (ORDER BY xq) as mx_ from {{ input.model_id }}_qmt 
