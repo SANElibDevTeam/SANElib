@@ -4,20 +4,22 @@
 
     ![Create Issue](Images/Untitled.png)
 
-2. Create new branch from main named like issue
+2. Create new branch from dev named like issue
 
     You can create a new branch directly on Git, or you can create a new branch the following:
 
     ```bash
+    git checkout dev
+    git pull
     git branch issue
     git checkout issue
     ```
 
 3. Commit your changes and push to issue branch
-4. Checkout to main branch
+4. Checkout to dev branch
 
     ```bash
-    git checkout main
+    git checkout dev
     ```
 
 5. Pull newest main branch
@@ -35,7 +37,7 @@
 7. Add new changes from main branch to feature branch
 
     ```bash
-    git merge main
+    git merge dev
     ```
 
     ![git merge main](Images/Untitled%201.png)
@@ -43,7 +45,7 @@
 8. Commit and push all changes to origin
 
     ```bash
-    git commit -m "Merged changes on main to issue branch"
+    git commit -m "Merged changes on dev to issue branch"
     git push
     ```
 
