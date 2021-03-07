@@ -1,4 +1,10 @@
+# folders
 .ipynb_checkpoints
 .idea
+.venv
+.vscode
+__pycache__
+
+# files
 *.pdf
 constants.py

@@ -1,0 +1,8 @@
+# execute 'pip install -r requirements.txt' to install all required python packages
+# run 'pip freeze' to see installed versions
+
+jinja2
+mysql
+mysql-connector-python
+plotnine
+sqlalchemy
