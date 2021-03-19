@@ -174,42 +174,48 @@ class Model():
                     if feat == feats:
                         index = self.numFeatures.index(feat) + 1
                         for i in range(1, len(self.numFeatures) + 1):
-                            if index == i:
-                                feature1 = 'xc{}'.format(i)
-                                bins = 'xq{}'.format(i)
-                                minimum = 'mn{}'.format(i)
-                                maximum = 'mx_{}'.format(i)
+                            if i == 1:
+                                bins_1 = 'xq{}'.format(i)
+                                min_1 = 'mn{}'.format(i)
+                                max_1 = 'mx_{}'.format(i)
+                            elif i == 2:
+                                bins_2 = 'xq{}'.format(i)
+                                min_2 = 'mn{}'.format(i)
+                                max_2 = 'mx_{}'.format(i)
 
             # I changed {} as xn from xc and to xn in the last query line
             multi = executeQuery('2d Discretization Histogram Estimation', '''
-                            select distinct {} as xq, {} as mn, {} as mx,
+                            select distinct {} as xq, {} as mn, {} as mx, 
                             {} as xq2, {} as mn2, {} as mx2,
                             ({}+{})/2 as x_,
-                            ({}+{}/2 as x_2
+                            ({}+{})/2 as x_2,
                             concat({}, ': ]', {}, ',', {}, ']') as bin_1,
-                            concat({}, ': ]', {}, ',', {}, ']') as bin_2  
+                            concat({}, ': ]', {}, ',', {}, ']') as bin_2,  
                             cast(y_ as char) as {},
                             sum(nxy)over(partition by {}, {}, y_)*1.0/
                             sum(nxy) over()  as p 
                             from {}_m 
-                            order by {}, {}, cast(y_ as char);'''.format(bins, minimum, maximum,
-                                                                          maximum, minimum,
-                                                                          bins, minimum, maximum,
-                                                                          feature1,
-                                                                          target,
-                                                                          feature1, bins,
-                                                                          self.model_id,
-                                                                          bins), self.analysis.engine)
+                            order by {}, {}, cast(y_ as char);'''.format(bins_1, min_1, max_1,
+                                                                         bins_2, min_2, max_2,
+                                                                         max_1, min_1,
+                                                                         max_2, min_2,
+                                                                         bins_1, min_1, max_1,
+                                                                         bins_2, min_2, max_2,
+                                                                         target,
+                                                                         bins_1, bins_2,
+                                                                         self.model_id,
+                                                                         bins_1, bins_2), self.analysis.engine)
 
             dim2 = pd.DataFrame(multi)
-            columns = ['xq', 'mn', 'mx', 'x_', 'bin', 'xq2', 'mn2', 'mx2', 'mx_2', 'bin', 'p']
-            columns.insert(6, target)
+            columns = ['xq', 'mn', 'mx', 'xq2', 'mn2', 'mx2', 'x_', 'x_2', 'bin_1', 'bin_2', 'p']
+            columns.insert(10, target)
             dim2.columns = columns
 
             print(dim2.head())
 
             dim2[['p']] = dim2[['p']].apply(pd.to_numeric)
             dim2[['x_']] = dim2[['x_']].apply(pd.to_numeric)
+            dim2[['x_2']] = dim2[['x_2']].apply(pd.to_numeric)
 
             ylabel = 'p(Q({}) x {}, {})'.format(numFeat, catFeat, target)
 
@@ -218,7 +224,7 @@ class Model():
                     + aes('x_', 'p', color=target, group=target)
                     + geom_point()
                     + geom_line()
-                    + facet_wrap('xc')
+                    #+ facet_wrap('xc')
                     + labs(y=ylabel, x=numFeat)
             )
 

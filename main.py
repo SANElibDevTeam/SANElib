@@ -9,6 +9,7 @@ from Utils import *
 import matplotlib.pyplot as plt
 import Database
 import Analysis
+import Model
 from pandas import util
 
 # starting time
@@ -29,16 +30,19 @@ db = {
 numFeatures = ["Elevation", "Horizontal_Distance_To_Fire_Points"]
 bins = 57
 catFeatures = ["Wilderness_Area", "Soil_Type"]
+# horizontal_distance_to_road_ways
 
 
-
-df= pd.DataFrame({'A' : [1,2,3]})
+df = pd.DataFrame({'A' : [1,2,3]})
 # Add df instead of already working db with
 # engine = Database.Database(dataframe=df).engine
 engine = Database.Database(db).engine
 
 ay = Analysis.Analysis(engine=engine,dataset="table_train",target='Cover_Type',seed=1,ratio=0.8,model_id='covtyptest2')
-ay.rank("table_train",catFeatures,numFeatures,bins).estimate(catFeatures,bins,numFeatures).visualize1D('Wilderness_Area', 'Covertype').predict('table_eval').accuracy()
+#ay.estimate(catFeatures, bins, numFeatures).visualize2D('Covertype', 'Elevation', 'Wilderness_Area')
+ay.estimate(catFeatures, bins, numFeatures).visualize2D('Covertype', ['Elevation', 'Horizontal_Distance_To_Fire_Points'])
+#ay.estimate(catFeatures, bins, numFeatures).visualize1D('Horizontal_Distance_To_Fire_Points', 'Covertype')
+#ay.rank("table_train",catFeatures,numFeatures,bins).estimate(catFeatures,bins,numFeatures).visualize2D('Elevation','Wilderness_Area', 'Covertype').predict('table_eval').accuracy()
 
 # Estimation phase: _qt is estimated on 0.8 of table ; _qmt based off of _qt ; _m based off of _qt
 # Predicting on test set: _qe tested on 0.2 of table ; _qe_ix based off of _qe ; _p ; _p_update
