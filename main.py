@@ -27,11 +27,9 @@ db = {
 
 
 #TODO automate attribute selection based on threshold
-numFeatures = ["Elevation", "Horizontal_Distance_To_Fire_Points"]
+numFeatures = ["Elevation", "Horizontal_Distance_To_Fire_Points"] #'horizontal_distance_to_road_ways'
 bins = 57
 catFeatures = ["Wilderness_Area", "Soil_Type"]
-# horizontal_distance_to_road_ways
-
 
 df = pd.DataFrame({'A' : [1,2,3]})
 # Add df instead of already working db with
@@ -41,7 +39,8 @@ engine = Database.Database(db).engine
 ay = Analysis.Analysis(engine=engine,dataset="table_train",target='Cover_Type',seed=1,ratio=0.8,model_id='covtyptest2')
 #ay.estimate(catFeatures, bins, numFeatures).visualize2D('Covertype', 'Elevation', 'Wilderness_Area')
 ay.estimate(catFeatures, bins, numFeatures).visualize2D('Covertype', ['Elevation', 'Horizontal_Distance_To_Fire_Points'])
-#ay.estimate(catFeatures, bins, numFeatures).visualize1D('Horizontal_Distance_To_Fire_Points', 'Covertype')
+#ay.estimate(catFeatures, bins, numFeatures).visualize2D('Covertype', catFeat=["Wilderness_Area", "Soil_Type"])
+#ay.estimate(catFeatures, bins, numFeatures).visualize1D('Wilderness_Area', 'Covertype')
 #ay.rank("table_train",catFeatures,numFeatures,bins).estimate(catFeatures,bins,numFeatures).visualize2D('Elevation','Wilderness_Area', 'Covertype').predict('table_eval').accuracy()
 
 # Estimation phase: _qt is estimated on 0.8 of table ; _qmt based off of _qt ; _m based off of _qt
