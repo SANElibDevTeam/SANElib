@@ -168,22 +168,25 @@ class Model():
                 print(p)
 
         elif type(numFeat) is list:
-            #count = 0
-            for feat in numFeat:
-                for feats in self.numFeatures:
-                    if feat == feats:
-                        index = self.numFeatures.index(feat) + 1
-                        for i in range(1, len(self.numFeatures) + 1):
-                            if i == 1:
-                                bins_1 = 'xq{}'.format(i)
-                                min_1 = 'mn{}'.format(i)
-                                max_1 = 'mx_{}'.format(i)
-                            elif i == 2:
-                                bins_2 = 'xq{}'.format(i)
-                                min_2 = 'mn{}'.format(i)
-                                max_2 = 'mx_{}'.format(i)
+            index_dict = {}
+            if len(numFeat) <= 2:
+                for feat in numFeat:
+                    for feats in self.numFeatures:
+                        if feat == feats:
+                            index = self.numFeatures.index(feat) + 1
+                            index_dict.update({feat: index})
+            else:
+                raise ValueError("Too high dimensionality to visualize")
 
-            # I changed {} as xn from xc and to xn in the last query line
+            indexList = list(index_dict.values())
+
+            binsDIM1 = 'xq{}'.format(indexList[0])
+            minDIM1 = 'mn{}'.format(indexList[0])
+            maxDIM1 = 'mx_{}'.format(indexList[0])
+            binsDIM2 = 'xq{}'.format(indexList[1])
+            minDIM2 = 'mn{}'.format(indexList[1])
+            maxDIM2 = 'mx_{}'.format(indexList[1])
+
             multi = executeQuery('2d Discretization Histogram Estimation', '''
                             select distinct {} as xq, {} as mn, {} as mx, 
                             {} as xq2, {} as mn2, {} as mx2,
@@ -195,16 +198,16 @@ class Model():
                             sum(nxy)over(partition by {}, {}, y_)*1.0/
                             sum(nxy) over()  as p 
                             from {}_m 
-                            order by {}, {}, cast(y_ as char);'''.format(bins_1, min_1, max_1,
-                                                                         bins_2, min_2, max_2,
-                                                                         max_1, min_1,
-                                                                         max_2, min_2,
-                                                                         bins_1, min_1, max_1,
-                                                                         bins_2, min_2, max_2,
+                            order by {}, {}, cast(y_ as char);'''.format(binsDIM1, minDIM1, maxDIM1,
+                                                                         binsDIM2, minDIM2, maxDIM2,
+                                                                         maxDIM1, minDIM1,
+                                                                         maxDIM2, minDIM2,
+                                                                         binsDIM1, minDIM1, maxDIM1,
+                                                                         binsDIM2, minDIM2, maxDIM2,
                                                                          target,
-                                                                         bins_1, bins_2,
+                                                                         binsDIM1, binsDIM2,
                                                                          self.model_id,
-                                                                         bins_1, bins_2), self.analysis.engine)
+                                                                         binsDIM1, binsDIM2), self.analysis.engine)
 
             dim2 = pd.DataFrame(multi)
             columns = ['xq', 'mn', 'mx', 'xq2', 'mn2', 'mx2', 'x_', 'x_2', 'bin_1', 'bin_2', 'p']
@@ -230,9 +233,53 @@ class Model():
 
             print(p)
 
-        #if numFeat in self.numFeatures:
-        #    index = self.numFeatures.index(numFeat) + 1
 
+        elif type(catFeat) is list:
+            index_dict = {}
+            if len(catFeat) <= 2:
+                for feat in catFeat:
+                    for feats in self.catFeatures:
+                        if feat == feats:
+                            index = self.catFeatures.index(feat) + 1
+                            index_dict.update({feat: index})
+            else:
+                raise ValueError("Too high dimensionality to visualize")
+
+            indexList = list(index_dict.values())
+
+            catDIM1 = 'xc{}'.format(indexList[0])
+            catDIM2 = 'xc{}'.format(indexList[1])
+            bins = 'xq1'
+
+            multi = executeQuery('Discretization 1d Categorical Histogram', '''
+                        select distinct {} as xc, {} as xc2,
+                        cast(y_ as char) as {},
+                        sum(nxy)over(partition by {}, y_)*1.0/
+                        sum(nxy) over()  as p 
+                        from {}_m 
+                        order by {}, {}, cast(y_ as char);'''.format(catDIM1, catDIM2,
+                                                                     target, bins,
+                                                                     self.model_id,
+                                                                     catDIM1, catDIM2), self.analysis.engine)
+
+            dim2 = pd.DataFrame(multi)
+            columns = ['xc', 'xc2', 'p']
+            columns.insert(2, target)
+            dim2.columns = columns
+
+            #print(dim2.head())
+
+            dim2[['p']] = dim2[['p']].apply(pd.to_numeric)
+            ylabel = 'p(Q({}) x {}, {})'.format(catFeat[0], catFeat[1], target)
+
+            p = (ggplot(dim2, aes('xc2', 'p', fill=target))
+                 + theme_bw()
+                 + geom_col(position='dodge')
+                 + facet_wrap('xc')
+                 + labs(y=ylabel, x=catFeat)
+                 )
+
+            print(p)
 
         return Prediction.Prediction(self)
 
