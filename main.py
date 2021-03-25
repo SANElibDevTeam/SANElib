@@ -12,17 +12,6 @@ import pandas as pd
 # starting time
 start = time.time()
 
-db = {
-        'drivername': 'mysql+mysqlconnector',
-        'host': cons.DB_HOST,
-        'port': cons.DB_PORT,
-        'username': cons.DB_USER,
-        'password': cons.DB_PW,
-        'database': cons.DB_NAME,
-        'query': {'charset': 'utf8'}
-    }
-
-
 #TODO automate attribute selection based on threshold
 numFeatures = ["Elevation", "Horizontal_Distance_To_Fire_Points"]
 bins = 57
