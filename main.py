@@ -3,13 +3,11 @@
 # (c) 2020  Michael Kaufmann, Gabriel Stechschulte, Anna Huber, HSLU
 
 # coding: utf-8
-import constants as cons
+import config as cons
 import time
-from Utils import *
-import matplotlib.pyplot as plt
-import Database
-import Analysis
-from pandas import util
+from util import database_connection
+import sanelib
+import pandas as pd
 
 # starting time
 start = time.time()
@@ -31,14 +29,14 @@ bins = 57
 catFeatures = ["Wilderness_Area", "Soil_Type"]
 
 
-
 df= pd.DataFrame({'A' : [1,2,3]})
 # Add df instead of already working db with
 # engine = Database.Database(dataframe=df).engine
-engine = Database.Database(db).engine
+# engine = database_connection.Database(db).engine
 
-ay = Analysis.Analysis(engine=engine,dataset="table_train",target='Cover_Type',seed=1,ratio=0.8,model_id='covtyptest2')
-ay.rank("table_train",catFeatures,numFeatures,bins).estimate(catFeatures,bins,numFeatures).visualize1D('Wilderness_Area', 'Covertype').predict('table_eval').accuracy()
+# ay = Analysis.Analysis(engine=engine)
+mdh_test = sanelib.mdh
+mdh_test.rank("table_train",catFeatures,numFeatures,bins).estimate(catFeatures,bins,numFeatures).visualize1D('Wilderness_Area', 'Covertype').predict('table_eval').accuracy()
 
 # Estimation phase: _qt is estimated on 0.8 of table ; _qmt based off of _qt ; _m based off of _qt
 # Predicting on test set: _qe tested on 0.2 of table ; _qe_ix based off of _qe ; _p ; _p_update

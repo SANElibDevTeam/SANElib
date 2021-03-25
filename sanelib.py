@@ -11,4 +11,4 @@ db = {
     'query': {'charset': 'utf8'}
 }
 
-mdh = lib.mhd.MHD(db)
+mdh = lib.mdh.MDH(db)
