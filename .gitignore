@@ -2,6 +2,7 @@
 .ipynb_checkpoints
 .idea
 .venv
+venv/
 .vscode
 __pycache__
 
