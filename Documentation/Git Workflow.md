@@ -22,7 +22,7 @@
     git checkout dev
     ```
 
-5. Pull newest main branch
+5. Pull newest dev branch
 
     ```bash
     git pull
@@ -34,7 +34,7 @@
     git checkout issue
     ```
 
-7. Add new changes from main branch to feature branch
+7. Add new changes from dev branch to feature branch
 
     ```bash
     git merge dev
@@ -50,5 +50,5 @@
     ```
 
 9. Create pull request to merge issue branch to dev branch.
-Choose the branch you want to merge on the left (here New_Software_Architecture) and the dev branch on the right.
-    ![Create Pull request](Images/Pullrequest.png)
+Choose the branch you want to merge on the right (here kmeans) and the dev branch on the left.
+    ![Create Pull request](Images/pullRequest3.png)
