@@ -1,5 +1,8 @@
+from jinja2 import Template
+
 tmpl = {}
 
-tmpl['x'] = '''
-            x
-            '''
+tmpl['table_columns'] = Template('''
+            SELECT column_name FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_SCHEMA='{{ database }}' AND TABLE_NAME='{{ table }}'
+            ''')
