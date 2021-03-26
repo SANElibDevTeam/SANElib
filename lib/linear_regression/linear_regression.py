@@ -11,7 +11,7 @@ class LinearRegression:
                         SELECT * FROM test_2.bmi_short
                         '''
         data = self.db_connection.execute_query('TEST', query_string)
-        print(np.asarray(data)[:,[1,2,3]])
+        print(np.asarray(data)[:, [1, 2, 3]])
 
     def rank(self):
         pass
@@ -21,3 +21,14 @@ class LinearRegression:
 
     def predict(self):
         pass
+
+    def __add_ones_column(self):
+        pass
+
+    def __calculate_xtx(self):
+        pass
+
+    def __calculate_xty(self):
+        pass
+
+
