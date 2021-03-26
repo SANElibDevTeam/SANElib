@@ -16,3 +16,4 @@ db = {
 }
 
 mdh = lib.mdh.MDH(db)
+linear_regression = lib.linear_regression.LinearRegression(db)

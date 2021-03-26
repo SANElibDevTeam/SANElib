@@ -6,8 +6,10 @@ from util import timer
 timer.start()
 
 # Run library
-mdh = sanelib.mdh
-mdh_example.run(mdh)
+# mdh = sanelib.mdh
+# mdh_example.run(mdh)
+lr = sanelib.linear_regression
+
 
 # End time
 timer.end()

@@ -15,6 +15,12 @@ class MDH:
         self.ratio = 0.8
         self.train = self.dataset
         self.eval = self.train
+
+        # Model
+        self.analysis = self
+        self.model_id = self.model_id
+
+    def initialize(self):
         if self.ratio != 1.0:
             self.train_test_split()
             self.train = self.model_id + '_train'
@@ -38,11 +44,6 @@ class MDH:
             #         print(self.target)
             # else:
             self.target = 'Cover_Type'
-
-        # Model
-        self.analysis = self
-        self.model_id = self.model_id
-
     def get_cat_feat(self):
 
         return self.catFeatures
