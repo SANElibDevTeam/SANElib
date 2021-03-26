@@ -1,17 +1,15 @@
-import time
 import sanelib
 from lib.mdh import example as mdh_example
+from util import timer
 
 # Starting time
-start = time.time()
+timer.start()
 
 # Run library
 mdh = sanelib.mdh
 mdh_example.run(mdh)
 
 # End time
-end = time.time()
+timer.end()
 
-# Total time taken
-print(f"Runtime: {end - start} [s]")
 

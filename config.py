@@ -1,8 +1,8 @@
 """
 Config for accessing database.
 """
-DB_HOST = "HOST"
-DB_USER = "USER"
-DB_PW = "PW"
-DB_NAME = "DB"
-DB_PORT = 9999
+DB_HOST = "localhost"
+DB_USER = "root"
+DB_PW = "root"
+DB_NAME = "test_1"
+DB_PORT = 3306
