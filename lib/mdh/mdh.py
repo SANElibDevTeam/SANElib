@@ -44,6 +44,7 @@ class MDH:
             #         print(self.target)
             # else:
             self.target = 'Cover_Type'
+
     def get_cat_feat(self):
 
         return self.catFeatures
@@ -79,8 +80,8 @@ class MDH:
             'Computing 1d contingecies with target',
             self.model_id + '_m1d',
             Template(sql.tmplt['_m1d']).render(input=self), self.engine)
-        results = self.db_connectionn.executeQuery('Computing mutual information with target',
-                                                   Template(sql.tmplt["_m1d_mi"]).render(input=self), self.engine)
+        results = self.db_connectionn.execute_query('Computing mutual information with target',
+                                                    Template(sql.tmplt["_m1d_mi"]).render(input=self), self.engine)
         df = pd.DataFrame(results)
         df.columns = ['f', 'mi']
         print(df)
@@ -105,7 +106,7 @@ class MDH:
         """
 
         if numFeatures is None:
-            allColumns = self.db_connectionn.executeQuery('Querying for all of the columns', '''
+            allColumns = self.db_connectionn.execute_query('Querying for all of the columns', '''
             SELECT COLUMN_NAME
             FROM INFORMATION_SCHEMA.COLUMNS
             WHERE TABLE_NAME = '{}';  #table_train
@@ -150,7 +151,7 @@ class MDH:
                     minimum = 'mn{}'.format(i)
                     maximum = 'mx_{}'.format(i)
 
-            num = self.db_connectionn.executeQuery('Discretization 1d Numerical Histogram', '''
+            num = self.db_connectionn.execute_query('Discretization 1d Numerical Histogram', '''
                         select distinct {} as xq, {} as mn, {} as mx, 
                         ({}+{})/2 as x_,
                         concat({}, ': ]', {}, ',', {}, ']') as bin, 
@@ -195,7 +196,7 @@ class MDH:
                     bins = 'xq{}'.format(i)
 
             # Categorical
-            cat = self.db_connectionn.executeQuery('Discretization 1d Categorical Histogram', '''
+            cat = self.db_connectionn.execute_query('Discretization 1d Categorical Histogram', '''
                         select distinct {} as xc, 
                         cast(y_ as char) as {},
                         sum(nxy)over(partition by {}, y_)*1.0/
@@ -236,7 +237,7 @@ class MDH:
                     minimum = 'mn{}'.format(i)
                     maximum = 'mx_{}'.format(i)
 
-            multi = self.db_connectionn.executeQuery('2d Discretization Histogram Estimation', '''
+            multi = self.db_connectionn.execute_query('2d Discretization Histogram Estimation', '''
                         select distinct {} as xq, {} as mn, {} as mx, 
                         ({}+{})/2 as x_,
                         concat({}, ': ]', {}, ',', {}, ']') as bin,
@@ -305,7 +306,7 @@ class MDH:
         Computing the accuracy of the model and returning the results to the user
         """
 
-        results = self.db_connectionn.executeQuery('Computing evaluation accuracy', '''
+        results = self.db_connectionn.execute_query('Computing evaluation accuracy', '''
             select
             count(distinct id) as  cases,
             sum(case when e.y = p.y_ then 1 else 0 end) as tp,

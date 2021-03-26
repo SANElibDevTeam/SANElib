@@ -9,6 +9,7 @@ timer.start()
 # mdh = sanelib.mdh
 # mdh_example.run(mdh)
 lr = sanelib.linear_regression
+lr.estimate()
 
 
 # End time
