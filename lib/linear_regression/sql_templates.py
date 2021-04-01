@@ -12,12 +12,20 @@ tmpl['add_ones_column'] = Template('''
             ''')
 
 tmpl['init_calculation_table'] = Template('''
-            CREATE TABLE IF NOT EXISTS `{{ database }}`.`{{ table }}` (
-                `id` INT NOT NULL AUTO_INCREMENT,
+            CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
+                id INT NOT NULL AUTO_INCREMENT,
                 {% for x in x_columns %}
-                    `{{ x }}` DOUBLE NULL,
+                    {{ x }} DOUBLE NULL,
                 {% endfor %}
-                `y` DOUBLE NULL,
-            PRIMARY KEY (`id`),
-            UNIQUE INDEX `id_UNIQUE` (`id` ASC) VISIBLE)
+                y DOUBLE NULL,
+            PRIMARY KEY (id),
+            UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE)
+            ''')
+
+tmpl['init_result_table'] = Template('''
+            CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
+                id INT NOT NULL AUTO_INCREMENT,
+                theta DOUBLE NULL,
+            PRIMARY KEY (id),
+            UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
             ''')

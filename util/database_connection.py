@@ -37,7 +37,7 @@ class Database:
         print('OK: ' + desc)
         print()
 
-    def execute_query_without_results(self, query, engine=None):
+    def execute_query_without_result(self, query, engine=None):
         if engine is None:
             connection = self.get_connection(self.engine)
         else:
