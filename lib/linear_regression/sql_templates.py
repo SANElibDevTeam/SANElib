@@ -8,5 +8,16 @@ tmpl['table_columns'] = Template('''
             ''')
 
 tmpl['add_ones_column'] = Template('''
-            ALTER TABLE {{ table }} ADD COLUMN {{ column_name }} INT DEFAULT 1
+            ALTER TABLE {{ table }} ADD COLUMN {{ column }} INT DEFAULT 1
+            ''')
+
+tmpl['init_calculation_table'] = Template('''
+            CREATE TABLE IF NOT EXISTS `{{ database }}`.`{{ table }}` (
+                `id` INT NOT NULL AUTO_INCREMENT,
+                {% for x in x_columns %}
+                    `{{ x }}` DOUBLE NULL,
+                {% endfor %}
+                `y` DOUBLE NULL,
+            PRIMARY KEY (`id`),
+            UNIQUE INDEX `id_UNIQUE` (`id` ASC) VISIBLE)
             ''')
