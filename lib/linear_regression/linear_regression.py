@@ -16,7 +16,7 @@ class LinearRegression:
         # self.__init_calculation_table("test_2", "linreg_m1_calculation", 3)
         # self.__init_result_table("test_2", "linreg_m1_result")
         # self.__calculate_equations("linreg_m1_calculation", "bmi_short", 3)
-        print(self.get_coefficients())
+        print(self.get_coefficients("test_2", "linreg_m1_calculation", 3))
 
 
     def accuracy(self):
@@ -25,10 +25,10 @@ class LinearRegression:
     def predict(self):
         pass
 
-    def get_coefficients(self):
-        equations = self.__get_equations("test_2", "linreg_m1_calculation")
-        xtx = equations[:, 1:4]
-        xty = equations[:, 4]
+    def get_coefficients(self, database, table, input_size):
+        equations = self.__get_equations(database, table)
+        xtx = equations[:, 1:input_size+1]
+        xty = equations[:, input_size+1]
         theta = np.linalg.solve(xtx, xty)
         return theta
 
