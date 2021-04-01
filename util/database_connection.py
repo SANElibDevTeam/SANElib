@@ -45,7 +45,7 @@ class Database:
         connection.execute(text(query))
         connection.close()
 
-    def execute_query(self, desc, query, engine=None):
+    def execute_query(self, query, engine=None):
         if engine is None:
             connection = self.get_connection(self.engine)
         else:
@@ -53,7 +53,6 @@ class Database:
         results = connection.execute(text(query))
         results = results.fetchall()
         connection.close()
-        print('OK: ' + desc)
 
         return results
 

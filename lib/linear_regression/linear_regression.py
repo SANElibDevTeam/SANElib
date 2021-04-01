@@ -12,15 +12,11 @@ class LinearRegression:
         self.y_column = None
 
     def estimate(self):
-        self.__add_ones_column("test_2", "bmi_short")
-        self.__init_calculation_table("test_2", "linreg_m1_calculation", 3)
-        self.__init_result_table("test_2", "linreg_m1_result")
-        self.__calculate_equations("linreg_m1_calculation", "bmi_short", 3)
-        equations = self.__get_equations("test_2", "linreg_m1_calculation")
-        xtx = equations[:, 1:4]
-        xty = equations[:, 4]
-        theta = np.linalg.solve(xtx, xty)
-        print(theta)
+        # self.__add_ones_column("test_2", "bmi_short")
+        # self.__init_calculation_table("test_2", "linreg_m1_calculation", 3)
+        # self.__init_result_table("test_2", "linreg_m1_result")
+        # self.__calculate_equations("linreg_m1_calculation", "bmi_short", 3)
+        print(self.get_coefficients())
 
 
     def accuracy(self):
@@ -30,16 +26,20 @@ class LinearRegression:
         pass
 
     def get_coefficients(self):
-        pass
+        equations = self.__get_equations("test_2", "linreg_m1_calculation")
+        xtx = equations[:, 1:4]
+        xty = equations[:, 4]
+        theta = np.linalg.solve(xtx, xty)
+        return theta
 
     def __get_equations(self, database, table):
         query_string = sql_templates.tmpl['get_all_from'].render(database=database, table=table)
-        data = self.db_connection.execute_query('get_equations', query_string)
+        data = self.db_connection.execute_query(query_string)
         return np.asarray(data)
 
     def __get_column_names(self, database, table):
         query_string = sql_templates.tmpl['table_columns'].render(database=database, table=table)
-        data = self.db_connection.execute_query('table_columns', query_string)
+        data = self.db_connection.execute_query(query_string)
         return np.asarray(data)
 
     def __init_calculation_table(self, database, table, input_size):
