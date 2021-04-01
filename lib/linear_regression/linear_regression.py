@@ -1,4 +1,5 @@
 from util.database_connection import Database
+from lib.linear_regression.model import Model
 import numpy as np
 from lib.linear_regression import sql_templates
 
@@ -6,29 +7,48 @@ from lib.linear_regression import sql_templates
 class LinearRegression:
     def __init__(self, db):
         self.db_connection = Database(db)
-        self.models = None
-        self.active_model = None
+        self.database = db["database"]
+        self.model = None
 
-    def estimate(self, input_table, x_columns, y_column):
-        # self.__add_ones_column("test_2", "bmi_short")
-        # self.__init_calculation_table("test_2", "linreg_m1_calculation", 3)
-        # self.__init_result_table("test_2", "linreg_m1_result")
-        # self.__calculate_equations("linreg_m1_calculation", "bmi_short", 3)
-        print(self.get_coefficients("test_2", "linreg_m1_calculation", 3))
-
-
-    def accuracy(self):
+    def save_model(self):
         pass
 
-    def predict(self):
+    def load_model(self):
+        pass
+
+    def drop_model(self, model_id):
+        pass
+
+    def estimate(self, table, x_columns, y_column):
+        self.model = Model(table, x_columns, y_column)
+        # self.__add_ones_column(self.database, table)
+        # self.__init_calculation_table(self.database, "linreg_"+self.model.id+"_calculation", self.model.input_size)
+        # self.__init_result_table(self.database, "linreg_"+self.model.id+"_result")
+        # self.__calculate_equations("linreg_"+self.model.id+"_calculation", "bmi_short", self.model.input_size)
+        equations = self.__get_equations(self.database, "linreg_"+self.model.id+"_calculation")
+        xtx = equations[:, 1:self.model.input_size + 1]
+        xty = equations[:, self.model.input_size + 1]
+        theta = np.linalg.solve(xtx, xty)
+        print(theta)
+
+    def score(self):
+        pass
+
+    def predict(self, table=None, x_columns=None):
+        pass
+
+    def predict_array(self, data=None):
         pass
 
     def get_coefficients(self, database, table, input_size):
-        equations = self.__get_equations(database, table)
-        xtx = equations[:, 1:input_size+1]
-        xty = equations[:, input_size+1]
-        theta = np.linalg.solve(xtx, xty)
-        return theta
+        pass
+    # TODO query result table
+
+    def __drop_model_0(self):
+        pass
+
+    def __get_available_model_ids(self):
+        pass
 
     def __get_equations(self, database, table):
         query_string = sql_templates.tmpl['get_all_from'].render(database=database, table=table)
@@ -42,7 +62,7 @@ class LinearRegression:
 
     def __init_calculation_table(self, database, table, input_size):
         x = []
-        for i in range(input_size + 1):
+        for i in range(input_size):
             x.append('x' + str(i))
         query_string = sql_templates.tmpl['init_calculation_table'].render(database=database, table=table, x_columns=x)
         self.db_connection.execute_query_without_result(query_string)
@@ -52,12 +72,12 @@ class LinearRegression:
         self.db_connection.execute_query_without_result(query_string)
 
     def __add_ones_column(self, database, table):
-        if 'linreg_m1_ones' not in self.__get_column_names(database, table):
-            query_string = sql_templates.tmpl['add_ones_column'].render(table=table, column='linreg_m1_ones')
+        if 'linreg_'+self.model.id+'_ones' not in self.__get_column_names(database, table):
+            query_string = sql_templates.tmpl['add_ones_column'].render(table=table, column='linreg_'+self.model.id+'_ones')
             self.db_connection.execute_query_without_result(query_string)
 
     def __calculate_equations(self, table, table_input, input_size):
-        columns = ['linreg_m1_ones', 'Height_Inches', 'Weight_Pounds', 'BMI']
+        columns = ['linreg_'+self.model.id+'_ones', 'Height_Inches', 'Weight_Pounds', 'BMI']
 
         for i in range(input_size):
             sum_statements = []
@@ -69,6 +89,3 @@ class LinearRegression:
 
             query_string = sql_templates.tmpl['calculate_equations'].render(table=table, table_input=table_input, sum_statements=sum_statements)
             self.db_connection.execute_query_without_result(query_string)
-
-
-
