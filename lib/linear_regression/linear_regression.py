@@ -8,10 +8,8 @@ class LinearRegression:
         self.db_connection = Database(db)
         self.models = None
         self.active_model = None
-        self.x_columns = None
-        self.y_column = None
 
-    def estimate(self):
+    def estimate(self, input_table, x_columns, y_column):
         # self.__add_ones_column("test_2", "bmi_short")
         # self.__init_calculation_table("test_2", "linreg_m1_calculation", 3)
         # self.__init_result_table("test_2", "linreg_m1_result")
