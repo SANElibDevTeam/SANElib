@@ -12,6 +12,7 @@ lr = sanelib.linear_regression
 x_columns = ['Height_Inches', 'Weight_Pounds']
 y_column = ['BMI']
 lr.estimate("bmi_short", x_columns, y_column)
+print(lr.get_coefficients())
 
 
 # End time

@@ -2,6 +2,10 @@ from jinja2 import Template
 
 tmpl = {}
 
+tmpl['select_x_from'] = Template('''
+            SELECT {{ x }} FROM {{ database }}.{{ table }};
+            ''')
+
 tmpl['get_all_from'] = Template('''
             SELECT * FROM {{ database }}.{{ table }};
             ''')
@@ -9,6 +13,10 @@ tmpl['get_all_from'] = Template('''
 tmpl['table_columns'] = Template('''
             SELECT column_name FROM INFORMATION_SCHEMA.COLUMNS 
             WHERE TABLE_SCHEMA='{{ database }}' AND TABLE_NAME='{{ table }}';
+            ''')
+
+tmpl['drop_table'] = Template('''
+            DROP TABLE {{ table }};
             ''')
 
 tmpl['add_ones_column'] = Template('''
@@ -42,3 +50,9 @@ tmpl['calculate_equations'] = Template('''
                 {% endfor %}
             );
             ''')
+
+tmpl['save_theta'] = Template('''
+            INSERT INTO {{ table }} (theta)
+            VALUES ({{ value }});
+            ''')
+

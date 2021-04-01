@@ -21,15 +21,17 @@ class LinearRegression:
 
     def estimate(self, table, x_columns, y_column):
         self.model = Model(table, x_columns, y_column)
-        # self.__add_ones_column(self.database, table)
-        # self.__init_calculation_table(self.database, "linreg_"+self.model.id+"_calculation", self.model.input_size)
-        # self.__init_result_table(self.database, "linreg_"+self.model.id+"_result")
-        # self.__calculate_equations("linreg_"+self.model.id+"_calculation", "bmi_short", self.model.input_size)
+        self.__add_ones_column(self.database, table)
+        self.__init_calculation_table(self.database, "linreg_"+self.model.id+"_calculation", self.model.input_size)
+        self.__init_result_table(self.database, "linreg_"+self.model.id+"_result")
+        self.__calculate_equations("linreg_"+self.model.id+"_calculation", "bmi_short", self.model.input_size)
         equations = self.__get_equations(self.database, "linreg_"+self.model.id+"_calculation")
         xtx = equations[:, 1:self.model.input_size + 1]
         xty = equations[:, self.model.input_size + 1]
         theta = np.linalg.solve(xtx, xty)
-        print(theta)
+        for x in theta:
+            query_string = sql_templates.tmpl['save_theta'].render(table="linreg_"+self.model.id+"_result", value=x)
+            self.db_connection.execute_query_without_result(query_string)
 
     def score(self):
         pass
@@ -40,9 +42,10 @@ class LinearRegression:
     def predict_array(self, data=None):
         pass
 
-    def get_coefficients(self, database, table, input_size):
-        pass
-    # TODO query result table
+    def get_coefficients(self):
+        query_string = sql_templates.tmpl['select_x_from'].render(x='theta', database=self.database, table='linreg_'+self.model.id+'_result')
+        data = self.db_connection.execute_query(query_string)
+        return np.asarray(data)
 
     def __drop_model_0(self):
         pass
@@ -61,6 +64,8 @@ class LinearRegression:
         return np.asarray(data)
 
     def __init_calculation_table(self, database, table, input_size):
+        query_string = sql_templates.tmpl['drop_table'].render(table=table)
+        self.db_connection.execute_query_without_result(query_string)
         x = []
         for i in range(input_size):
             x.append('x' + str(i))
@@ -68,6 +73,8 @@ class LinearRegression:
         self.db_connection.execute_query_without_result(query_string)
 
     def __init_result_table(self, database, table):
+        query_string = sql_templates.tmpl['drop_table'].render(table=table)
+        self.db_connection.execute_query_without_result(query_string)
         query_string = sql_templates.tmpl['init_result_table'].render(database=database, table=table)
         self.db_connection.execute_query_without_result(query_string)
 

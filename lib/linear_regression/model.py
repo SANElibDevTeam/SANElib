@@ -7,6 +7,9 @@ class Model:
         self.y_column = y_column
         self.input_size = len(x_columns) + 1
 
+    def set_id(self, id):
+        self.id = id
+
     def set_name(self, name):
         self.name = name
 
