@@ -2,13 +2,17 @@ from jinja2 import Template
 
 tmpl = {}
 
+tmpl['get_all_from'] = Template('''
+            SELECT * FROM {{ database }}.{{ table }};
+            ''')
+
 tmpl['table_columns'] = Template('''
             SELECT column_name FROM INFORMATION_SCHEMA.COLUMNS 
-            WHERE TABLE_SCHEMA='{{ database }}' AND TABLE_NAME='{{ table }}'
+            WHERE TABLE_SCHEMA='{{ database }}' AND TABLE_NAME='{{ table }}';
             ''')
 
 tmpl['add_ones_column'] = Template('''
-            ALTER TABLE {{ table }} ADD COLUMN {{ column }} INT DEFAULT 1
+            ALTER TABLE {{ table }} ADD COLUMN {{ column }} INT DEFAULT 1;
             ''')
 
 tmpl['init_calculation_table'] = Template('''
@@ -19,7 +23,7 @@ tmpl['init_calculation_table'] = Template('''
                 {% endfor %}
                 y DOUBLE NULL,
             PRIMARY KEY (id),
-            UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE)
+            UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
             ''')
 
 tmpl['init_result_table'] = Template('''
@@ -28,4 +32,13 @@ tmpl['init_result_table'] = Template('''
                 theta DOUBLE NULL,
             PRIMARY KEY (id),
             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
+            ''')
+
+tmpl['calculate_equations'] = Template('''
+            INSERT INTO {{ table }}(x0,x1,x2,y) 
+            VALUES(
+                {% for sum_statement in sum_statements %}
+                    (SELECT {{ sum_statement }}
+                {% endfor %}
+            );
             ''')
