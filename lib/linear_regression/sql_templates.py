@@ -16,7 +16,7 @@ tmpl['table_columns'] = Template('''
             ''')
 
 tmpl['drop_table'] = Template('''
-            DROP TABLE {{ table }};
+            DROP TABLE IF EXISTS {{ table }};
             ''')
 
 tmpl['add_ones_column'] = Template('''
@@ -38,6 +38,14 @@ tmpl['init_result_table'] = Template('''
             CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
                 id INT NOT NULL AUTO_INCREMENT,
                 theta DOUBLE NULL,
+            PRIMARY KEY (id),
+            UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
+            ''')
+
+tmpl['init_prediction_table'] = Template('''
+            CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
+                id INT NOT NULL AUTO_INCREMENT,
+                y_tilde DOUBLE NULL,
             PRIMARY KEY (id),
             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
             ''')
