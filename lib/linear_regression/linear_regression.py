@@ -61,6 +61,12 @@ class LinearRegression:
     def predict_array(self, data):
         return self
 
+    def get_prediction_array(self):
+        query_string = sql_templates.tmpl['select_x_from'].render(x='y_tilde', database=self.database,
+                                                                  table='linreg_' + self.model.id + '_prediction')
+        data = self.db_connection.execute_query(query_string)
+        return np.asarray(data)
+
     def get_coefficients(self):
         query_string = sql_templates.tmpl['select_x_from'].render(x='theta', database=self.database,
                                                                   table='linreg_' + self.model.id + '_result')
