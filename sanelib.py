@@ -5,6 +5,7 @@
 import constants as cons
 import lib
 import util.log_handler
+from util.database_connection import Database
 
 db_connection = {
     "drivername": "mysql+mysqlconnector",
@@ -16,4 +17,4 @@ db_connection = {
     "query": {"charset": "utf8"}
 }
 
-kmeans = lib.kmeans.KMeans(db_connection)
+kmeans = lib.kmeans.KMeans(Database(db_connection))

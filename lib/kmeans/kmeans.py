@@ -1,9 +1,7 @@
-from util.database_connection import Database
-
 
 class KMeans:
-    def __init__(self, db_connection):
-        self.__db = Database(db_connection)
+    def __init__(self, db):
+        self.__db = db
     
     def __generate_sql(self, tablename, feature_names, k, model_identifier, n):
         d = len(feature_names)
