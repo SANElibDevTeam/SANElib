@@ -59,6 +59,11 @@ tmpl['calculate_equations'] = Template('''
             );
             ''')
 
+tmpl['predict'] = Template('''
+            INSERT INTO {{ table }} (y_tilde) 
+            SELECT {{ prediction_statement }} FROM {{ input_table }};;
+            ''')
+
 tmpl['save_theta'] = Template('''
             INSERT INTO {{ table }} (theta)
             VALUES ({{ value }});

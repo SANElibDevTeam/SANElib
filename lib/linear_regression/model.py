@@ -9,29 +9,14 @@ class Model:
         self.prediction_columns = self.x_columns
         self.input_size = len(x_columns) + 1
 
+    def set_prediction_table(self):
+        pass
+
+    def set_prediction_columns(self):
+        pass
+
     def set_id(self, id):
         self.id = id
 
     def set_name(self, name):
         self.name = name
-
-    def get_name(self):
-        return self.name
-
-    def get_id(self):
-        return self.id
-
-    def get_x_columns(self):
-        return self.x_columns
-
-    def get_y_column(self):
-        return self.y_column
-
-    def get_input_size(self):
-        return self.input_size
-
-    def get_coefficients(self):
-        pass
-
-    def get_accuracy(self):
-        pass
