@@ -41,21 +41,23 @@ class LinearRegression:
         return self
 
     def predict(self, table=None, x_columns=None):
-        if table is None or x_columns is None:
-            input_table = self.model.prediction_table
-            self.__init_prediction_table("linreg_" + self.model.id + "_prediction")
-            coefficients = self.get_coefficients()
-            prediction_statement = str(coefficients[0][0])
-            for i in range(self.model.input_size - 1):
-                prediction_statement = prediction_statement + " + " + self.model.prediction_columns[i] + "*" + \
-                                       str(coefficients[i + 1][0])
+        self.__init_prediction_table("linreg_" + self.model.id + "_prediction")
+        if table is not None and x_columns is not None:
+            self.model.prediction_table = table
+            self.model.prediction_columns = x_columns
 
-            query_string = sql_templates.tmpl['predict'].render(table="linreg_" + self.model.id + "_prediction",
-                                                                input_table=input_table,
-                                                                prediction_statement=prediction_statement)
+        input_table = self.model.prediction_table
+        coefficients = self.get_coefficients()
+        prediction_statement = str(coefficients[0][0])
+        for i in range(self.model.input_size - 1):
+            prediction_statement = prediction_statement + " + " + self.model.prediction_columns[i] + "*" + \
+                                    str(coefficients[i + 1][0])
 
-            self.db_connection.execute_query_without_result(query_string)
+        query_string = sql_templates.tmpl['predict'].render(table="linreg_" + self.model.id + "_prediction",
+                                                            input_table=input_table,
+                                                            prediction_statement=prediction_statement)
 
+        self.db_connection.execute_query_without_result(query_string)
         return self
 
     def predict_array(self, data):
