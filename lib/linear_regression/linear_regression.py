@@ -36,12 +36,17 @@ class LinearRegression:
         xty = equations[:, self.model.input_size + 1]
         theta = np.linalg.solve(xtx, xty)
         for x in theta:
-            query_string = sql_templates.tmpl['save_theta'].render(table="linreg_" + self.model.id + "_result", value=x)
-            self.db_connection.execute(query_string)
+            sql_statement = sql_templates.tmpl['save_theta'].render(table="linreg_" + self.model.id + "_result",
+                                                                    value=x)
+            self.db_connection.execute(sql_statement)
         return self
 
     def score(self):
-        return self
+        self.__init_score_table("linreg_" + self.model.id + "_score")
+        sql_statement = sql_templates.tmpl['calculate_save_score'].render(table_id='linreg_' + self.model.id,
+                                                                          input_table=self.model.input_table,
+                                                                          y=self.model.y_column[0])
+        self.db_connection.execute(sql_statement)
 
     def predict(self, table=None, x_columns=None):
         self.__init_prediction_table("linreg_" + self.model.id + "_prediction")
@@ -54,68 +59,80 @@ class LinearRegression:
         prediction_statement = str(coefficients[0][0])
         for i in range(self.model.input_size - 1):
             prediction_statement = prediction_statement + " + " + self.model.prediction_columns[i] + "*" + \
-                                    str(coefficients[i + 1][0])
-        query_string = sql_templates.tmpl['predict'].render(table="linreg_" + self.model.id + "_prediction",
-                                                            input_table=input_table,
-                                                            prediction_statement=prediction_statement)
-        self.db_connection.execute(query_string)
+                                   str(coefficients[i + 1][0])
+        sql_statement = sql_templates.tmpl['predict'].render(table="linreg_" + self.model.id + "_prediction",
+                                                             input_table=input_table,
+                                                             prediction_statement=prediction_statement)
+        self.db_connection.execute(sql_statement)
         return self
 
     def predict_array(self, data):
         return self
 
     def get_prediction_array(self):
-        query_string = sql_templates.tmpl['select_x_from'].render(x='y_tilde', database=self.database,
-                                                                  table='linreg_' + self.model.id + '_prediction')
-        data = self.db_connection.execute_query(query_string)
+        sql_statement = sql_templates.tmpl['select_x_from'].render(x='y_prediction', database=self.database,
+                                                                   table='linreg_' + self.model.id + '_prediction')
+        data = self.db_connection.execute_query(sql_statement)
         return np.asarray(data)
 
     def get_coefficients(self):
-        query_string = sql_templates.tmpl['select_x_from'].render(x='theta', database=self.database,
-                                                                  table='linreg_' + self.model.id + '_result')
-        data = self.db_connection.execute_query(query_string)
+        sql_statement = sql_templates.tmpl['select_x_from'].render(x='theta', database=self.database,
+                                                                   table='linreg_' + self.model.id + '_result')
+        data = self.db_connection.execute_query(sql_statement)
         return np.asarray(data)
 
+    def get_score(self):
+        sql_statement = sql_templates.tmpl['select_x_from'].render(x='score', database=self.database,
+                                                                   table='linreg_' + self.model.id + '_score')
+        data = self.db_connection.execute_query(sql_statement)
+        return np.asarray(data)[0][0]
+
     def __get_equations(self, table):
-        query_string = sql_templates.tmpl['get_all_from'].render(database=self.database, table=table)
-        data = self.db_connection.execute_query(query_string)
+        sql_statement = sql_templates.tmpl['get_all_from'].render(database=self.database, table=table)
+        data = self.db_connection.execute_query(sql_statement)
         return np.asarray(data)
 
     def __get_column_names(self, table):
-        query_string = sql_templates.tmpl['table_columns'].render(database=self.database, table=table)
-        data = self.db_connection.execute_query(query_string)
+        sql_statement = sql_templates.tmpl['table_columns'].render(database=self.database, table=table)
+        data = self.db_connection.execute_query(sql_statement)
         return np.asarray(data)
 
-    def __init_prediction_table(self, table):
-        query_string = sql_templates.tmpl['drop_table'].render(table=table)
-        self.db_connection.execute(query_string)
-        query_string = sql_templates.tmpl['init_prediction_table'].render(database=self.database, table=table)
-        self.db_connection.execute(query_string)
-
     def __init_calculation_table(self, table, input_size):
-        query_string = sql_templates.tmpl['drop_table'].render(table=table)
-        self.db_connection.execute(query_string)
+        sql_statement = sql_templates.tmpl['drop_table'].render(table=table)
+        self.db_connection.execute(sql_statement)
         x = []
         for i in range(input_size):
             x.append('x' + str(i))
-        query_string = sql_templates.tmpl['init_calculation_table'].render(database=self.database, table=table,
-                                                                           x_columns=x)
-        self.db_connection.execute(query_string)
+        sql_statement = sql_templates.tmpl['init_calculation_table'].render(database=self.database, table=table,
+                                                                            x_columns=x)
+        self.db_connection.execute(sql_statement)
 
     def __init_result_table(self, table):
-        query_string = sql_templates.tmpl['drop_table'].render(table=table)
-        self.db_connection.execute(query_string)
-        query_string = sql_templates.tmpl['init_result_table'].render(database=self.database, table=table)
-        self.db_connection.execute(query_string)
+        sql_statement = sql_templates.tmpl['drop_table'].render(table=table)
+        self.db_connection.execute(sql_statement)
+        sql_statement = sql_templates.tmpl['init_result_table'].render(database=self.database, table=table)
+        self.db_connection.execute(sql_statement)
+
+    def __init_prediction_table(self, table):
+        sql_statement = sql_templates.tmpl['drop_table'].render(table=table)
+        self.db_connection.execute(sql_statement)
+        sql_statement = sql_templates.tmpl['init_prediction_table'].render(database=self.database, table=table)
+        self.db_connection.execute(sql_statement)
+
+    def __init_score_table(self, table):
+        sql_statement = sql_templates.tmpl['drop_table'].render(table=table)
+        self.db_connection.execute(sql_statement)
+        sql_statement = sql_templates.tmpl['init_score_table'].render(database=self.database, table=table)
+        self.db_connection.execute(sql_statement)
 
     def __add_ones_column(self, table):
-        if 'linreg_' + self.model.id + '_ones' not in self.__get_column_names(table):
-            query_string = sql_templates.tmpl['add_ones_column'].render(table=table,
-                                                                        column='linreg_' + self.model.id + '_ones')
-            self.db_connection.execute(query_string)
+        if 'linreg_ones' not in self.__get_column_names(table):
+            sql_statement = sql_templates.tmpl['add_ones_column'].render(table=table,
+                                                                         column='linreg_ones')
+            self.db_connection.execute(sql_statement)
 
     def __calculate_equations(self, table, table_input, input_size):
-        columns = ['linreg_' + self.model.id + '_ones', 'Height_Inches', 'Weight_Pounds', 'BMI']
+        columns = ['linreg_ones', 'Height_Inches', 'Weight_Pounds', 'BMI']
         for i in range(input_size):
             sum_statements = []
             for j in range(input_size + 1):
@@ -123,6 +140,6 @@ class LinearRegression:
                     sum_statements.append("sum(" + columns[i] + "*" + columns[j] + ") FROM " + table_input + "),")
                 else:
                     sum_statements.append("sum(" + columns[i] + "*" + columns[j] + ") FROM " + table_input + ")")
-            query_string = sql_templates.tmpl['calculate_equations'].render(table=table, table_input=table_input,
-                                                                            sum_statements=sum_statements)
-            self.db_connection.execute(query_string)
+            sql_statement = sql_templates.tmpl['calculate_equations'].render(table=table, table_input=table_input,
+                                                                             sum_statements=sum_statements)
+            self.db_connection.execute(sql_statement)
