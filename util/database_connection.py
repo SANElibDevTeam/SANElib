@@ -6,7 +6,7 @@ from sqlalchemy.engine.url import URL
 
 
 class Database:
-    def __init__(self, db_connection=None, dataframe=pd.DataFrame({'A': []}), dfname="DF_NAME"):
+    def __init__(self, db_connection=None, dataframe=pd.DataFrame({"A": []}), dfname="DF_NAME"):
         if db_connection is not None:
             self.engine = create_engine(URL(**db_connection), pool_pre_ping=True)
         elif not dataframe.empty:
@@ -35,6 +35,7 @@ class Database:
             connection = self.get_connection(self.engine)
         else:
             connection = self.get_connection(engine)
+        logging.debug(f"execute sql: {query}")
         connection.execute(text(query))
         connection.close()
 
@@ -43,6 +44,7 @@ class Database:
             connection = self.get_connection(self.engine)
         else:
             connection = self.get_connection(engine)
+        logging.debug(f"execute sql: {query}")
         results = connection.execute(text(query))
         results = results.fetchall()
         connection.close()
