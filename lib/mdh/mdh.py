@@ -290,14 +290,12 @@ class MDH:
             'Quantization metadata for evaluation table',
             self.model_id + '_qe',
             Template(sql.tmplt['_qe']).render(input=self), self.engine)  ## generate SQL using Jinja 2 template
-        self.db_connectionn.execute('Creating index _qe ',
-                                    Template(sql.tmplt['_qe_ix']).render(input=self), self.engine)
+        self.db_connectionn.execute(Template(sql.tmplt['_qe_ix']).render(input=self), self.engine)
         self.db_connectionn.materializedView(
             'Class prediction for evaluation dataset',
             self.model_id + '_p',
             Template(sql.tmplt['_p']).render(input=self), self.engine)  ## generate SQL using Jinja 2 template
-        self.db_connectionn.execute('Updating prediction with default prediction for null predictions',
-                                    Template(sql.tmplt['_p_update']).render(input=self), self.engine)
+        self.db_connectionn.execute(Template(sql.tmplt['_p_update']).render(input=self), self.engine)
         return self
 
     def accuracy(self):

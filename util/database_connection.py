@@ -29,15 +29,7 @@ class Database:
         """
         return self.engine.connect()
 
-    def execute(self, desc, query, engine):
-        connection = self.get_connection(engine)
-        print(desc + '\nQuery: ' + query)
-        connection.execute(text(query))
-        connection.close()
-        print('OK: ' + desc)
-        print()
-
-    def execute_query_without_result(self, query, engine=None):
+    def execute(self, query, engine=None):
         if engine is None:
             connection = self.get_connection(self.engine)
         else:
@@ -57,9 +49,10 @@ class Database:
         return results
 
     def materializedView(self, desc, tablename, query, engine):
-        self.execute('Dropping table ' + tablename, '''
+        print("MaterializedView: " + desc)
+        self.execute('''
             drop table if exists {}'''
                      .format(tablename), engine)
-        self.execute(desc, '''
+        self.execute('''
             create table {} as '''
                      .format(tablename) + query, engine)
