@@ -30,7 +30,7 @@ class LinearRegression:
         self.__add_ones_column(table)
         self.__init_calculation_table("linreg_" + self.model.id + "_calculation", self.model.input_size)
         self.__init_result_table("linreg_" + self.model.id + "_result")
-        self.__calculate_equations("linreg_" + self.model.id + "_calculation", "bmi_short", self.model.input_size)
+        self.__calculate_equations("linreg_" + self.model.id + "_calculation", table, self.model.input_size)
         equations = self.__get_equations("linreg_" + self.model.id + "_calculation")
         xtx = equations[:, 1:self.model.input_size + 1]
         xty = equations[:, self.model.input_size + 1]
@@ -132,7 +132,13 @@ class LinearRegression:
             self.db_connection.execute(sql_statement)
 
     def __calculate_equations(self, table, table_input, input_size):
-        columns = ['linreg_ones', 'Height_Inches', 'Weight_Pounds', 'BMI']
+        columns = ['linreg_ones']
+        for i in range(len(self.model.x_columns)):
+            columns.append(self.model.x_columns[i])
+        columns.append(self.model.y_column[0])
+        x = []
+        for i in range(input_size):
+            x.append('x' + str(i))
         for i in range(input_size):
             sum_statements = []
             for j in range(input_size + 1):
@@ -141,5 +147,5 @@ class LinearRegression:
                 else:
                     sum_statements.append("sum(" + columns[i] + "*" + columns[j] + ") FROM " + table_input + ")")
             sql_statement = sql_templates.tmpl['calculate_equations'].render(table=table, table_input=table_input,
-                                                                             sum_statements=sum_statements)
+                                                                             sum_statements=sum_statements, x_columns=x)
             self.db_connection.execute(sql_statement)

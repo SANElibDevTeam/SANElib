@@ -59,7 +59,7 @@ tmpl['init_score_table'] = Template('''
             ''')
 
 tmpl['calculate_equations'] = Template('''
-            INSERT INTO {{ table }}(x0,x1,x2,y) 
+            INSERT INTO {{ table }}({% for x in x_columns %}{{ x }}, {% endfor %}y) 
             VALUES(
                 {% for sum_statement in sum_statements %}
                     (SELECT {{ sum_statement }}
