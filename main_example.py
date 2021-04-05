@@ -18,3 +18,6 @@ model = kmeans.create_model(tablename, feature_names, k, model_identifier)
 print(f"before clustering: {model.get_information()}")
 model.cluster(max_steps=10)
 print(f"after clustering: {model.get_information()}")
+
+axis_order = [3, 0, 2]
+model.visualize(feature_names, axis_order)
