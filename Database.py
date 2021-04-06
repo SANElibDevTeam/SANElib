@@ -19,3 +19,6 @@ class Database():
     def import_df(self,dataframe,name):
         self.engine = create_engine('sqlite://', echo=False)
         dataframe.to_sql(name= name,con= self.engine,if_exists="replace")
+
+    def get_analysis(self,dataset,target=None,seed=None,model_id='table_name',ratio=0.8):
+        return Analysis.Analysis(self.engine,dataset,target,seed,model_id,ratio)
