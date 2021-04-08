@@ -11,9 +11,8 @@ timer.start()
 lr = sanelib.linear_regression
 x_columns = ['Height_Inches', 'Weight_Pounds']
 y_column = ['BMI']
-# lr.estimate("bmi_short", x_columns, y_column).predict().score()
+lr.estimate("bmi_short", x_columns, y_column).predict().score()
 # lr.drop_model()
-print(lr.get_model_list())
 
 # End time
 timer.end()

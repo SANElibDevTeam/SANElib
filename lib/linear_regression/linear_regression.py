@@ -2,7 +2,6 @@ from util.database_connection import Database
 from lib.linear_regression.model import Model
 import numpy as np
 from lib.linear_regression import sql_templates
-import sys
 
 
 class LinearRegression:
@@ -72,7 +71,7 @@ class LinearRegression:
             model_list.append(x)
         return np.asarray(model_list)
 
-    def get_model_description(self, model_id=None):
+    def get_active_model_description(self):
         if self.model is None:
             raise Exception('No model parameters available! Please load/create a model!')
         return "Model " + self.model.id + "\n" + "Name: " + self.model.name + "\n" + "Input table: " + self.model.input_table + "\n" + "X columns: " + str(
