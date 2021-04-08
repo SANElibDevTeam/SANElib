@@ -36,6 +36,10 @@ tmpl['save_model'] = Template('''
                 input_size = {{ input_size }};
             ''')
 
+tmpl['get_model_list'] = Template('''
+            SELECT id, name FROM {{ database }}.{{ table }};
+            ''')
+
 tmpl['init_model_table'] = Template('''
             CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
                 id VARCHAR(20) NOT NULL,

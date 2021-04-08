@@ -10,11 +10,14 @@ class LinearRegression:
         self.database = db["database"]
         self.model = None
 
-    def create_model(self, table, x_columns, y_column):
+    def create_model(self,  table, x_columns, y_column, model_name=None):
         self.model = Model(table, x_columns, y_column)
+        if model_name is not None:
+            # TODO generate id -> get model list
+            self.model.name = model_name
         return self
 
-    def save_model(self, name=None):
+    def save_model(self):
         self.__init_model_table("linreg_model")
         x_columns_string = ""
         for x in self.model.x_columns:
@@ -41,11 +44,17 @@ class LinearRegression:
         pass
 
     def get_model_list(self):
-        pass
+        sql_statement = sql_templates.tmpl['get_model_list'].render(database=self.database, table='linreg_model')
+        data = self.db_connection.execute_query(sql_statement)
+        model_list = []
+        model_list.append(['ID', 'Name'])
+        for x in data:
+            model_list.append(x)
+        return np.asarray(model_list)
 
     def get_model_description(self, model_id=None):
         return "Model " + self.model.id + "\n" + "Name: " + self.model.name + "\n" + "Input table: " + self.model.input_table + "\n" + "X columns: " + str(
-            self.model.x_columns)
+            self.model.x_columns) + "\n" + "Y column: " + str(self.model.y_column)
 
     def estimate(self, table=None, x_columns=None, y_column=None):
         self.model = Model(table, x_columns, y_column, 1)
