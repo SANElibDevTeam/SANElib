@@ -48,7 +48,18 @@ class LinearRegression:
         self.model.input_size = int(data[8])
 
     def drop_model(self, model_id=None):
-        pass
+        if model_id is None:
+            model_id = 'm0'
+        tables = ['_calculation', '_prediction', '_result', '_score']
+        for x in tables:
+            sql_statement = sql_templates.tmpl['drop_table'].render(table='linreg_' + model_id + x)
+            self.db_connection.execute(sql_statement)
+        sql_statement = sql_templates.tmpl['delete_from_table_where_id'].render(table='linreg_model',
+                                                                                where_statement=model_id)
+        try:
+            self.db_connection.execute(sql_statement)
+        except:
+            raise Exception('No models available!')
 
     def get_model_list(self):
         sql_statement = sql_templates.tmpl['get_model_list'].render(database=self.database, table='linreg_model')

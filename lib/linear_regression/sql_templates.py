@@ -14,6 +14,10 @@ tmpl['get_all_from_where_id'] = Template('''
             SELECT * FROM {{ database }}.{{ table }} WHERE id='{{ where_statement }}';
             ''')
 
+tmpl['delete_from_table_where_id'] = Template('''
+            DELETE FROM {{ table }} WHERE id='{{ where_statement }}';
+            ''')
+
 tmpl['table_columns'] = Template('''
             SELECT column_name FROM INFORMATION_SCHEMA.COLUMNS 
             WHERE TABLE_SCHEMA='{{ database }}' AND TABLE_NAME='{{ table }}';
