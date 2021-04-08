@@ -10,8 +10,25 @@ class LinearRegression:
         self.database = db["database"]
         self.model = None
 
-    def save_model(self):
-        pass
+    def create_model(self, table, x_columns, y_column):
+        self.model = Model(table, x_columns, y_column)
+        return self
+
+    def save_model(self, name=None):
+        self.__init_model_table("linreg_model")
+        x_columns_string = "x"
+        y_column_string = "x"
+        prediction_columns_string = "x"
+        sql_statement = sql_templates.tmpl['save_model'].render(id=self.model.id, name=self.model.name,
+                                                                state=self.model.state,
+                                                                input_table=self.model.input_table,
+                                                                prediction_table=self.model.prediction_table,
+                                                                x_columns=x_columns_string,
+                                                                y_column=y_column_string,
+                                                                prediction_columns=prediction_columns_string,
+                                                                input_size=self.model.input_size)
+        self.db_connection.execute(sql_statement)
+        return self
 
     def load_model(self):
         pass
@@ -23,10 +40,11 @@ class LinearRegression:
         pass
 
     def get_model_description(self, model_id=None):
-        pass
+        return "Model " + self.model.id + "\n" + "Name: " + self.model.name + "\n" + "Input table: " + self.model.input_table + "\n" + "X columns: " + str(
+            self.model.x_columns)
 
-    def estimate(self, table, x_columns, y_column):
-        self.model = Model(table, x_columns, y_column)
+    def estimate(self, table=None, x_columns=None, y_column=None):
+        self.model = Model(table, x_columns, y_column, 1)
         self.__add_ones_column(table)
         self.__init_calculation_table("linreg_" + self.model.id + "_calculation", self.model.input_size)
         self.__init_result_table("linreg_" + self.model.id + "_result")
@@ -66,9 +84,6 @@ class LinearRegression:
         self.db_connection.execute(sql_statement)
         return self
 
-    def predict_array(self, data):
-        return self
-
     def get_prediction_array(self):
         sql_statement = sql_templates.tmpl['select_x_from'].render(x='y_prediction', database=self.database,
                                                                    table='linreg_' + self.model.id + '_prediction')
@@ -105,6 +120,10 @@ class LinearRegression:
             x.append('x' + str(i))
         sql_statement = sql_templates.tmpl['init_calculation_table'].render(database=self.database, table=table,
                                                                             x_columns=x)
+        self.db_connection.execute(sql_statement)
+
+    def __init_model_table(self, table):
+        sql_statement = sql_templates.tmpl['init_model_table'].render(database=self.database, table=table)
         self.db_connection.execute(sql_statement)
 
     def __init_result_table(self, table):
