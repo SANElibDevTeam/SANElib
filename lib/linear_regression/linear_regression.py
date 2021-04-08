@@ -16,9 +16,13 @@ class LinearRegression:
 
     def save_model(self, name=None):
         self.__init_model_table("linreg_model")
-        x_columns_string = "x"
-        y_column_string = "x"
-        prediction_columns_string = "x"
+        x_columns_string = ""
+        for x in self.model.x_columns:
+            x_columns_string = x_columns_string + x + ","
+        y_column_string = self.model.y_column[0]
+        prediction_columns_string = ""
+        for x in self.model.x_columns:
+            prediction_columns_string = prediction_columns_string + x + ","
         sql_statement = sql_templates.tmpl['save_model'].render(id=self.model.id, name=self.model.name,
                                                                 state=self.model.state,
                                                                 input_table=self.model.input_table,
