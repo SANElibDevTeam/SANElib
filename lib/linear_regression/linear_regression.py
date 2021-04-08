@@ -45,6 +45,7 @@ class LinearRegression:
         self.model.prediction_table = data[4]
         self.model.prediction_columns = prediction_columns[:-1]
         self.model.input_size = int(data[8])
+        return self
 
     def drop_model(self, model_id=None):
         if model_id is None:
