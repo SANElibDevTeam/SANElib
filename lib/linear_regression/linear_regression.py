@@ -58,15 +58,15 @@ class LinearRegression:
                                                                                 where_statement=model_id)
         try:
             self.db_connection.execute(sql_statement)
-        except:
-            raise Exception('No models available!')
+        except Exception as e:
+            raise Exception('No models available! {}' .format(e))
 
     def get_model_list(self):
         sql_statement = sql_templates.tmpl['get_model_list'].render(database=self.database, table='linreg_model')
         try:
             data = self.db_connection.execute_query(sql_statement)
-        except:
-            raise Exception('No models available!')
+        except Exception as e:
+            raise Exception('No models available! {}' .format(e))
         model_list = [['ID', 'Name']]
         for x in data:
             model_list.append(x)
