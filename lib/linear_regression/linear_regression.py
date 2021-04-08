@@ -13,7 +13,12 @@ class LinearRegression:
     def create_model(self,  table, x_columns, y_column, model_name=None):
         self.model = Model(table, x_columns, y_column)
         if model_name is not None:
-            # TODO generate id -> get model list
+            model_list = self.get_model_list()
+            model_names = model_list[:, 1]
+            if model_name in model_names:
+                raise Exception('Model {} already exists!'.format(model_name))
+            next_model_id = int(model_list[-1, 0].replace('m', '')) + 1
+            self.model.id = "m" + str(next_model_id)
             self.model.name = model_name
         return self
 
@@ -46,8 +51,7 @@ class LinearRegression:
     def get_model_list(self):
         sql_statement = sql_templates.tmpl['get_model_list'].render(database=self.database, table='linreg_model')
         data = self.db_connection.execute_query(sql_statement)
-        model_list = []
-        model_list.append(['ID', 'Name'])
+        model_list = [['ID', 'Name']]
         for x in data:
             model_list.append(x)
         return np.asarray(model_list)
