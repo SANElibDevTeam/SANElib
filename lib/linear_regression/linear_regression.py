@@ -30,18 +30,25 @@ class LinearRegression:
     def __manage_one_hot_encoding(self):
         for x in self.model.x_columns:
             sql_statement = sql_templates.tmpl['column_type'].render(table=self.model.input_table, column=x)
-            data = np.asarray(self.db_connection.execute_query(sql_statement))[0][0]
+            column_type = np.asarray(self.db_connection.execute_query(sql_statement))[0][0]
             ohe_options = []
-            if data == 'varchar':
+            # Check if ohe necessary
+            if column_type == 'varchar':
+                self.model.ohe_columns.append(x)
                 sql_statement = sql_templates.tmpl['select_x_from'].render(database=self.database,
                                                                            table=self.model.input_table, x=x)
                 data = np.asarray(self.db_connection.execute_query(sql_statement))[:, 0]
                 for y in data:
                     if y not in ohe_options:
                         ohe_options.append(y)
+            # Create and fill in ohe columns
             sql_statement = sql_templates.tmpl['set_safe_updates'].render(value=0)
             self.db_connection.execute(sql_statement)
             for z in ohe_options:
+                # Add ohe column to x_columns
+                if 'linreg_ohe_' + x + '_' + z not in self.model.x_columns:
+                    self.model.x_columns.append('linreg_ohe_' + x + '_' + z)
+                # Add ohe columns in input_table
                 if 'linreg_ohe_' + x + '_' + z not in self.__get_column_names(self.model.input_table):
                     sql_statement = sql_templates.tmpl['add_column'].render(table=self.model.input_table,
                                                                             column='linreg_ohe_' + x + '_' + z)
@@ -52,6 +59,10 @@ class LinearRegression:
                 self.db_connection.execute(sql_statement)
             sql_statement = sql_templates.tmpl['set_safe_updates'].render(value=1)
             self.db_connection.execute(sql_statement)
+        # Remove varchar columns from x_columns
+        for x in self.model.ohe_columns:
+            if x in self.model.x_columns:
+                self.model.x_columns.remove(x)
 
     def load_model(self, model_id=None):
         if model_id is None:

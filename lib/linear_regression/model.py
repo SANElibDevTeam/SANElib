@@ -10,3 +10,4 @@ class Model():
         self.y_column = y_column
         self.prediction_columns = self.x_columns
         self.input_size = len(x_columns) + 1
+        self.ohe_columns = [] # TODO manage model handling (save, load)

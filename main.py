@@ -13,6 +13,7 @@ x_columns = ['Height_Inches', 'Weight_Pounds']
 y_column = ['BMI']
 # lr.estimate("bmi_short", x_columns, y_column).predict().score()
 lr.create_model("test_onehotencoding", ['ohe'], ['y'], "test")
+print(lr.get_active_model_description())
 lr.drop_model()
 
 # End time
