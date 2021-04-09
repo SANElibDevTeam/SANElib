@@ -144,6 +144,3 @@ tmpl['calculate_save_score'] = Template('''
             CROSS JOIN
             (SELECT avg({{ y }}) as y_avg FROM {{ input_table }}) as subquery2;
             ''')
-
-
-
