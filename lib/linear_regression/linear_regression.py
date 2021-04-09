@@ -17,9 +17,26 @@ class LinearRegression:
             model_names = model_list[:, 1]
             if model_name in model_names:
                 raise Exception('Model {} already exists!'.format(model_name))
-            next_model_id = int(model_list[-1, 0].replace('m', '')) + 1
+            if len(self.get_model_list()):
+                next_model_id = 0
+            else:
+                next_model_id = int(model_list[-1, 0].replace('m', '')) + 1
             self.model.id = "m" + str(next_model_id)
             self.model.name = model_name
+        # Check if OneHotEncoding of input columns necessary
+        for x in self.model.x_columns:
+            sql_statement = sql_templates.tmpl['column_type'].render(table=table, column=x)
+            data = np.asarray(self.db_connection.execute_query(sql_statement))[0][0]
+            if data == 'varchar':
+                print("OHE necessary")
+                sql_statement = sql_templates.tmpl['select_x_from'].render(database=self.database, table=table, x=x)
+                data = np.asarray(self.db_connection.execute_query(sql_statement))[:, 0]
+                ohe_options = []
+                for x in data:
+                    if x not in ohe_options:
+                        ohe_options.append(x)
+                print(ohe_options)
+
         self.__save_model()
         return self
 
@@ -62,6 +79,7 @@ class LinearRegression:
             raise Exception('No models available! {}' .format(e))
 
     def get_model_list(self):
+        self.__init_model_table("linreg_model")
         sql_statement = sql_templates.tmpl['get_model_list'].render(database=self.database, table='linreg_model')
         try:
             data = self.db_connection.execute_query(sql_statement)

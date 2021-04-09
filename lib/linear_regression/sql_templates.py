@@ -23,6 +23,11 @@ tmpl['table_columns'] = Template('''
             WHERE TABLE_SCHEMA='{{ database }}' AND TABLE_NAME='{{ table }}';
             ''')
 
+tmpl['column_type'] = Template('''
+            SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE table_name = '{{ table }}' and column_name='{{ column }}';
+            ''')
+
 tmpl['drop_table'] = Template('''
             DROP TABLE IF EXISTS {{ table }};
             ''')
