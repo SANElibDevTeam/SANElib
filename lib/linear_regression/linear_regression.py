@@ -63,6 +63,8 @@ class LinearRegression:
         for x in self.model.ohe_columns:
             if x in self.model.x_columns:
                 self.model.x_columns.remove(x)
+        # Update input_size
+        self.model.update_input_size()
 
     def load_model(self, model_id=None):
         if model_id is None:
@@ -135,6 +137,8 @@ class LinearRegression:
         equations = self.__get_equations()
         xtx = equations[:, 1:self.model.input_size + 1]
         xty = equations[:, self.model.input_size + 1]
+        print(xtx)
+        print(xty)
         theta = np.linalg.solve(xtx, xty)
         for x in theta:
             sql_statement = sql_templates.tmpl['save_theta'].render(table="linreg_" + self.model.id + "_result",
