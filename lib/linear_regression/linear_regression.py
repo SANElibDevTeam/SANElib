@@ -41,6 +41,8 @@ class LinearRegression:
                 for y in data:
                     if y not in ohe_options:
                         ohe_options.append(y)
+            # Save ohe options per column
+            self.model.ohe_options[x] = ohe_options
             # Create and fill in ohe columns
             sql_statement = sql_templates.tmpl['set_safe_updates'].render(value=0)
             self.db_connection.execute(sql_statement)
@@ -137,8 +139,6 @@ class LinearRegression:
         equations = self.__get_equations()
         xtx = equations[:, 1:self.model.input_size + 1]
         xty = equations[:, self.model.input_size + 1]
-        print(xtx)
-        print(xty)
         theta = np.linalg.solve(xtx, xty)
         for x in theta:
             sql_statement = sql_templates.tmpl['save_theta'].render(table="linreg_" + self.model.id + "_result",
@@ -172,11 +172,12 @@ class LinearRegression:
         if table is not None and x_columns is not None:
             self.model.prediction_table = table
             self.model.prediction_columns = x_columns
+            self.__manage_prediction_one_hot_encoding()
             self.__save_model()
-
         input_table = self.model.prediction_table
         coefficients = self.get_coefficients()
         prediction_statement = str(coefficients[0][0])
+
         for i in range(self.model.input_size - 1):
             prediction_statement = prediction_statement + " + " + self.model.prediction_columns[i] + "*" + \
                                    str(coefficients[i + 1][0])
@@ -188,6 +189,33 @@ class LinearRegression:
             self.model.state = 2
             self.__save_model()
         return self
+
+    def __manage_prediction_one_hot_encoding(self):
+        for x in self.model.prediction_columns:
+            # Get ohe options
+            ohe_options = self.model.ohe_options[x]
+            # Create and fill in ohe columns
+            sql_statement = sql_templates.tmpl['set_safe_updates'].render(value=0)
+            self.db_connection.execute(sql_statement)
+            for z in ohe_options:
+                # Add ohe column to prediction_columns
+                if 'linreg_ohe_' + x + '_' + z not in self.model.prediction_columns:
+                    self.model.prediction_columns.append('linreg_ohe_' + x + '_' + z)
+                # Add ohe columns in prediction_table
+                if 'linreg_ohe_' + x + '_' + z not in self.__get_column_names(self.model.prediction_table):
+                    sql_statement = sql_templates.tmpl['add_column'].render(table=self.model.prediction_table,
+                                                                            column='linreg_ohe_' + x + '_' + z)
+                    self.db_connection.execute(sql_statement)
+                sql_statement = sql_templates.tmpl['set_ohe_column'].render(table=self.model.prediction_table,
+                                                                            ohe_column='linreg_ohe_' + x + '_' + z,
+                                                                            input_column=x, value=z)
+                self.db_connection.execute(sql_statement)
+            sql_statement = sql_templates.tmpl['set_safe_updates'].render(value=1)
+            self.db_connection.execute(sql_statement)
+        # Remove varchar columns from prediction_columns
+        for x in self.model.ohe_columns:
+            if x in self.model.prediction_columns:
+                self.model.prediction_columns.remove(x)
 
     def get_prediction_array(self):
         if self.model is None:

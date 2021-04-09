@@ -21,8 +21,6 @@ tmpl['set_safe_updates'] = Template('''
             SET SQL_SAFE_UPDATES = {{ value }};
             ''')
 
-
-
 tmpl['table_columns'] = Template('''
             SELECT column_name FROM INFORMATION_SCHEMA.COLUMNS 
             WHERE TABLE_SCHEMA='{{ database }}' AND TABLE_NAME='{{ table }}';

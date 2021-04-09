@@ -11,6 +11,7 @@ class Model():
         self.prediction_columns = self.x_columns
         self.input_size = len(x_columns) + 1
         self.ohe_columns = [] # TODO manage model handling (save, load)
+        self.ohe_options = {}  # TODO manage model handling (save, load)
 
     def update_input_size(self):
         self.input_size = len(self.x_columns) + 1
