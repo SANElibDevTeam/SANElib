@@ -120,12 +120,14 @@ class LinearRegression:
         return "Model " + self.model.id + "\n" + "Name: " + self.model.name + "\n" + "Input table: " + self.model.input_table + "\n" + "X columns: " + str(
             self.model.x_columns) + "\n" + "Y column: " + str(self.model.y_column)
 
-    def estimate(self, table=None, x_columns=None, y_column=None):
+    def estimate(self, table=None, x_columns=None, y_column=None, ohe_handling=False):
         if table is not None or x_columns is not None or y_column is not None:
             self.model = Model(table, x_columns, y_column)
         elif self.model is None:
             raise Exception(
                 'No model parameters available! Please load/create a model or provide table, x_columns and y_column as parameters to this function!')
+        if ohe_handling:
+            self.__manage_one_hot_encoding()
         self.__add_ones_column()
         self.__init_calculation_table()
         self.__init_result_table()
