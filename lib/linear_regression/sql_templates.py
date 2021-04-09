@@ -17,6 +17,11 @@ tmpl['get_all_from_where_id'] = Template('''
 tmpl['delete_from_table_where_id'] = Template('''
             DELETE FROM {{ table }} WHERE id='{{ where_statement }}';
             ''')
+tmpl['set_safe_updates'] = Template('''
+            SET SQL_SAFE_UPDATES = {{ value }};
+            ''')
+
+
 
 tmpl['table_columns'] = Template('''
             SELECT column_name FROM INFORMATION_SCHEMA.COLUMNS 
@@ -34,6 +39,15 @@ tmpl['drop_table'] = Template('''
 
 tmpl['add_ones_column'] = Template('''
             ALTER TABLE {{ table }} ADD COLUMN {{ column }} INT DEFAULT 1;
+            ''')
+
+tmpl['add_column'] = Template('''
+            ALTER TABLE {{ table }} ADD COLUMN {{ column }} DOUBLE;
+            ''')
+
+tmpl['set_ohe_column'] = Template('''
+            UPDATE {{ table }}
+            SET {{ ohe_column }} = IF({{ input_column }}='{{ value }}', 1, 0);
             ''')
 
 tmpl['save_model'] = Template('''

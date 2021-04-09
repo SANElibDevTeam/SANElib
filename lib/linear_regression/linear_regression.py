@@ -23,22 +23,35 @@ class LinearRegression:
                 next_model_id = int(model_list[-1, 0].replace('m', '')) + 1
             self.model.id = "m" + str(next_model_id)
             self.model.name = model_name
-        # Check if OneHotEncoding of input columns necessary
-        for x in self.model.x_columns:
-            sql_statement = sql_templates.tmpl['column_type'].render(table=table, column=x)
-            data = np.asarray(self.db_connection.execute_query(sql_statement))[0][0]
-            if data == 'varchar':
-                print("OHE necessary")
-                sql_statement = sql_templates.tmpl['select_x_from'].render(database=self.database, table=table, x=x)
-                data = np.asarray(self.db_connection.execute_query(sql_statement))[:, 0]
-                ohe_options = []
-                for x in data:
-                    if x not in ohe_options:
-                        ohe_options.append(x)
-                print(ohe_options)
-
+        self.__manage_one_hot_encoding()
         self.__save_model()
         return self
+
+    def __manage_one_hot_encoding(self):
+        for x in self.model.x_columns:
+            sql_statement = sql_templates.tmpl['column_type'].render(table=self.model.input_table, column=x)
+            data = np.asarray(self.db_connection.execute_query(sql_statement))[0][0]
+            ohe_options = []
+            if data == 'varchar':
+                sql_statement = sql_templates.tmpl['select_x_from'].render(database=self.database,
+                                                                           table=self.model.input_table, x=x)
+                data = np.asarray(self.db_connection.execute_query(sql_statement))[:, 0]
+                for y in data:
+                    if y not in ohe_options:
+                        ohe_options.append(y)
+            sql_statement = sql_templates.tmpl['set_safe_updates'].render(value=0)
+            self.db_connection.execute(sql_statement)
+            for z in ohe_options:
+                if 'linreg_ohe_' + x + '_' + z not in self.__get_column_names(self.model.input_table):
+                    sql_statement = sql_templates.tmpl['add_column'].render(table=self.model.input_table,
+                                                                            column='linreg_ohe_' + x + '_' + z)
+                    self.db_connection.execute(sql_statement)
+                sql_statement = sql_templates.tmpl['set_ohe_column'].render(table=self.model.input_table,
+                                                                            ohe_column='linreg_ohe_' + x + '_' + z,
+                                                                            input_column=x, value=z)
+                self.db_connection.execute(sql_statement)
+            sql_statement = sql_templates.tmpl['set_safe_updates'].render(value=1)
+            self.db_connection.execute(sql_statement)
 
     def load_model(self, model_id=None):
         if model_id is None:
@@ -76,7 +89,7 @@ class LinearRegression:
         try:
             self.db_connection.execute(sql_statement)
         except Exception as e:
-            raise Exception('No models available! {}' .format(e))
+            raise Exception('No models available! {}'.format(e))
 
     def get_model_list(self):
         self.__init_model_table("linreg_model")
@@ -84,7 +97,7 @@ class LinearRegression:
         try:
             data = self.db_connection.execute_query(sql_statement)
         except Exception as e:
-            raise Exception('No models available! {}' .format(e))
+            raise Exception('No models available! {}'.format(e))
         model_list = [['ID', 'Name']]
         for x in data:
             model_list.append(x)
