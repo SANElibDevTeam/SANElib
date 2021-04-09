@@ -205,7 +205,8 @@ class LinearRegression:
                 # Add ohe columns in input_table
                 if 'linreg_ohe_' + x + '_' + z not in self.__get_column_names(self.model.input_table):
                     sql_statement = sql_templates.tmpl['add_column'].render(table=self.model.input_table,
-                                                                            column='linreg_ohe_' + x + '_' + z)
+                                                                            column='linreg_ohe_' + x + '_' + z,
+                                                                            type='INT')
                     self.db_connection.execute(sql_statement)
                 sql_statement = sql_templates.tmpl['set_ohe_column'].render(table=self.model.input_table,
                                                                             ohe_column='linreg_ohe_' + x + '_' + z,
@@ -234,7 +235,8 @@ class LinearRegression:
                 # Add ohe columns in prediction_table
                 if 'linreg_ohe_' + x + '_' + z not in self.__get_column_names(self.model.prediction_table):
                     sql_statement = sql_templates.tmpl['add_column'].render(table=self.model.prediction_table,
-                                                                            column='linreg_ohe_' + x + '_' + z)
+                                                                            column='linreg_ohe_' + x + '_' + z,
+                                                                            type='INT')
                     self.db_connection.execute(sql_statement)
                 sql_statement = sql_templates.tmpl['set_ohe_column'].render(table=self.model.prediction_table,
                                                                             ohe_column='linreg_ohe_' + x + '_' + z,

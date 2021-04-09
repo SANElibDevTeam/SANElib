@@ -40,7 +40,7 @@ tmpl['add_ones_column'] = Template('''
             ''')
 
 tmpl['add_column'] = Template('''
-            ALTER TABLE {{ table }} ADD COLUMN {{ column }} DOUBLE;
+            ALTER TABLE {{ table }} ADD COLUMN {{ column }} {{ type }};
             ''')
 
 tmpl['set_ohe_column'] = Template('''
