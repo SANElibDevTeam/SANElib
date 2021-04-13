@@ -105,6 +105,7 @@ class Model():
                  + theme_bw()
                  + geom_col(position='dodge')
                  + labs(y=ylabel, x=feature1)
+                 + theme(axis_text_x=element_text(angle=90, hjust=1))
                  )
 
             print(p)
@@ -163,6 +164,7 @@ class Model():
                         + geom_line()
                         + facet_wrap('xc')
                         + labs(y=ylabel, x=numFeat)
+                        + theme(axis_text_x=element_text(angle=90, hjust=1))
                 )
 
                 print(p)
@@ -229,6 +231,7 @@ class Model():
                     + geom_line()
                     #+ facet_wrap('xc')
                     + labs(y=ylabel, x=numFeat)
+                    + theme(axis_text_x=element_text(angle=90, hjust=1))
             )
 
             print(p)
@@ -277,6 +280,7 @@ class Model():
                  + geom_col(position='dodge')
                  + facet_wrap('xc')
                  + labs(y=ylabel, x=catFeat)
+                 + theme(axis_text_x=element_text(angle=90, hjust=1))
                  )
 
             print(p)
