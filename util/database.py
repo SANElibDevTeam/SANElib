@@ -6,6 +6,8 @@ from sqlalchemy import text
 
 class Database:
     def __init__(self, db_connection=None, dataframe=pd.DataFrame({'A': []}), dfname="DF_NAME"):
+        self.database_name = db_connection["database"]
+
         if db_connection is not None:
             self.engine = create_engine(URL(**db_connection), pool_pre_ping=True)
         elif not dataframe.empty:
@@ -48,6 +50,7 @@ class Database:
 
         return results
 
+    # TODO Templates?
     def materializedView(self, desc, tablename, query, engine):
         print("MaterializedView: " + desc)
         self.execute('''

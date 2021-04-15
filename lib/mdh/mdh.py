@@ -2,12 +2,12 @@ from jinja2 import Template
 from lib.mdh import sql_templates as sql
 from plotnine import ggplot, aes, geom_line, geom_point, geom_col, labs, theme, element_text, theme_bw, facet_wrap
 import pandas as pd
-from util.database_connection import Database
+from util.database import Database
 
 
 class MDH:
     def __init__(self, db):
-        self.db_connectionn = Database(db)
+        self.db_connectionn = db
         self.engine = self.db_connectionn.engine
         self.dataset = "table_train"
         self.model_id = 'covtyptest2'

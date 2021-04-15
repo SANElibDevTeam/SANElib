@@ -1,4 +1,3 @@
-from util.database_connection import Database
 from lib.linear_regression.model import Model
 import numpy as np
 from lib.linear_regression import sql_templates
@@ -6,8 +5,8 @@ from lib.linear_regression import sql_templates
 
 class LinearRegression:
     def __init__(self, db):
-        self.db_connection = Database(db)
-        self.database = db["database"]
+        self.db_connection = db
+        self.database = db.database_name
         self.model = None
 
     def create_model(self, table, x_columns, y_column, model_name=None):
@@ -17,7 +16,7 @@ class LinearRegression:
             model_names = model_list[:, 1]
             if model_name in model_names:
                 raise Exception('Model {} already exists!'.format(model_name))
-            if len(self.get_model_list()):
+            if len(self.get_model_list()) < 1:
                 next_model_id = 0
             else:
                 next_model_id = int(model_list[-1, 0].replace('m', '')) + 1
@@ -167,6 +166,8 @@ class LinearRegression:
         if self.model.state < 3:
             self.model.state = 3
             self.__save_model()
+
+        return self
 
     def get_prediction_array(self):
         if self.model is None:
