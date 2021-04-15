@@ -26,11 +26,13 @@ lr = sanelib.linear_regression
 # print(lr.get_model_list())
 
 lr.create_model("test_onehotencoding", ['ohe'], ['y'])
-lr.estimate().predict("test_ohe_prediction", ["ohe"])
-# print(lr.get_active_model_description())
+# lr.load_model()
 lr.estimate().predict()
+# lr.estimate().predict("test_ohe_prediction", ["ohe"])
 print(lr.get_prediction_array())
 lr.drop_model()
+# print(lr.get_active_model_description())
+
 
 # End time
 timer.end()

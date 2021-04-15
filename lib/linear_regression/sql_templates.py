@@ -58,7 +58,8 @@ tmpl['save_model'] = Template('''
                 x_columns = '{{ x_columns }}',
                 y_column = '{{ y_column }}',
                 prediction_columns = '{{ prediction_columns }}',
-                input_size = {{ input_size }};
+                input_size = {{ input_size }},
+                ohe_columns = '{{ ohe_columns }}';
             ''')
 
 tmpl['get_model_list'] = Template('''
@@ -76,6 +77,7 @@ tmpl['init_model_table'] = Template('''
                 y_column VARCHAR(45) NULL,
                 prediction_columns TEXT NULL,
                 input_size INT NULL,
+                ohe_columns TEXT NULL,
             PRIMARY KEY (id),
             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
             ''')

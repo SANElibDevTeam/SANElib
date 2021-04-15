@@ -46,6 +46,10 @@ class LinearRegression:
         for x in data[7].split(','):
             prediction_columns.append(x)
 
+        ohe_columns = []
+        for x in data[9].split(','):
+            prediction_columns.append(x)
+
         self.model = Model(data[3], x_columns[:-1], y_column)
         self.model.id = data[0]
         self.model.name = data[1]
@@ -53,6 +57,7 @@ class LinearRegression:
         self.model.prediction_table = data[4]
         self.model.prediction_columns = prediction_columns[:-1]
         self.model.input_size = int(data[8])
+        self.model.ohe_columns = ohe_columns[:-1]
         return self
 
     def drop_model(self, model_id=None):
@@ -220,7 +225,8 @@ class LinearRegression:
             # Check if ohe necessary
             ohe_options = []
             if column_type == 'varchar':
-                self.model.ohe_columns.append(x)
+                if x not in self.model.ohe_columns:
+                    self.model.ohe_columns.append(x)
                 sql_statement = sql_templates.tmpl['select_x_from'].render(database=self.database,
                                                                            table=table, x=x)
                 data = np.asarray(self.db_connection.execute_query(sql_statement))[:, 0]
@@ -270,6 +276,10 @@ class LinearRegression:
         for x in self.model.x_columns:
             prediction_columns_string = prediction_columns_string + x + ","
 
+        ohe_columns_string = ""
+        for x in self.model.ohe_columns:
+            ohe_columns_string = ohe_columns_string + x + ","
+
         sql_statement = sql_templates.tmpl['save_model'].render(id=self.model.id, name=self.model.name,
                                                                 state=self.model.state,
                                                                 input_table=self.model.input_table,
@@ -277,7 +287,8 @@ class LinearRegression:
                                                                 x_columns=x_columns_string,
                                                                 y_column=y_column_string,
                                                                 prediction_columns=prediction_columns_string,
-                                                                input_size=self.model.input_size)
+                                                                input_size=self.model.input_size,
+                                                                ohe_columns=ohe_columns_string)
         self.db_connection.execute(sql_statement)
 
         return self
