@@ -18,12 +18,10 @@ catFeatures = ['Wilderness_Area_1', 'Wilderness_Area_2', 'Wilderness_Area_3', 'W
                'Soil_Type_33', 'Soil_Type_34',
                'Soil_Type_35', 'Soil_Type_36', 'Soil_Type_37', 'Soil_Type_38', 'Soil_Type_39', 'Soil_Type_40']
 
-dtc = sanelib.dtc
-dtc.dataset = 'covertype2'
-dtc.target = 'Cover_Type'
-dtc.max_samples = 100
+dtc = sanelib.dtc.DecisionTreeClassifier(db=sanelib.db, dataset='covertype2', target='Cover_Type')
+
 # dtc.train_test_split(ratio=0.01)
-dtc.table_train = dtc.dataset + '_train'
+
 dtc.estimate(numFeatures=numFeatures, catFeatures=catFeatures)
 dtc.visualize_tree(feature_names=numFeatures.append(catFeatures),
                    class_names=["Cover Type {}".format(i) for i in range(0, 8)])

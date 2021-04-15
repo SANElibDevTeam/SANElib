@@ -12,4 +12,4 @@ db = {
 }
 
 mdh = lib.mdh.MDH(db)
-dtc = lib.DecisionTreeClassifier.DecisionTreeClassifier(db)
+dtc = lib.DecisionTreeClassifier

@@ -7,16 +7,12 @@ import numpy as np
 
 
 class DecisionTreeClassifier:
-    def __init__(self, db, dataset='', target=''):
+    def __init__(self, db, dataset='', target='', table_train='', table_eval=''):
         self.db_connection = Database(db)
         self.engine = self.db_connection.engine
         self.dataset = dataset
         self.target = target
         self.max_samples = 1000
-
-    def train_test_split(self, ratio=0.8, seed=1, table_train='', table_eval=''):
-        self.ratio = ratio
-        self.seed = seed
         if table_train == '':
             self.table_train = self.dataset + '_train'
         else:
@@ -25,6 +21,11 @@ class DecisionTreeClassifier:
             self.table_eval = self.dataset + '_eval'
         else:
             self.table_eval = table_eval
+
+    def train_test_split(self, ratio=0.8, seed=1):
+        self.ratio = ratio
+        self.seed = seed
+
         self.db_connection.materializedView(
             'Splitting table into training set',
             self.table_train,
