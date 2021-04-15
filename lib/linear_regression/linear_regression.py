@@ -235,7 +235,8 @@ class LinearRegression:
                         ohe_options.append(y)
 
             # Save ohe options per column
-            self.model.ohe_options[x] = ohe_options
+            if x in self.model.ohe_columns:
+                self.model.ohe_options[x] = ohe_options
 
             # Create and fill in ohe columns
             sql_statement = sql_templates.tmpl['set_safe_updates'].render(value=0)
