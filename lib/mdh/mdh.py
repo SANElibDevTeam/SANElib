@@ -56,18 +56,27 @@ class MDH:
     def drop(self):
         pass
 
+    def materializedView(self, desc, tablename, query, engine):
+        print("MaterializedView: " + str(desc))
+        self.db_connectionn.execute('''
+            drop table if exists {}'''
+                     .format(tablename), engine)
+        self.db_connectionn.execute('''
+            create table {} as '''
+                     .format(tablename) + query, engine)
+
     def train_test_split(self):
         """
         Splitting table into training set and evaluation set
         Update eval
         """
 
-        self.db_connectionn.materializedView(
+        self.materializedView(
             'Splitting table into training set',
             self.model_id + '_train',
             Template(sql.tmplt['_train']).render(input=self), self.engine)
 
-        self.db_connectionn.materializedView(
+        self.materializedView(
             'Splitting table into test set',
             self.model_id + '_table_eval',
             Template(sql.tmplt['_table_eval']).render(input=self), self.engine)
@@ -76,7 +85,7 @@ class MDH:
         self.numFeatures = numFeatures
         self.bins = bins
         self.catFeatures = catFeatures
-        self.db_connectionn.materializedView(
+        self.materializedView(
             'Computing 1d contingecies with target',
             self.model_id + '_m1d',
             Template(sql.tmplt['_m1d']).render(input=self), self.engine)
@@ -121,15 +130,15 @@ class MDH:
 
         # TODO Generate queries using n features x1, x2, ..., xn; differentiate between numerical and categorical
 
-        self.db_connectionn.materializedView(
+        self.materializedView(
             'Quantization of training table',
             self.model_id + '_qt',
             Template(sql.tmplt['_qt']).render(input=self), self.engine)
-        self.db_connectionn.materializedView(
+        self.materializedView(
             'Quantization metadata for training table',
             self.model_id + '_qmt',
             Template(sql.tmplt['_qmt']).render(input=self), self.engine)
-        self.db_connectionn.materializedView(
+        self.materializedView(
             'Computing predictive model as contingency table',
             self.model_id + '_m',
             Template(sql.tmplt['_m']).render(input=self), self.engine)
@@ -286,12 +295,12 @@ class MDH:
         This function estimates the probabilities for the evaluation data
         """
         self.eval = eval
-        self.db_connectionn.materializedView(
+        self.materializedView(
             'Quantization metadata for evaluation table',
             self.model_id + '_qe',
             Template(sql.tmplt['_qe']).render(input=self), self.engine)  ## generate SQL using Jinja 2 template
         self.db_connectionn.execute(Template(sql.tmplt['_qe_ix']).render(input=self), self.engine)
-        self.db_connectionn.materializedView(
+        self.materializedView(
             'Class prediction for evaluation dataset',
             self.model_id + '_p',
             Template(sql.tmplt['_p']).render(input=self), self.engine)  ## generate SQL using Jinja 2 template
