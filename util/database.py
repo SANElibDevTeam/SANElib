@@ -6,11 +6,15 @@ from sqlalchemy import text
 
 class Database:
     def __init__(self, db_connection=None, dataframe=pd.DataFrame({'A': []}), dfname="DF_NAME"):
+        self.driver_name = db_connection['drivername']
         self.database_name = db_connection["database"]
         self.connection = None
 
         if db_connection is not None:
-            self.engine = create_engine(URL(**db_connection), pool_pre_ping=True)
+            if db_connection['drivername'] == 'mysql+mysqlconnector':
+                self.engine = create_engine(URL(**db_connection), pool_pre_ping=True)
+            elif db_connection['drivername'] == 'sqlite':
+                self.engine = create_engine('sqlite:///' + db_connection['path'], pool_pre_ping=True)
         elif not dataframe.empty:
             self.import_df(dataframe, dfname)
         else:

@@ -9,6 +9,10 @@ class LinearRegression:
         self.database = db.database_name
         self.model = None
 
+    def test(self):
+        sql_statement = 'SELECT * FROM test;'
+        print(np.asarray(self.db_connection.execute_query(sql_statement)))
+
     def create_model(self, table, x_columns, y_column, model_name=None):
         self.model = Model(table, x_columns, y_column)
         if model_name is not None:
