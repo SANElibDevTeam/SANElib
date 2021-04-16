@@ -10,10 +10,8 @@ class LinearRegression:
         self.model = None
         if db.driver_name == 'mysql+mysqlconnector':
             self.sql_templates = sql_templates.tmpl_mysql
-
-    def test(self):
-        sql_statement = 'SELECT * FROM test;'
-        print(np.asarray(self.db_connection.execute_query(sql_statement)))
+        elif db.driver_name == 'sqlite':
+            self.sql_templates = sql_templates.tmpl_sqlite
 
     def create_model(self, table, x_columns, y_column, model_name=None):
         self.model = Model(table, x_columns, y_column)

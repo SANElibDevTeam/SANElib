@@ -146,3 +146,17 @@ tmpl_mysql['calculate_save_score'] = Template('''
             CROSS JOIN
             (SELECT avg({{ y }}) as y_avg FROM {{ input_table }}) as subquery2;
             ''')
+
+tmpl_sqlite = {}
+
+tmpl_sqlite['select_x_from'] = Template('''
+            SELECT {{ x }} FROM {{ table }};
+            ''')
+
+tmpl_sqlite['table_columns'] = Template('''
+            SELECT name FROM pragma_table_info('{{ table }}');
+            ''')
+
+tmpl_sqlite['add_ones_column'] = Template('''
+            ALTER TABLE {{ table }} ADD COLUMN {{ column }} INT DEFAULT 1;
+            ''')
