@@ -302,7 +302,7 @@ class LinearRegression:
         sql_statement = self.sql_templates['get_all_from'].render(database=self.database,
                                                                         table="linreg_" + self.model.id + "_calculation")
         data = self.db_connection.execute_query(sql_statement)
-        return np.asarray(data)
+        return np.asarray(data, dtype='double')
 
     def __get_column_names(self, table):
         sql_statement = self.sql_templates['table_columns'].render(database=self.database, table=table)
