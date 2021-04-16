@@ -113,7 +113,7 @@ class LinearRegression:
         equations = self.__get_equations()
         xtx = equations[:, 1:self.model.input_size + 1]
         xty = equations[:, self.model.input_size + 1]
-        theta = np.linalg.solve(xtx, xty)
+        theta = np.linalg.lstsq(xtx, xty, rcond=None)[0]
 
         for x in theta:
             sql_statement = sql_templates.tmpl['save_theta'].render(table="linreg_" + self.model.id + "_result",

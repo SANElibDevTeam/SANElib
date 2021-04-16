@@ -27,6 +27,12 @@ The goal of this work is to implement specific ML procedures using SQL code gene
 
   ?
 
-  #### Test data
+  #### Example
 
-  ?
+  To run the provided example, you'll need to go through the following steps:
+  
+  1. Import the data from SANElib/example_datasets/example_bmi_data.csv into your MySQL database (label the table example_bmi).
+  2. Import the data from SANElib/example_datasets/prediction_bmi_data.csv into your MySQL database (label the table prediction_bmi).
+  3. Configure database connection (edit config.py to match your database instance).
+  4. Run the method run_bmi_example() from lib.linear_regression.example (and provide your table names for the example table and prediction table as a parameter, if you didn't label them as suggested above).
+
