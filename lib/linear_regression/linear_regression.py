@@ -8,6 +8,8 @@ class LinearRegression:
         self.db_connection = db
         self.database = db.database_name
         self.model = None
+        if db.driver_name == 'mysql+mysqlconnector':
+            self.sql_templates = sql_templates.tmpl_mysql
 
     def test(self):
         sql_statement = 'SELECT * FROM test;'
@@ -37,8 +39,8 @@ class LinearRegression:
         elif model_id not in self.get_model_list():
             raise Exception('Provided model_id not found!')
 
-        sql_statement = sql_templates.tmpl['get_all_from_where_id'].render(database=self.database, table='linreg_model',
-                                                                           where_statement=model_id)
+        sql_statement = self.sql_templates['get_all_from_where_id'].render(database=self.database, table='linreg_model',
+                                                                                 where_statement=model_id)
         data = np.asarray(self.db_connection.execute_query(sql_statement))[0]
 
         x_columns = []
@@ -70,11 +72,11 @@ class LinearRegression:
 
         tables = ['_calculation', '_prediction', '_result', '_score']
         for x in tables:
-            sql_statement = sql_templates.tmpl['drop_table'].render(table='linreg_' + model_id + x)
+            sql_statement = self.sql_templates['drop_table'].render(table='linreg_' + model_id + x)
             self.db_connection.execute(sql_statement)
 
-        sql_statement = sql_templates.tmpl['delete_from_table_where_id'].render(table='linreg_model',
-                                                                                where_statement=model_id)
+        sql_statement = self.sql_templates['delete_from_table_where_id'].render(table='linreg_model',
+                                                                                      where_statement=model_id)
         try:
             self.db_connection.execute(sql_statement)
         except Exception as e:
@@ -82,7 +84,7 @@ class LinearRegression:
 
     def get_model_list(self):
         self.__init_model_table("linreg_model")
-        sql_statement = sql_templates.tmpl['get_model_list'].render(database=self.database, table='linreg_model')
+        sql_statement = self.sql_templates['get_model_list'].render(database=self.database, table='linreg_model')
         try:
             data = self.db_connection.execute_query(sql_statement)
         except Exception as e:
@@ -120,8 +122,8 @@ class LinearRegression:
         theta = np.linalg.lstsq(xtx, xty, rcond=None)[0]
 
         for x in theta:
-            sql_statement = sql_templates.tmpl['save_theta'].render(table="linreg_" + self.model.id + "_result",
-                                                                    value=x)
+            sql_statement = self.sql_templates['save_theta'].render(table="linreg_" + self.model.id + "_result",
+                                                                          value=x)
             self.db_connection.execute(sql_statement)
 
         if self.model.state < 1:
@@ -149,9 +151,9 @@ class LinearRegression:
         for i in range(self.model.input_size - 1):
             prediction_statement = prediction_statement + " + " + self.model.prediction_columns[i] + "*" + \
                                    str(coefficients[i + 1][0])
-        sql_statement = sql_templates.tmpl['predict'].render(table="linreg_" + self.model.id + "_prediction",
-                                                             input_table=input_table,
-                                                             prediction_statement=prediction_statement)
+        sql_statement = self.sql_templates['predict'].render(table="linreg_" + self.model.id + "_prediction",
+                                                                   input_table=input_table,
+                                                                   prediction_statement=prediction_statement)
         self.db_connection.execute(sql_statement)
 
         if self.model.state < 2:
@@ -167,9 +169,9 @@ class LinearRegression:
             raise Exception('No predictions available! Please use predict method first!')
 
         self.__init_score_table("linreg_" + self.model.id + "_score")
-        sql_statement = sql_templates.tmpl['calculate_save_score'].render(table_id='linreg_' + self.model.id,
-                                                                          input_table=self.model.input_table,
-                                                                          y=self.model.y_column[0])
+        sql_statement = self.sql_templates['calculate_save_score'].render(table_id='linreg_' + self.model.id,
+                                                                                input_table=self.model.input_table,
+                                                                                y=self.model.y_column[0])
         self.db_connection.execute(sql_statement)
 
         if self.model.state < 3:
@@ -184,8 +186,8 @@ class LinearRegression:
         elif self.model.state < 2:
             raise Exception('No predictions available! Please use predict method first!')
 
-        sql_statement = sql_templates.tmpl['select_x_from'].render(x='y_prediction', database=self.database,
-                                                                   table='linreg_' + self.model.id + '_prediction')
+        sql_statement = self.sql_templates['select_x_from'].render(x='y_prediction', database=self.database,
+                                                                         table='linreg_' + self.model.id + '_prediction')
         data = self.db_connection.execute_query(sql_statement)
         return np.asarray(data)
 
@@ -195,8 +197,8 @@ class LinearRegression:
         elif self.model.state < 1:
             raise Exception('Model not trained! Please use estimate method first!')
 
-        sql_statement = sql_templates.tmpl['select_x_from'].render(x='theta', database=self.database,
-                                                                   table='linreg_' + self.model.id + '_result')
+        sql_statement = self.sql_templates['select_x_from'].render(x='theta', database=self.database,
+                                                                         table='linreg_' + self.model.id + '_result')
         data = self.db_connection.execute_query(sql_statement)
         return np.asarray(data)
 
@@ -206,8 +208,8 @@ class LinearRegression:
         elif self.model.state < 3:
             raise Exception('No score available! Please use score method first!')
 
-        sql_statement = sql_templates.tmpl['select_x_from'].render(x='score', database=self.database,
-                                                                   table='linreg_' + self.model.id + '_score')
+        sql_statement = self.sql_templates['select_x_from'].render(x='score', database=self.database,
+                                                                         table='linreg_' + self.model.id + '_score')
         data = self.db_connection.execute_query(sql_statement)
         return np.asarray(data)[0][0]
 
@@ -223,7 +225,7 @@ class LinearRegression:
     def __manage_ohe_columns(self, table, columns):
         # Check all columns
         for x in columns:
-            sql_statement = sql_templates.tmpl['column_type'].render(table=table, column=x)
+            sql_statement = self.sql_templates['column_type'].render(table=table, column=x)
             column_type = np.asarray(self.db_connection.execute_query(sql_statement))[0][0]
 
             # Check if ohe necessary
@@ -231,8 +233,8 @@ class LinearRegression:
             if column_type == 'varchar':
                 if x not in self.model.ohe_columns:
                     self.model.ohe_columns.append(x)
-                sql_statement = sql_templates.tmpl['select_x_from'].render(database=self.database,
-                                                                           table=table, x=x)
+                sql_statement = self.sql_templates['select_x_from'].render(database=self.database,
+                                                                                 table=table, x=x)
                 data = np.asarray(self.db_connection.execute_query(sql_statement))[:, 0]
                 for y in data:
                     if y not in ohe_options:
@@ -243,7 +245,7 @@ class LinearRegression:
                 self.model.ohe_options[x] = ohe_options
 
             # Create and fill in ohe columns
-            sql_statement = sql_templates.tmpl['set_safe_updates'].render(value=0)
+            sql_statement = self.sql_templates['set_safe_updates'].render(value=0)
             self.db_connection.execute(sql_statement)
             for z in ohe_options:
                 # Add ohe column to columns
@@ -252,15 +254,15 @@ class LinearRegression:
 
                 # Add ohe columns in table
                 if 'linreg_ohe_' + x + '_' + z not in self.__get_column_names(table):
-                    sql_statement = sql_templates.tmpl['add_column'].render(table=table,
-                                                                            column='linreg_ohe_' + x + '_' + z,
-                                                                            type='INT')
+                    sql_statement = self.sql_templates['add_column'].render(table=table,
+                                                                                  column='linreg_ohe_' + x + '_' + z,
+                                                                                  type='INT')
                     self.db_connection.execute(sql_statement)
-                sql_statement = sql_templates.tmpl['set_ohe_column'].render(table=table,
-                                                                            ohe_column='linreg_ohe_' + x + '_' + z,
-                                                                            input_column=x, value=z)
+                sql_statement = self.sql_templates['set_ohe_column'].render(table=table,
+                                                                                  ohe_column='linreg_ohe_' + x + '_' + z,
+                                                                                  input_column=x, value=z)
                 self.db_connection.execute(sql_statement)
-            sql_statement = sql_templates.tmpl['set_safe_updates'].render(value=1)
+            sql_statement = self.sql_templates['set_safe_updates'].render(value=1)
             self.db_connection.execute(sql_statement)
 
         # Remove varchar columns from columns
@@ -285,72 +287,72 @@ class LinearRegression:
         for x in self.model.ohe_columns:
             ohe_columns_string = ohe_columns_string + x + ","
 
-        sql_statement = sql_templates.tmpl['save_model'].render(id=self.model.id, name=self.model.name,
-                                                                state=self.model.state,
-                                                                input_table=self.model.input_table,
-                                                                prediction_table=self.model.prediction_table,
-                                                                x_columns=x_columns_string,
-                                                                y_column=y_column_string,
-                                                                prediction_columns=prediction_columns_string,
-                                                                input_size=self.model.input_size,
-                                                                ohe_columns=ohe_columns_string)
+        sql_statement = self.sql_templates['save_model'].render(id=self.model.id, name=self.model.name,
+                                                                      state=self.model.state,
+                                                                      input_table=self.model.input_table,
+                                                                      prediction_table=self.model.prediction_table,
+                                                                      x_columns=x_columns_string,
+                                                                      y_column=y_column_string,
+                                                                      prediction_columns=prediction_columns_string,
+                                                                      input_size=self.model.input_size,
+                                                                      ohe_columns=ohe_columns_string)
         self.db_connection.execute(sql_statement)
 
         return self
 
     def __get_equations(self):
-        sql_statement = sql_templates.tmpl['get_all_from'].render(database=self.database,
-                                                                  table="linreg_" + self.model.id + "_calculation")
+        sql_statement = self.sql_templates['get_all_from'].render(database=self.database,
+                                                                        table="linreg_" + self.model.id + "_calculation")
         data = self.db_connection.execute_query(sql_statement)
         return np.asarray(data)
 
     def __get_column_names(self, table):
-        sql_statement = sql_templates.tmpl['table_columns'].render(database=self.database, table=table)
+        sql_statement = self.sql_templates['table_columns'].render(database=self.database, table=table)
         data = self.db_connection.execute_query(sql_statement)
         return np.asarray(data)
 
     def __init_calculation_table(self):
-        sql_statement = sql_templates.tmpl['drop_table'].render(table='linreg_' + self.model.id + '_calculation')
+        sql_statement = self.sql_templates['drop_table'].render(table='linreg_' + self.model.id + '_calculation')
         self.db_connection.execute(sql_statement)
 
         x = []
         for i in range(self.model.input_size):
             x.append('x' + str(i))
-        sql_statement = sql_templates.tmpl['init_calculation_table'].render(database=self.database,
-                                                                            table='linreg_' + self.model.id + '_calculation',
-                                                                            x_columns=x)
+        sql_statement = self.sql_templates['init_calculation_table'].render(database=self.database,
+                                                                                  table='linreg_' + self.model.id + '_calculation',
+                                                                                  x_columns=x)
         self.db_connection.execute(sql_statement)
 
     def __init_model_table(self, table):
-        sql_statement = sql_templates.tmpl['init_model_table'].render(database=self.database, table=table)
+        sql_statement = self.sql_templates['init_model_table'].render(database=self.database, table=table)
         self.db_connection.execute(sql_statement)
 
     def __init_result_table(self):
-        sql_statement = sql_templates.tmpl['drop_table'].render(table='linreg_' + self.model.id + '_result')
+        sql_statement = self.sql_templates['drop_table'].render(table='linreg_' + self.model.id + '_result')
         self.db_connection.execute(sql_statement)
 
-        sql_statement = sql_templates.tmpl['init_result_table'].render(database=self.database,
-                                                                       table='linreg_' + self.model.id + '_result')
+        sql_statement = self.sql_templates['init_result_table'].render(database=self.database,
+                                                                             table='linreg_' + self.model.id + '_result')
         self.db_connection.execute(sql_statement)
 
     def __init_prediction_table(self, table):
-        sql_statement = sql_templates.tmpl['drop_table'].render(table=table)
+        sql_statement = self.sql_templates['drop_table'].render(table=table)
         self.db_connection.execute(sql_statement)
 
-        sql_statement = sql_templates.tmpl['init_prediction_table'].render(database=self.database, table=table)
+        sql_statement = self.sql_templates['init_prediction_table'].render(database=self.database, table=table)
         self.db_connection.execute(sql_statement)
 
     def __init_score_table(self, table):
-        sql_statement = sql_templates.tmpl['drop_table'].render(table=table)
+        sql_statement = self.sql_templates['drop_table'].render(table=table)
         self.db_connection.execute(sql_statement)
 
-        sql_statement = sql_templates.tmpl['init_score_table'].render(database=self.database, table=table)
+        sql_statement = self.sql_templates['init_score_table'].render(database=self.database, table=table)
         self.db_connection.execute(sql_statement)
 
     def __add_ones_column(self):
         if 'linreg_ones' not in self.__get_column_names(self.model.input_table):
-            sql_statement = sql_templates.tmpl['add_ones_column'].render(table=self.model.input_table,
-                                                                         column='linreg_ones')
+            sql_statement = self.sql_templates['add_ones_column'].render(table=self.model.input_table,
+                                                                               column='linreg_ones')
             self.db_connection.execute(sql_statement)
 
     def __calculate_equations(self):
@@ -373,7 +375,7 @@ class LinearRegression:
                     sum_statements.append(
                         "sum(" + columns[i] + "*" + columns[j] + ") FROM " + self.model.input_table + ")")
 
-            sql_statement = sql_templates.tmpl['calculate_equations'].render(
+            sql_statement = self.sql_templates['calculate_equations'].render(
                 table='linreg_' + self.model.id + '_calculation', table_input=self.model.input_table,
                 sum_statements=sum_statements, x_columns=x)
             self.db_connection.execute(sql_statement)

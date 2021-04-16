@@ -1,54 +1,54 @@
 from jinja2 import Template
 
-tmpl = {}
+tmpl_mysql = {}
 
-tmpl['select_x_from'] = Template('''
+tmpl_mysql['select_x_from'] = Template('''
             SELECT {{ x }} FROM {{ database }}.{{ table }};
             ''')
 
-tmpl['get_all_from'] = Template('''
+tmpl_mysql['get_all_from'] = Template('''
             SELECT * FROM {{ database }}.{{ table }};
             ''')
 
-tmpl['get_all_from_where_id'] = Template('''
+tmpl_mysql['get_all_from_where_id'] = Template('''
             SELECT * FROM {{ database }}.{{ table }} WHERE id='{{ where_statement }}';
             ''')
 
-tmpl['delete_from_table_where_id'] = Template('''
+tmpl_mysql['delete_from_table_where_id'] = Template('''
             DELETE FROM {{ table }} WHERE id='{{ where_statement }}';
             ''')
-tmpl['set_safe_updates'] = Template('''
+tmpl_mysql['set_safe_updates'] = Template('''
             SET SQL_SAFE_UPDATES = {{ value }};
             ''')
 
-tmpl['table_columns'] = Template('''
+tmpl_mysql['table_columns'] = Template('''
             SELECT column_name FROM INFORMATION_SCHEMA.COLUMNS 
             WHERE TABLE_SCHEMA='{{ database }}' AND TABLE_NAME='{{ table }}';
             ''')
 
-tmpl['column_type'] = Template('''
+tmpl_mysql['column_type'] = Template('''
             SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS 
             WHERE table_name = '{{ table }}' and column_name='{{ column }}';
             ''')
 
-tmpl['drop_table'] = Template('''
+tmpl_mysql['drop_table'] = Template('''
             DROP TABLE IF EXISTS {{ table }};
             ''')
 
-tmpl['add_ones_column'] = Template('''
+tmpl_mysql['add_ones_column'] = Template('''
             ALTER TABLE {{ table }} ADD COLUMN {{ column }} INT DEFAULT 1;
             ''')
 
-tmpl['add_column'] = Template('''
+tmpl_mysql['add_column'] = Template('''
             ALTER TABLE {{ table }} ADD COLUMN {{ column }} {{ type }};
             ''')
 
-tmpl['set_ohe_column'] = Template('''
+tmpl_mysql['set_ohe_column'] = Template('''
             UPDATE {{ table }}
             SET {{ ohe_column }} = IF({{ input_column }}='{{ value }}', 1, 0);
             ''')
 
-tmpl['save_model'] = Template('''
+tmpl_mysql['save_model'] = Template('''
             REPLACE INTO linreg_model
                 SET id = '{{ id }}',
                 name = '{{ name }}',
@@ -62,11 +62,11 @@ tmpl['save_model'] = Template('''
                 ohe_columns = '{{ ohe_columns }}';
             ''')
 
-tmpl['get_model_list'] = Template('''
+tmpl_mysql['get_model_list'] = Template('''
             SELECT id, name FROM {{ database }}.{{ table }};
             ''')
 
-tmpl['init_model_table'] = Template('''
+tmpl_mysql['init_model_table'] = Template('''
             CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
                 id VARCHAR(20) NOT NULL,
                 name VARCHAR(45) NULL,
@@ -82,7 +82,7 @@ tmpl['init_model_table'] = Template('''
             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
             ''')
 
-tmpl['init_calculation_table'] = Template('''
+tmpl_mysql['init_calculation_table'] = Template('''
             CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
                 id INT NOT NULL AUTO_INCREMENT,
                 {% for x in x_columns %}
@@ -93,7 +93,7 @@ tmpl['init_calculation_table'] = Template('''
             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
             ''')
 
-tmpl['init_result_table'] = Template('''
+tmpl_mysql['init_result_table'] = Template('''
             CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
                 id INT NOT NULL AUTO_INCREMENT,
                 theta DOUBLE NULL,
@@ -101,7 +101,7 @@ tmpl['init_result_table'] = Template('''
             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
             ''')
 
-tmpl['init_prediction_table'] = Template('''
+tmpl_mysql['init_prediction_table'] = Template('''
             CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
                 id INT NOT NULL AUTO_INCREMENT,
                 y_prediction DOUBLE NULL,
@@ -109,7 +109,7 @@ tmpl['init_prediction_table'] = Template('''
             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
             ''')
 
-tmpl['init_score_table'] = Template('''
+tmpl_mysql['init_score_table'] = Template('''
             CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
                 id INT NOT NULL AUTO_INCREMENT,
                 score DOUBLE NULL,
@@ -117,7 +117,7 @@ tmpl['init_score_table'] = Template('''
             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
             ''')
 
-tmpl['calculate_equations'] = Template('''
+tmpl_mysql['calculate_equations'] = Template('''
             INSERT INTO {{ table }}({% for x in x_columns %}{{ x }}, {% endfor %}y) 
             VALUES(
                 {% for sum_statement in sum_statements %}
@@ -126,17 +126,17 @@ tmpl['calculate_equations'] = Template('''
             );
             ''')
 
-tmpl['predict'] = Template('''
+tmpl_mysql['predict'] = Template('''
             INSERT INTO {{ table }} (y_prediction) 
             SELECT {{ prediction_statement }} FROM {{ input_table }};;
             ''')
 
-tmpl['save_theta'] = Template('''
+tmpl_mysql['save_theta'] = Template('''
             INSERT INTO {{ table }} (theta)
             VALUES ({{ value }});
             ''')
 
-tmpl['calculate_save_score'] = Template('''
+tmpl_mysql['calculate_save_score'] = Template('''
             INSERT INTO {{ table_id }}_score (score)
             SELECT 1-((sum(({{ y }}-y_prediction)*({{ y }}-y_prediction)))/(sum(({{ y }}-y_avg)*({{ y }}-y_avg)))) FROM
             (SELECT {{ y }}, y_prediction FROM {{ input_table }}
