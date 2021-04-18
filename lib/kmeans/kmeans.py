@@ -87,7 +87,7 @@ class KMeansModel:
         self.__db = db
         self.__statements = statements
 
-    def cluster(self, max_steps=100):        
+    def estimate(self, max_steps=100):        
         variance = -1
         step = 0
         while step < max_steps:

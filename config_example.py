@@ -1,0 +1,9 @@
+"""
+EXAMPLE for the config.py which is stored local only and excluded from Github.
+config.py Stores configs which are used throughout the whole application.
+"""
+DB_HOST = "localhost"
+DB_USER = "root"
+DB_PW = "password"
+DB_NAME = "dbname"
+DB_PORT = 3306
