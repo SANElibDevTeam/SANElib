@@ -9,6 +9,9 @@ from util.database_connection import Database
 # kmeans = lib.kmeans.KMeans(db)
 kmeans = sanelib.kmeans
 
+model_names = kmeans.get_model_names()
+model = kmeans.load_model(model_names[-2])
+
 # tablename = "covtypall"
 # feature_names = ["Elevation"]
 
@@ -21,10 +24,11 @@ feature_names = ["sepallength", "sepalwidth", "petallength", "petalwidth"]
 k = 3
 model_identifier = "example"
 
-model = kmeans.create_model(tablename, feature_names, k, model_identifier)
+# model = kmeans.create_model(tablename, feature_names, k, model_identifier)
 print(f"before clustering: {model.get_information()}")
 model.estimate(max_steps=10)
 print(f"after clustering: {model.get_information()}")
+
 
 axis_order = [3, 0, 2]
 model.visualize(feature_names, axis_order)
