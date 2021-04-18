@@ -10,7 +10,7 @@ class KMeans:
     def __init__(self, db):
         self.__db = db
     
-    def __generate_sql_preparation(self, tablename, feature_names, k, table_prefix):
+    def __generate_sql_preparation(self, tablename, feature_names, k, table_prefix, normalization=None):
         table_model = f"{table_prefix}_model"
         table_x = f"{table_prefix}_x"
         table_c = f"{table_prefix}_c"
@@ -21,21 +21,32 @@ class KMeans:
 
         # statement parts
         columns = ", ".join([f"x_{l} as x_{l}_{j}" for j in range(k) for l in range(d)])
-        features_with_alias = ", ".join([f"{feature_names[l]} as x_{l}" for l in range(d)])
         def get_setters_init(j):
             return ", ".join([f"x_{l}_{j} = x_{l}" for l in range(d)])
+        if(normalization=="min-max"):
+            features_with_alias = ", ".join([f"({feature_names[l]}-min_{l})/(max_{l}-min_{l}) as x_{l}" for l in range(d)])
+            min_features = ", ".join([f"min({feature_names[l]}) as min_{l}" for l in range(d)])
+            max_features = ", ".join([f"max({feature_names[l]}) as max_{l}" for l in range(d)])
+            further_tables = f", (select {min_features}, {max_features} from {tablename}) min_max"
+        elif(normalization=="z-score"):
+            features_with_alias = ", ".join([f"({feature_names[l]}-avg_{l})/stdev_{l} as x_{l}" for l in range(d)])
+            avg_features = ", ".join([f"avg({feature_names[l]}) as avg_{l}" for l in range(d)])
+            stdev_features = ", ".join([f"stddev({feature_names[l]}) as stdev_{l}" for l in range(d)]) # TODO: spelling may vary: stdev / stddev
+            further_tables = f", (select {avg_features}, {stdev_features} from {tablename}) z_score"
+        else:
+            features_with_alias = ", ".join([f"{feature_names[l]} as x_{l}" for l in range(d)])
+            further_tables = ""
 
         # statements
         statements = {
             "create_table_model": f"create table {table_model} as select {n} as n, {d} as d, {k} as k, 0 as steps from {tablename} limit 1;",
             "add_variance_column": f"alter table {table_model} add variance double;",
-            "create_table_x": f"create table {table_x} as select row_number() over () as i, {features_with_alias} from {tablename};",
+            "create_table_x": f"create table {table_x} as select row_number() over () as i, {features_with_alias} from {tablename}{further_tables};",
             "add_cluster_columns": f"alter table {table_x} add min_dist double, add j int;",
             "create_table_c": f"create table {table_c} as select {columns} from {table_x} where i = 1;",
             "init_table_c": [f"update {table_c} join {table_x} on i = {randrange(1, n)} set {get_setters_init(j)};" for j in range(k)],
         }
         return statements
-
 
     def __generate_sql(self, table_prefix):
         table_model = f"{table_prefix}_model"
@@ -75,22 +86,22 @@ class KMeans:
 
         return statements
 
-    def create_model(self, tablename, feature_names, k, model_identifier):
+    def create_model(self, tablename, feature_names, k, model_identifier, normalization=None):
         model_name = f"{tablename}_{model_identifier}"
         self.drop_model(model_name)
 
-        # get statements to initialise the model
-        statements = self.__generate_sql_preparation(tablename, feature_names, k, model_name)
+        # get statements to initialize the model
+        statements = self.__generate_sql_preparation(tablename, feature_names, k, model_name, normalization)
 
-        # create and initialise table model
+        # create and initialize table model
         self.__db.execute(statements["create_table_model"])
         self.__db.execute(statements["add_variance_column"])
         
-        # create and initialise table x
+        # create and initialize table x
         self.__db.execute(statements["create_table_x"])
         self.__db.execute(statements["add_cluster_columns"])
         
-        # create and initialise table c
+        # create and initialize table c
         self.__db.execute(statements["create_table_c"])
         for statement in statements["init_table_c"]:
             self.__db.execute(statement)
