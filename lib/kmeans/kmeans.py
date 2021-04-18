@@ -11,15 +11,16 @@ class KMeans:
         self.__db = db
     
     def __generate_sql_preparation(self, tablename, feature_names, k, model_identifier):
-        count_rows_query = f"select count(*) from {tablename};"
-        n = self.__db.execute_query(count_rows_query)[0][0]
-        d = len(feature_names)
-
         table_prefix = f"{tablename}_{model_identifier}"
         table_model = f"{table_prefix}_model"
         table_x = f"{table_prefix}_x"
         table_c = f"{table_prefix}_c"
         
+        count_rows_query = f"select count(*) from {tablename};"
+        n = self.__db.execute_query(count_rows_query)[0][0]
+        d = len(feature_names)
+
+        # statement parts
         columns = ", ".join([f"x_{l} as x_{l}_{j}" for j in range(k) for l in range(d)]) #1
         features_with_alias = ", ".join([f"{feature_names[l]} as x_{l}" for l in range(d)])
         def get_setters_init(j):
@@ -104,10 +105,16 @@ class KMeans:
         statements = self.__generate_sql(tables["prefix"])
         return KMeansModel(self.__db, statements)
 
-    def load_model(self, model_identifier):
+    def load_model(self, model_name):
         # get statements to train the model
-        statements = self.__generate_sql(model_identifier)
+        statements = self.__generate_sql(model_name)
         return KMeansModel(self.__db, statements)
+
+    def drop_model(self, model_name):
+        tables = ['model', 'x', 'c']
+        for table in tables:
+            self.__db.execute_query_without_result(f"drop table if exists {model_name}_{table};")
+
 
     def get_model_names(self):
         get_models_query = f"select table_name from information_schema.tables where table_name like '%model';"

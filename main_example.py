@@ -10,6 +10,7 @@ from util.database_connection import Database
 kmeans = sanelib.kmeans
 
 model_names = kmeans.get_model_names()
+# kmeans.drop_model(model_names[-1])
 model = kmeans.load_model(model_names[-2])
 
 # tablename = "covtypall"
