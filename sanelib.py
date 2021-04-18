@@ -5,16 +5,28 @@
 import config as conf
 import lib
 import util.log_handler
-from util.database_connection import Database
+from util.database import Database
 
-db_connection = {
-    "drivername": "mysql+mysqlconnector",
-    "host": conf.DB_HOST,
-    "port": conf.DB_PORT,
-    "username": conf.DB_USER,
-    "password": conf.DB_PW,
-    "database": conf.DB_NAME,
-    "query": {"charset": "utf8"}
-}
+if conf.DB_TYPE == "MYSQL":
+    driver_name = "mysql+mysqlconnector"
+    db_connection = {
+        "drivername": driver_name,
+        "host": conf.DB_HOST,
+        "port": conf.DB_PORT,
+        "username": conf.DB_USER,
+        "password": conf.DB_PW,
+        "database": conf.DB_NAME,
+        "query": {"charset": "utf8"}
+    }
+elif conf.DB_TYPE == "SQLITE":
+    driver_name = "sqlite"
+    db_connection = {
+        "drivername": driver_name,
+        "database": conf.DB_NAME,
+        "path": conf.DB_PATH
+    }
+else:
+    raise Exception("No valid DB_TYPE (config.py) provided! Please provide one of the following types: \n MYSQL\n SQLITE")
 
-kmeans = lib.kmeans.KMeans(Database(db_connection))
+db = Database(db_connection)
+kmeans = lib.kmeans.KMeans(db)
