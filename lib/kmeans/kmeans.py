@@ -10,8 +10,7 @@ class KMeans:
     def __init__(self, db):
         self.__db = db
     
-    def __generate_sql_preparation(self, tablename, feature_names, k, model_identifier):
-        table_prefix = f"{tablename}_{model_identifier}"
+    def __generate_sql_preparation(self, tablename, feature_names, k, table_prefix):
         table_model = f"{table_prefix}_model"
         table_x = f"{table_prefix}_x"
         table_c = f"{table_prefix}_c"
@@ -28,22 +27,14 @@ class KMeans:
 
         # statements
         statements = {
-            "create_table_model": f"select {n} as n, {d} as d, {k} as k, 0 as steps from {tablename} limit 1;",
+            "create_table_model": f"create table {table_model} as select {n} as n, {d} as d, {k} as k, 0 as steps from {tablename} limit 1;",
             "add_variance_column": f"alter table {table_model} add variance double;",
-            "create_table_x": f"select row_number() over () as i, {features_with_alias} from {tablename};",
+            "create_table_x": f"create table {table_x} as select row_number() over () as i, {features_with_alias} from {tablename};",
             "add_cluster_columns": f"alter table {table_x} add min_dist double, add j int;",
-            "create_table_c": f"select {columns} from {table_x} where i = 1;",
+            "create_table_c": f"create table {table_c} as select {columns} from {table_x} where i = 1;",
             "init_table_c": [f"update {table_c} join {table_x} on i = {randrange(1, n)} set {get_setters_init(j)};" for j in range(k)],
         }
-
-        # tables
-        tables = {
-            "prefix": table_prefix,
-            "model": table_model,
-            "x": table_x,
-            "c": table_c
-        }
-        return statements, tables
+        return statements
 
 
     def __generate_sql(self, table_prefix):
@@ -85,24 +76,27 @@ class KMeans:
         return statements
 
     def create_model(self, tablename, feature_names, k, model_identifier):
+        model_name = f"{tablename}_{model_identifier}"
+        self.drop_model(model_name)
+
         # get statements to initialise the model
-        statements, tables = self.__generate_sql_preparation(tablename, feature_names, k, model_identifier)
+        statements = self.__generate_sql_preparation(tablename, feature_names, k, model_name)
 
         # create and initialise table model
-        self.__db.create_materialized_view(tables["model"], statements["create_table_model"])
-        self.__db.execute_query_without_result(statements["add_variance_column"])
+        self.__db.execute(statements["create_table_model"])
+        self.__db.execute(statements["add_variance_column"])
         
         # create and initialise table x
-        self.__db.create_materialized_view(tables["x"], statements["create_table_x"])
-        self.__db.execute_query_without_result(statements["add_cluster_columns"])
+        self.__db.execute(statements["create_table_x"])
+        self.__db.execute(statements["add_cluster_columns"])
         
         # create and initialise table c
-        self.__db.create_materialized_view(tables["c"], statements["create_table_c"])
+        self.__db.execute(statements["create_table_c"])
         for statement in statements["init_table_c"]:
-            self.__db.execute_query_without_result(statement)
+            self.__db.execute(statement)
         
         # get statements to train the model
-        statements = self.__generate_sql(tables["prefix"])
+        statements = self.__generate_sql(model_name)
         return KMeansModel(self.__db, statements)
 
     def load_model(self, model_name):
@@ -113,7 +107,7 @@ class KMeans:
     def drop_model(self, model_name):
         tables = ['model', 'x', 'c']
         for table in tables:
-            self.__db.execute_query_without_result(f"drop table if exists {model_name}_{table};")
+            self.__db.execute(f"drop table if exists {model_name}_{table};")
 
 
     def get_model_names(self):
@@ -135,8 +129,8 @@ class KMeansModel:
         step = 0
         while step < max_steps:
             step += 1
-            self.__db.execute_query_without_result(self.__statements["set_clusters"])
-            self.__db.execute_query_without_result(self.__statements["update_tabel_model"])
+            self.__db.execute(self.__statements["set_clusters"])
+            self.__db.execute(self.__statements["update_tabel_model"])
 
             last_variance = variance
             variance = self.get_information()["variance"]
@@ -145,7 +139,7 @@ class KMeansModel:
                 break
             
             for statement in self.__statements["update_table_c"]:
-                self.__db.execute_query_without_result(statement)
+                self.__db.execute(statement)
 
         return self
 
