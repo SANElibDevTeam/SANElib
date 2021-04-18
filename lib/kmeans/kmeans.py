@@ -42,7 +42,7 @@ class KMeans:
         # statements
         statements = {
              # NOTE: update with join doesn't work in sqlite
-            "create_table_model": f"select {d} as d, {k} as k, {n} as n, 0 as steps from {tablename};",
+            "create_table_model": f"select {d} as d, {k} as k, {n} as n, 0 as steps from {tablename} limit 1;",
             "add_variance_column": f"alter table {table_model} add variance double;",
             "get_information": f"select * from {table_model};",
             "create_table_x": f"select row_number() over () as i, {features_with_alias} from {tablename};",
@@ -81,6 +81,15 @@ class KMeans:
             self.__db.execute_query_without_result(statement)
         
         return KMeansModel(self.__db, statements)
+
+    def get_model_names(self):
+        get_models_query = f"select table_name from information_schema.tables where table_name like '%model';"
+        rows = self.__db.execute_query(get_models_query)
+        model_names = []
+        for row in rows:
+            model_names.append(row[0][:-6])
+        return model_names
+
 
 class KMeansModel:
     def __init__(self, db, statements):
