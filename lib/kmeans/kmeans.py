@@ -20,7 +20,7 @@ class KMeans:
         d = len(feature_names)
 
         # statement parts
-        columns = ", ".join([f"x_{l} as x_{l}_{j}" for j in range(k) for l in range(d)]) #1
+        columns = ", ".join([f"x_{l} as x_{l}_{j}" for j in range(k) for l in range(d)])
         features_with_alias = ", ".join([f"{feature_names[l]} as x_{l}" for l in range(d)])
         def get_setters_init(j):
             return ", ".join([f"x_{l}_{j} = x_{l}" for l in range(d)])

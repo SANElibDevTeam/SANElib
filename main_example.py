@@ -1,8 +1,10 @@
+import time
+
 import pandas as pd
 
 import lib
 import sanelib
-from util.database_connection import Database
+from util.database import Database
 
 # iris_df = pd.read_csv("datasets/iris.csv")
 # db = Database(dataframe=iris_df, dfname="iris")
@@ -11,10 +13,10 @@ kmeans = sanelib.kmeans
 
 model_names = kmeans.get_model_names()
 # kmeans.drop_model(model_names[-1])
-model = kmeans.load_model(model_names[-2])
+# model = kmeans.load_model(model_names[0])
 
 # tablename = "covtypall"
-# feature_names = ["Elevation"]
+# feature_names = ["Elevation", "Aspect", "Slope", "Horizontal_Distance_To_Hydrology", "Vertical_Distance_To_Hydrology", "Horizontal_Distance_To_Roadways", "Hillshade_9am", "Hillshade_Noon", "Hillshade_3pm", "Horizontal_Distance_To_Fire_Points"]
 
 tablename = "iris"
 feature_names = ["sepallength", "sepalwidth", "petallength", "petalwidth"]
@@ -25,11 +27,14 @@ feature_names = ["sepallength", "sepalwidth", "petallength", "petalwidth"]
 k = 3
 model_identifier = "example"
 
-# model = kmeans.create_model(tablename, feature_names, k, model_identifier)
-print(f"before clustering: {model.get_information()}")
-model.estimate(max_steps=10)
-print(f"after clustering: {model.get_information()}")
+init_time = time.time()
+model = kmeans.create_model(tablename, feature_names, k, model_identifier, "min-max")
+train_time = time.time()
+model.estimate(max_steps=30)
+print(f"Information: {model.get_information()}")
+print(f"Initialization: {train_time - init_time} [s]")
+print(f"Training: {time.time() - train_time} [s]")
 
 
 axis_order = [3, 0, 2]
-model.visualize(feature_names, axis_order)
+model.visualize(feature_names)
