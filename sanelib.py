@@ -19,9 +19,8 @@ if conf.DB_TYPE == "MYSQL":
         "query": {"charset": "utf8"}
     }
 elif conf.DB_TYPE == "SQLITE":
-    driver_name = "sqlite"
     db_connection = {
-        "drivername": driver_name,
+        "drivername": "sqlite",
         "database": conf.DB_NAME,
         "path": conf.DB_PATH
     }

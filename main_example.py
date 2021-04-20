@@ -7,11 +7,16 @@ import sanelib
 from util.database import Database
 
 # iris_df = pd.read_csv("datasets/iris.csv")
-# db = Database(dataframe=iris_df, dfname="iris")
+# db_connection = {
+    # "drivername": "sqlite",
+    # "path": "",
+# }
+# db = Database(db_connection=db_connection, dataframe=iris_df, dfname="iris")
 # kmeans = lib.kmeans.KMeans(db)
 kmeans = sanelib.kmeans
 
 model_names = kmeans.get_model_names()
+print(f"models: {model_names}")
 # kmeans.drop_model(model_names[-1])
 # model = kmeans.load_model(model_names[0])
 
@@ -26,11 +31,12 @@ feature_names = ["sepallength", "sepalwidth", "petallength", "petalwidth"]
 
 k = 3
 model_identifier = "example"
+normalizations = [None, "min-max", "z-score"]
 
 init_time = time.time()
-model = kmeans.create_model(tablename, feature_names, k, model_identifier, "min-max")
+model = kmeans.create_model(tablename, feature_names, k, model_identifier, normalizations[2])
 train_time = time.time()
-model.estimate(max_steps=30)
+model.estimate(max_steps=10)
 print(f"Information: {model.get_information()}")
 print(f"Initialization: {train_time - init_time} [s]")
 print(f"Training: {time.time() - train_time} [s]")

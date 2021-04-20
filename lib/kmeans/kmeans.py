@@ -1,7 +1,7 @@
 import logging
-from random import randrange
 
 import matplotlib.pyplot as plt
+from lib.kmeans import sql_templates
 from mpl_toolkits.mplot3d import Axes3D
 from pandas import DataFrame
 
@@ -9,42 +9,25 @@ from pandas import DataFrame
 class KMeans:
     def __init__(self, db):
         self.__db = db
+        self.__templates = sql_templates.get_templates(db.driver_name)
     
     def __generate_sql_preparation(self, tablename, feature_names, k, table_prefix, normalization=None):
         table_model = f"{table_prefix}_model"
         table_x = f"{table_prefix}_x"
         table_c = f"{table_prefix}_c"
         
-        count_rows_query = f"select count(*) from {tablename};"
+        count_rows_query = self.__templates.get_row_count(tablename)
         n = self.__db.execute_query(count_rows_query)[0][0]
         d = len(feature_names)
 
-        # statement parts
-        columns = ", ".join([f"x_{l} as x_{l}_{j}" for j in range(k) for l in range(d)])
-        def get_setters_init(j):
-            return ", ".join([f"x_{l}_{j} = x_{l}" for l in range(d)])
-        if(normalization=="min-max"):
-            features_with_alias = ", ".join([f"({feature_names[l]}-min_{l})/(max_{l}-min_{l}) as x_{l}" for l in range(d)])
-            min_features = ", ".join([f"min({feature_names[l]}) as min_{l}" for l in range(d)])
-            max_features = ", ".join([f"max({feature_names[l]}) as max_{l}" for l in range(d)])
-            further_tables = f", (select {min_features}, {max_features} from {tablename}) min_max"
-        elif(normalization=="z-score"):
-            features_with_alias = ", ".join([f"({feature_names[l]}-avg_{l})/stdev_{l} as x_{l}" for l in range(d)])
-            avg_features = ", ".join([f"avg({feature_names[l]}) as avg_{l}" for l in range(d)])
-            stdev_features = ", ".join([f"stddev({feature_names[l]}) as stdev_{l}" for l in range(d)]) # TODO: spelling may vary: stdev / stddev
-            further_tables = f", (select {avg_features}, {stdev_features} from {tablename}) z_score"
-        else:
-            features_with_alias = ", ".join([f"{feature_names[l]} as x_{l}" for l in range(d)])
-            further_tables = ""
-
         # statements
         statements = {
-            "create_table_model": f"create table {table_model} as select {n} as n, {d} as d, {k} as k, 0 as steps from {tablename} limit 1;",
-            "add_variance_column": f"alter table {table_model} add variance double;",
-            "create_table_x": f"create table {table_x} as select row_number() over () as i, {features_with_alias} from {tablename}{further_tables};",
-            "add_cluster_columns": f"alter table {table_x} add min_dist double, add j int;",
-            "create_table_c": f"create table {table_c} as select {columns} from {table_x} where i = 1;",
-            "init_table_c": [f"update {table_c} join {table_x} on i = {randrange(1, n)} set {get_setters_init(j)};" for j in range(k)],
+            "create_table_model": self.__templates.get_create_table_model(table_model, n, d, k, tablename),
+            "add_variance_column": self.__templates.get_add_variance_column(table_model),
+            "create_table_x": self.__templates.get_create_table_x(normalization, feature_names, d, tablename, table_x),
+            "add_cluster_columns": self.__templates.get_add_cluster_columns(table_x),
+            "create_table_c": self.__templates.get_create_table_c(d, k, table_c, table_x),
+            "init_table_c": self.__templates.get_init_table_c(table_c, table_x, n, d, k),
         }
         return statements
 
@@ -72,7 +55,7 @@ class KMeans:
         def get_setters_move(j):
             return ", ".join([f"{table_c}.x_{l}_{j} = case when sub_table.x_{l}_{j} is null then {table_c}.x_{l}_{j} else sub_table.x_{l}_{j} end" for l in range(d)])
         feature_aliases = ", ".join([f"x_{l}" for l in range(d)])
-        cluster_examples = " UNION ".join([f"(select {feature_aliases}, j from {table_x} where j = {j} LIMIT 1000)" for j in range(k)])
+        cluster_examples = " UNION ".join([f"(select {feature_aliases}, j from {table_x} where j = {j} LIMIT 500)" for j in range(k)])
 
         # statements
         statements = {
@@ -120,10 +103,9 @@ class KMeans:
         for table in tables:
             self.__db.execute(f"drop table if exists {model_name}_{table};")
 
-
     def get_model_names(self):
-        get_models_query = f"select table_name from information_schema.tables where table_name like '%model';"
-        rows = self.__db.execute_query(get_models_query)
+        select_models = self.__templates.get_select_models()
+        rows = self.__db.execute_query(select_models)
         model_names = []
         for row in rows:
             model_names.append(row[0][:-6])
