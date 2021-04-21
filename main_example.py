@@ -6,14 +6,14 @@ import lib
 import sanelib
 from util.database import Database
 
-# iris_df = pd.read_csv("datasets/iris.csv")
-# db_connection = {
-    # "drivername": "sqlite",
-    # "path": "",
-# }
-# db = Database(db_connection=db_connection, dataframe=iris_df, dfname="iris")
-# kmeans = lib.kmeans.KMeans(db)
-kmeans = sanelib.kmeans
+iris_df = pd.read_csv("datasets/iris.csv")
+db_connection = {
+    "drivername": "sqlite",
+    "path": "",
+}
+db = Database(db_connection=db_connection, dataframe=iris_df, dfname="iris")
+kmeans = lib.kmeans.KMeans(db)
+# kmeans = sanelib.kmeans
 
 model_names = kmeans.get_model_names()
 print(f"models: {model_names}")
@@ -34,7 +34,7 @@ model_identifier = "example"
 normalizations = [None, "min-max", "z-score"]
 
 init_time = time.time()
-model = kmeans.create_model(tablename, feature_names, k, model_identifier, normalizations[2])
+model = kmeans.create_model(tablename, feature_names, k, model_identifier, normalizations[1])
 train_time = time.time()
 model.estimate(max_steps=10)
 print(f"Information: {model.get_information()}")

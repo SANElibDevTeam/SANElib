@@ -48,7 +48,8 @@ class KMeans:
         
         # create and initialize table x
         self.__db.execute(statements["create_table_x"])
-        self.__db.execute(statements["add_cluster_columns"])
+        for statement in statements["add_cluster_columns"]:
+            self.__db.execute(statement)
         
         # create and initialize table c
         self.__db.execute(statements["create_table_c"])
@@ -76,7 +77,7 @@ class KMeans:
     def drop_model(self, model_name):
         tables = ['model', 'x', 'c']
         for table in tables:
-            self.__db.execute(f"drop table if exists {model_name}_{table};")
+            self.__db.execute(self.__templates.get_drop_model(model_name, table))
 
     def get_model_names(self):
         select_models = self.__templates.get_select_models()
@@ -97,7 +98,8 @@ class KMeansModel:
         step = 0
         while step < max_steps:
             step += 1
-            self.__db.execute(self.__statements["set_clusters"])
+            for statement in self.__statements["set_clusters"]:
+                self.__db.execute(statement)
             self.__db.execute(self.__statements["update_table_model"])
 
             last_variance = variance
@@ -138,7 +140,6 @@ class KMeansModel:
         ax = Axes3D(fig, rect=[0, 0, .95, 1], elev=60, azim=270, auto_add_to_figure=False)
         fig.add_axes(ax)
         
-
         x_label, x_scatter,  = self.__get_axis(x, axis_order, feature_names, 0)
         y_label, y_scatter = self.__get_axis(x, axis_order, feature_names, 1)
         z_label, z_scatter = self.__get_axis(x, axis_order, feature_names, 2)

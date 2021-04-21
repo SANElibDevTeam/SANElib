@@ -14,13 +14,12 @@ class Database:
                 self.engine = create_engine(URL(**db_connection), pool_pre_ping=True)
             elif db_connection["drivername"] == "sqlite":
                 self.engine = create_engine("sqlite:///" + db_connection["path"], pool_pre_ping=True)
-        elif not dataframe.empty:
-            self.import_df(dataframe, dfname)
+                if not dataframe.empty:
+                    self.import_df(dataframe, dfname)
         else:
             raise ValueError("You need to pass a db connection or a dataframe")
 
     def import_df(self, dataframe, name):
-        self.engine = create_engine("sqlite://", echo=False)
         dataframe.to_sql(name=name, con=self.engine, if_exists="replace")
 
     def disconnect(self):
