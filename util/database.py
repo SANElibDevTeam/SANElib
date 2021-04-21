@@ -6,7 +6,7 @@ from sqlalchemy.engine.url import URL
 class Database:
     def __init__(self, db_connection=None, dataframe=pd.DataFrame({"A": []}), dfname="DF_NAME"):
         self.driver_name = db_connection["drivername"]
-        self.database_name = db_connection["database"]
+        # self.database_name = db_connection["database"]
         self.connection = None
 
         if db_connection is not None:

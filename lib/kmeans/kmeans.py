@@ -10,12 +10,24 @@ class KMeans:
     def __init__(self, db):
         self.__db = db
         self.__templates = sql_templates.get_templates(db.driver_name)
-    
-    def __generate_sql_preparation(self, tablename, feature_names, k, table_prefix, normalization=None):
-        table_model = f"{table_prefix}_model"
-        table_x = f"{table_prefix}_x"
-        table_c = f"{table_prefix}_c"
+
+    def __generate_sql(self, table_model, table_c, table_x, n, d, k):
+        statements = {
+            "select_information": self.__templates.get_select_information(table_model),
+            "set_clusters": self.__templates.get_set_clusters(table_c, table_x, d, k),
+            "update_table_model": self.__templates.get_update_table_model(table_model, n, table_x),  
+            "update_table_c": self.__templates.get_update_table_c(table_c, d, k, table_x),
+            "select_visualization":  self.__templates.get_select_visualization(table_x, d, k),
+        }
+        return statements
+
+    def create_model(self, tablename, feature_names, k, model_identifier, normalization=None):
+        model_name = f"{tablename}_{model_identifier}"
+        table_model = f"{model_name}_model"
+        table_x = f"{model_name}_x"
+        table_c = f"{model_name}_c"
         
+        self.drop_model(model_name)
         count_rows_query = self.__templates.get_row_count(tablename)
         n = self.__db.execute_query(count_rows_query)[0][0]
         d = len(feature_names)
@@ -29,52 +41,6 @@ class KMeans:
             "create_table_c": self.__templates.get_create_table_c(d, k, table_c, table_x),
             "init_table_c": self.__templates.get_init_table_c(table_c, table_x, n, d, k),
         }
-        return statements
-
-    def __generate_sql(self, table_prefix):
-        table_model = f"{table_prefix}_model"
-        table_x = f"{table_prefix}_x"
-        table_c = f"{table_prefix}_c"
-
-        get_information = f"select n, d, k, steps, variance from {table_model};"
-        query_result = self.__db.execute_query(get_information)
-        n = query_result[0][0]
-        d = query_result[0][1]
-        k = query_result[0][2]
-    
-        # statement parts
-        def get_distances(j):
-            distance_per_feature = " + ".join([f"power(({table_x}.x_{l} - {table_c}.x_{l}_{j}),2)" for l in range(d)])
-            return f"({distance_per_feature}) as dist_{j}"
-        distances_columns = ", ".join([f"dist_{j}" for j in range(k)])
-        distances_to_clusters = ", ".join([get_distances(j) for j in range(k)])
-        sub_query_distances = f"select i, {distances_to_clusters} from {table_x}, {table_c} group by i"
-        case_dist_match = " ".join([f"when dist_{j} = sub_table.min_dist then {j}" for j in range(k)])
-        def get_sub_selectors(j):
-            return ", ".join([f"sum(x_{l})/count(*) as x_{l}_{j}" for l in range(d)])
-        def get_setters_move(j):
-            return ", ".join([f"{table_c}.x_{l}_{j} = case when sub_table.x_{l}_{j} is null then {table_c}.x_{l}_{j} else sub_table.x_{l}_{j} end" for l in range(d)])
-        feature_aliases = ", ".join([f"x_{l}" for l in range(d)])
-        cluster_examples = " UNION ".join([f"(select {feature_aliases}, j from {table_x} where j = {j} LIMIT 500)" for j in range(k)])
-
-        # statements
-        statements = {
-             # NOTE: update with join doesn't work in sqlite
-            "get_information": get_information,
-            "set_clusters": f"update {table_x} join (select *, least({distances_columns}) as min_dist from ({sub_query_distances}) distances) sub_table on sub_table.i = {table_x}.i set {table_x}.min_dist = sub_table.min_dist, j = case {case_dist_match} end;",
-            "update_tabel_model": f"update {table_model} set steps = steps + 1, variance = (select sum(min_dist)/{n} from {table_x});",  
-            "update_table_c": [f"update {table_c}, (select {get_sub_selectors(j)} from {table_x} where j={j}) sub_table set {get_setters_move(j)};" for j in range(k)],
-            "get_visualization":  f"{cluster_examples};"
-        }
-
-        return statements
-
-    def create_model(self, tablename, feature_names, k, model_identifier, normalization=None):
-        model_name = f"{tablename}_{model_identifier}"
-        self.drop_model(model_name)
-
-        # get statements to initialize the model
-        statements = self.__generate_sql_preparation(tablename, feature_names, k, model_name, normalization)
 
         # create and initialize table model
         self.__db.execute(statements["create_table_model"])
@@ -88,14 +54,23 @@ class KMeans:
         self.__db.execute(statements["create_table_c"])
         for statement in statements["init_table_c"]:
             self.__db.execute(statement)
-        
-        # get statements to train the model
-        statements = self.__generate_sql(model_name)
+
+        statements = self.__generate_sql(table_model, table_c, table_x, n, d, k)
         return KMeansModel(self.__db, statements)
 
     def load_model(self, model_name):
-        # get statements to train the model
-        statements = self.__generate_sql(model_name)
+        table_model = f"{table_prefix}_model"
+        table_x = f"{table_prefix}_x"
+        table_c = f"{table_prefix}_c"
+
+        select_information = self.__templates.get_select_information(table_model)
+        query_result = self.__db.execute_query(select_information)
+
+        n = query_result[0][0]
+        d = query_result[0][1]
+        k = query_result[0][2]
+        
+        statements = self.__generate_sql(table_model, table_c, table_x, n, d, k)
         return KMeansModel(self.__db, statements)
 
     def drop_model(self, model_name):
@@ -123,7 +98,7 @@ class KMeansModel:
         while step < max_steps:
             step += 1
             self.__db.execute(self.__statements["set_clusters"])
-            self.__db.execute(self.__statements["update_tabel_model"])
+            self.__db.execute(self.__statements["update_table_model"])
 
             last_variance = variance
             variance = self.get_information()["variance"]
@@ -137,7 +112,7 @@ class KMeansModel:
         return self
 
     def get_information(self):
-        query_result = self.__db.execute_query(self.__statements["get_information"])
+        query_result = self.__db.execute_query(self.__statements["select_information"])
         return {
             "n": query_result[0][0],
             "d": query_result[0][1],
@@ -152,7 +127,7 @@ class KMeansModel:
         d = len(axis_order[:3])
         features = [f"x_{l}" for l in range(d)]
 
-        query_result = self.__db.execute_query(self.__statements["get_visualization"])
+        query_result = self.__db.execute_query(self.__statements["select_visualization"])
         feature_names.append("j")
         df = DataFrame(query_result, columns=feature_names)
 

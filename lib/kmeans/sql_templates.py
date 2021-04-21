@@ -50,6 +50,35 @@ class SqlTemplates:
     
     def get_select_models(self):
         return f"select table_name from information_schema.tables where table_name like '%model';"
+
+    def get_select_information(self, table_model):
+        return f"select n, d, k, steps, variance from {table_model};"
+
+    def get_set_clusters(self, table_c, table_x, d, k):
+        def get_distances(j):
+            distance_per_feature = " + ".join([f"power(({table_x}.x_{l} - {table_c}.x_{l}_{j}),2)" for l in range(d)])
+            return f"({distance_per_feature}) as dist_{j}"
+        distances_to_clusters = ", ".join([get_distances(j) for j in range(k)])
+        sub_query_distances = f"select i, {distances_to_clusters} from {table_x}, {table_c} group by i"
+        distances_columns = ", ".join([f"dist_{j}" for j in range(k)])
+        case_dist_match = " ".join([f"when dist_{j} = sub_table.min_dist then {j}" for j in range(k)])
+        return f"update {table_x} join (select *, least({distances_columns}) as min_dist from ({sub_query_distances}) distances) sub_table on sub_table.i = {table_x}.i set {table_x}.min_dist = sub_table.min_dist, j = case {case_dist_match} end;"
+            
+    def get_update_table_model(self, table_model, n, table_x):
+        return f"update {table_model} set steps = steps + 1, variance = (select sum(min_dist)/{n} from {table_x});"
+
+    def get_update_table_c(self, table_c, d, k, table_x):
+        def get_sub_selectors(j):
+            return ", ".join([f"sum(x_{l})/count(*) as x_{l}_{j}" for l in range(d)])
+        def get_setters_move(j):
+            return ", ".join([f"{table_c}.x_{l}_{j} = case when sub_table.x_{l}_{j} is null then {table_c}.x_{l}_{j} else sub_table.x_{l}_{j} end" for l in range(d)])
+        return [f"update {table_c}, (select {get_sub_selectors(j)} from {table_x} where j={j}) sub_table set {get_setters_move(j)};" for j in range(k)]
+
+    def get_select_visualization(self, table_x, d, k):
+        feature_aliases = ", ".join([f"x_{l}" for l in range(d)])
+        cluster_examples = " UNION ".join([f"(select {feature_aliases}, j from {table_x} where j = {j} LIMIT 500)" for j in range(k)])
+        return f"{cluster_examples};"
+
  
 # class for sqlite specific statements
 class SqliteTemplates(SqlTemplates):
