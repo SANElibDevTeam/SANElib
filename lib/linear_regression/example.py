@@ -43,7 +43,7 @@ def run_bmi_example(table_name="example_bmi", prediction_table_name="prediction_
     lr.load_model("m0")
     print("MODEL DESCRIPTION:")
     print(lr.get_active_model_description())
-    prediction_columns = ['Sex', 'Age', 'Height_Inches', 'Weight_Pounds']
+    prediction_columns = ['Height_Inches', 'Weight_Pounds']
     lr.predict(prediction_table_name, prediction_columns)
     print("PREDICTION ARRAY:")
     print(lr.get_prediction_array())

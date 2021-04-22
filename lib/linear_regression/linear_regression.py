@@ -22,7 +22,7 @@ class LinearRegression:
         elif level == "DEBUG":
             level = logging.DEBUG
         else:
-            raise Exception('Invalid log level provided. Please select one of the following: INFO, DEBUG')
+            raise Exception('Invalid log level provided. Please select one of the following: INFO, DEBUG!')
         logging.basicConfig(level=level)
 
     def create_model(self, table, x_columns, y_column, model_name=None):

@@ -11,12 +11,13 @@ timer.start()
 # mdh_example.run(mdh)
 
 # Run LinearRegression example
-# lr_example.run_bmi_example()
-lr = sanelib.linear_regression
-x_columns = ['Height_Inches', 'Weight_Pounds']
-y_column = ['BMI']
-lr.estimate("bmi_short", x_columns, y_column)
-print(lr.get_coefficients())
+lr_example.run_bmi_example()
+
+# lr = sanelib.linear_regression
+# x_columns = ['Height_Inches', 'Weight_Pounds']
+# y_column = ['BMI']
+# lr.estimate("bmi_short", x_columns, y_column)
+# print(lr.get_coefficients())
 # lr.estimate("bmi_short", x_columns, y_column).predict().score()
 # print(lr.get_coefficients())
 # print(lr.get_score())
