@@ -21,7 +21,7 @@ The goal of this work is to implement specific ML procedures using SQL code gene
 
   #### General information
 
-  Currently only fully supported for Windows and MySQL!
+  Currently only fully supports MySQL!
 
   #### Usage
 
