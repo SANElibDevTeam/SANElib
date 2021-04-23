@@ -19,13 +19,14 @@ class LinearRegression:
             level = logging.INFO
         elif level == "DEBUG":
             level = logging.DEBUG
+        elif level == "NONE":
+            level = logging.WARN
         else:
-            raise Exception('Invalid log level provided. Please select one of the following: INFO, DEBUG!')
+            raise Exception('Invalid log level provided. Please select one of the following: INFO, DEBUG, NONE!')
 
         for handler in logging.root.handlers[:]:
             logging.root.removeHandler(handler)
         logging.basicConfig(level=level)
-
 
     def create_model(self, table, x_columns, y_column, model_name=None):
         logging.info("\n-----\nCREATING MODEL " + str(model_name))

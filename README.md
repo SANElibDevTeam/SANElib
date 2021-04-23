@@ -19,11 +19,11 @@ The goal of this work is to implement specific ML procedures using SQL code gene
 
 - ## Linear Regression
 
-  #### General information
+  ### General information
 
   Currently only fully supports MySQL!
 
-  #### Methods
+  ### Methods
 
   - **estimate**(table=None, x_columns=None, y_column=None, ohe_handling=False)
 
@@ -81,7 +81,7 @@ The goal of this work is to implement specific ML procedures using SQL code gene
 
   - **create_model**(table, x_columns, y_column, model_name=None)
 
-    Creates a new model.
+    Creates a new model. Always applies one-hot-encoding where necessary.
 
     `Parameters`
 
@@ -121,17 +121,17 @@ The goal of this work is to implement specific ML procedures using SQL code gene
 
     `Parameters`
 
-    *level: Log level to be set ("INFO", "DEBUG")*
+    *level: Log level to be set ("INFO", "DEBUG", "NONE")*
 
     `Return`: -
 
-  #### Usage
+  ### Usage
 
   1. Configure database connection by setting all necessary connection details in config.py (DB_TYPE: MYSQL, SQLITE).
   2. Create Linear Regression object (lr = sanelib.linear_regression).
-  3. Execute required methods.
+  3. Execute required methods on Linear Regression object.
 
-  #### Example
+  ### Example
 
   To run the provided example, you'll need to go through the following steps:
 
