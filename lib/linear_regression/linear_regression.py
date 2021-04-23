@@ -14,8 +14,6 @@ class LinearRegression:
         elif db.driver_name == 'sqlite':
             self.sql_templates = sql_templates.tmpl_sqlite
 
-        logging.basicConfig(level=None)
-
     def set_log_level(self, level):
         if level == "INFO":
             level = logging.INFO
@@ -23,9 +21,14 @@ class LinearRegression:
             level = logging.DEBUG
         else:
             raise Exception('Invalid log level provided. Please select one of the following: INFO, DEBUG!')
+
+        for handler in logging.root.handlers[:]:
+            logging.root.removeHandler(handler)
         logging.basicConfig(level=level)
 
+
     def create_model(self, table, x_columns, y_column, model_name=None):
+        logging.info("\n-----\nCREATING MODEL " + str(model_name))
         self.model = Model(table, x_columns, y_column)
         if model_name is not None:
             model_list = self.get_model_list()
@@ -41,9 +44,11 @@ class LinearRegression:
 
         self.__manage_one_hot_encoding()
         self.__save_model()
+        logging.info("\nMODEL CREATED\n-----")
         return self
 
     def load_model(self, model_id=None):
+        logging.info("\n-----\nLOADING MODEL " + str(model_id))
         if model_id is None:
             model_id = 'm0'
         elif model_id not in self.get_model_list():
@@ -74,11 +79,13 @@ class LinearRegression:
         self.model.prediction_columns = prediction_columns[:-1]
         self.model.input_size = int(data[8])
         self.model.ohe_columns = ohe_columns[:-1]
+        logging.info("\nMODEL LOADED\n-----")
         return self
 
     def drop_model(self, model_id=None):
         if model_id is None:
             model_id = 'm0'
+        logging.info("\n-----\nDROPPING MODEL " + str(model_id))
 
         tables = ['_calculation', '_prediction', '_result', '_score']
         for x in tables:
@@ -91,8 +98,10 @@ class LinearRegression:
             self.db_connection.execute(sql_statement)
         except Exception as e:
             raise Exception('No models available! {}'.format(e))
+        logging.info("\nMODEL DROPPED\n-----")
 
     def get_model_list(self):
+        logging.info("\n-----\nGETTING MODEL LIST")
         self.__init_model_table("linreg_model")
         sql_statement = self.sql_templates['get_model_list'].render(database=self.database, table='linreg_model')
         try:
@@ -103,16 +112,20 @@ class LinearRegression:
         model_list = [['ID', 'Name']]
         for x in data:
             model_list.append(x)
+        logging.info("\nMODEL LIST RECEIVED\n-----")
         return np.asarray(model_list)
 
     def get_active_model_description(self):
+        logging.info("\n-----\nGETTING ACTIVE MODEL DESCRIPTION")
         if self.model is None:
             raise Exception('No model parameters available! Please load/create a model!')
 
+        logging.info("\nACTIVE MODEL DESCRIPTION RECEIVED\n-----")
         return "Model " + self.model.id + "\n" + "Name: " + self.model.name + "\n" + "Input table: " + self.model.input_table + "\n" + "X columns: " + str(
             self.model.x_columns) + "\n" + "Y column: " + str(self.model.y_column)
 
     def estimate(self, table=None, x_columns=None, y_column=None, ohe_handling=False):
+        logging.info("\n-----\nESTIMATING")
         if table is not None or x_columns is not None or y_column is not None:
             self.model = Model(table, x_columns, y_column)
         elif self.model is None:
@@ -139,10 +152,11 @@ class LinearRegression:
         if self.model.state < 1:
             self.model.state = 1
             self.__save_model()
-
+        logging.info("\nESTIMATING FINISHED\n-----")
         return self
 
     def predict(self, table=None, x_columns=None):
+        logging.info("\n-----\nPREDICTING")
         if self.model is None:
             raise Exception('No model parameters available! Please load/create a model!')
         elif self.model.state < 1:
@@ -170,9 +184,11 @@ class LinearRegression:
             self.model.state = 2
             self.__save_model()
 
+        logging.info("\nPREDICTING FINISHED\n-----")
         return self
 
     def score(self):
+        logging.info("\n-----\nCALCULATING SCORE")
         if self.model is None:
             raise Exception('No model parameters available! Please load/create a model!')
         elif self.model.state < 2:
@@ -188,9 +204,11 @@ class LinearRegression:
             self.model.state = 3
             self.__save_model()
 
+        logging.info("\nCALCULATION FINISHED\n-----")
         return self
 
     def get_prediction_array(self):
+        logging.info("\n-----\nGETTING PREDICTION ARRAY")
         if self.model is None:
             raise Exception('No model parameters available! Please load/create a model!')
         elif self.model.state < 2:
@@ -199,9 +217,11 @@ class LinearRegression:
         sql_statement = self.sql_templates['select_x_from'].render(x='y_prediction', database=self.database,
                                                                    table='linreg_' + self.model.id + '_prediction')
         data = self.db_connection.execute_query(sql_statement)
+        logging.info("\nPREDICTION ARRAY RECEIVED\n-----")
         return np.asarray(data)
 
     def get_coefficients(self):
+        logging.info("\n-----\nGETTING COEFFICIENTS")
         if self.model is None:
             raise Exception('No model parameters available! Please load/create a model!')
         elif self.model.state < 1:
@@ -210,9 +230,11 @@ class LinearRegression:
         sql_statement = self.sql_templates['select_x_from'].render(x='theta', database=self.database,
                                                                    table='linreg_' + self.model.id + '_result')
         data = self.db_connection.execute_query(sql_statement)
+        logging.info("\nCOEFFICIENTS RECEIVED\n-----")
         return np.asarray(data)
 
     def get_score(self):
+        logging.info("\n-----\nGETTING SCORE")
         if self.model is None:
             raise Exception('No model parameters available! Please load/create a model!')
         elif self.model.state < 3:
@@ -221,15 +243,18 @@ class LinearRegression:
         sql_statement = self.sql_templates['select_x_from'].render(x='score', database=self.database,
                                                                    table='linreg_' + self.model.id + '_score')
         data = self.db_connection.execute_query(sql_statement)
+        logging.info("\nSCORE RECEIVED\n-----")
         return np.asarray(data)[0][0]
 
     def __manage_one_hot_encoding(self):
+        logging.info("MANAGING ONE HOT ENCODING")
         self.__manage_ohe_columns(self.model.input_table, self.model.x_columns)
 
         # Update input_size
         self.model.update_input_size()
 
     def __manage_prediction_one_hot_encoding(self):
+        logging.info("MANAGING ONE HOT ENCODING FOR PREDICTION")
         self.__manage_ohe_columns(self.model.prediction_table, self.model.prediction_columns)
 
     def __manage_ohe_columns(self, table, columns):
@@ -281,6 +306,7 @@ class LinearRegression:
                 columns.remove(x)
 
     def __save_model(self):
+        logging.info("SAVING MODEL")
         self.__init_model_table("linreg_model")
 
         x_columns_string = ""
@@ -311,17 +337,20 @@ class LinearRegression:
         return self
 
     def __get_equations(self):
+        logging.info("GETTING EQUATIONS")
         sql_statement = self.sql_templates['get_all_from'].render(database=self.database,
                                                                   table="linreg_" + self.model.id + "_calculation")
         data = self.db_connection.execute_query(sql_statement)
         return np.asarray(data, dtype='double')
 
     def __get_column_names(self, table):
+        logging.info("GETTING COLUMN NAMES")
         sql_statement = self.sql_templates['table_columns'].render(database=self.database, table=table)
         data = self.db_connection.execute_query(sql_statement)
         return np.asarray(data)
 
     def __init_calculation_table(self):
+        logging.info("INITIALIZING CALCULATION TABLE")
         sql_statement = self.sql_templates['drop_table'].render(table='linreg_' + self.model.id + '_calculation')
         self.db_connection.execute(sql_statement)
 
@@ -334,10 +363,12 @@ class LinearRegression:
         self.db_connection.execute(sql_statement)
 
     def __init_model_table(self, table):
+        logging.info("INITIALIZING MODEL TABLE")
         sql_statement = self.sql_templates['init_model_table'].render(database=self.database, table=table)
         self.db_connection.execute(sql_statement)
 
     def __init_result_table(self):
+        logging.info("INITIALIZING RESULT TABLE")
         sql_statement = self.sql_templates['drop_table'].render(table='linreg_' + self.model.id + '_result')
         self.db_connection.execute(sql_statement)
 
@@ -346,6 +377,7 @@ class LinearRegression:
         self.db_connection.execute(sql_statement)
 
     def __init_prediction_table(self, table):
+        logging.info("INITIALIZING PREDICTION TABLE")
         sql_statement = self.sql_templates['drop_table'].render(table=table)
         self.db_connection.execute(sql_statement)
 
@@ -353,6 +385,7 @@ class LinearRegression:
         self.db_connection.execute(sql_statement)
 
     def __init_score_table(self, table):
+        logging.info("INITIALIZING SCORE TABLE")
         sql_statement = self.sql_templates['drop_table'].render(table=table)
         self.db_connection.execute(sql_statement)
 
@@ -360,12 +393,14 @@ class LinearRegression:
         self.db_connection.execute(sql_statement)
 
     def __add_ones_column(self):
+        logging.info("ADDING ONES COLUMN")
         if 'linreg_ones' not in self.__get_column_names(self.model.input_table):
             sql_statement = self.sql_templates['add_ones_column'].render(table=self.model.input_table,
                                                                          column='linreg_ones')
             self.db_connection.execute(sql_statement)
 
     def __calculate_equations(self):
+        logging.info("CALCULATING EQUATIONS")
         columns = ['linreg_ones']
         for i in range(len(self.model.x_columns)):
             columns.append(self.model.x_columns[i])
