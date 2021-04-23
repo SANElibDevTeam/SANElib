@@ -14,7 +14,7 @@ from util import timer
 # lr_example.run_bmi_example()
 
 lr = sanelib.linear_regression
-# lr.set_log_level("INFO")
+# lr.set_log_level("DEBUG")
 x_columns = ['Height_Inches', 'Weight_Pounds']
 y_column = ['BMI']
 # lr.estimate("bmi_short", x_columns, y_column)
