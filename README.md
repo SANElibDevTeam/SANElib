@@ -23,14 +23,118 @@ The goal of this work is to implement specific ML procedures using SQL code gene
 
   Currently only fully supports MySQL!
 
+  #### Methods
+
+  - **estimate**(table=None, x_columns=None, y_column=None, ohe_handling=False)
+
+    Estimates the Linear Regression model parameters.
+
+    `Parameters`
+
+    *table: Table in which the data to be processed is found. If none provided, uses table from active model.*
+
+    *x_columns: Input column names, in a comma separated array.*
+
+    *y_column: Target column name, in an array.*
+
+    *ohe_handling: If set to True, manages one-hot-encoding. This option is disabled per default for estimate().*
+
+    `Return`: *self*
+
+  - **predict**(table=None, x_columns=None)
+
+    Predicts values based on the Linear Regression estimation.
+
+    `Parameters`
+
+    *table: Table in which the data to be processed is found. If none provided, uses the input table.*
+
+    *x_columns: Column names to run the prediction on, in a comma separated array. If None is provided, uses input columns.*
+
+    `Return`: *self*
+
+  - **score**()
+
+    Calculates the R2 score of the Linear Regression, based on the calculated predictions.
+
+    `Return`: *self*
+
+  - **get_coefficients**()
+
+    `Return`: *Returns all Linear Regression coefficients in a numpy array.*
+
+  - **get_prediction_array**()
+
+    `Return`: *Returns all calculated prediction values in a numpy array.*
+
+  - **get_score**()
+
+    `Return`: *Returns the calculated score (R2) for the predicted values.*
+
+  - **get_active_model_description**()
+
+    `Return`: *Returns a string containing info about the currently active model.*
+
+  - **get_model_list**()
+
+    `Return`: *Returns names and ids of all available models in a numpy array*.
+
+  - **create_model**(table, x_columns, y_column, model_name=None)
+
+    Creates a new model.
+
+    `Parameters`
+
+    *table: Table in which the data to be processed is found.*
+
+    *x_columns: Input column names, in a comma separated array.*
+
+    *y_column: Target column name, in an array.*
+
+    *model_name: Name of the model to be created. If none is provided, the default model, m0, is overwritten.*
+
+    `Return`: *self*
+
+  - **load_model**(model_id=None)
+
+    Loads an existing model.
+
+    `Parameters`
+
+    *model_id: Model id of model to be loaded. If none provided, loads the default model, m0.*
+
+    `Return`: *self*
+
+  - **drop_model**(model_id=None)
+
+    Drops an existing model.
+
+    `Parameters`
+
+    *model_id: Model id of model to be dropped. If none provided, drops the default model, m0.*
+
+    `Return`: -
+
+  - **set_log_level**(level)
+
+    Sets the log level for the Linear Regression object.
+
+    `Parameters`
+
+    *level: Log level to be set ("INFO", "DEBUG")*
+
+    `Return`: -
+
   #### Usage
 
-  ?
+  1. Configure database connection by setting all necessary connection details in config.py (DB_TYPE: MYSQL, SQLITE).
+  2. Create Linear Regression object (lr = sanelib.linear_regression).
+  3. Execute required methods.
 
   #### Example
 
   To run the provided example, you'll need to go through the following steps:
-  
+
   1. Import the data from SANElib\example_datasets\example_bmi_data.csv into your MySQL database (label the table example_bmi).
   2. Import the data from SANElib\example_datasets\prediction_bmi_data.csv into your MySQL database (label the table prediction_bmi).
   3. Configure database connection (edit config.py to match your database instance).
