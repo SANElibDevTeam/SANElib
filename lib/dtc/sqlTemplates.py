@@ -9,7 +9,35 @@ tmplt["_eval"] = '''
 (select * from {{ input.dataset }} where rand ({{ input.seed }}) >= {{ input.ratio }});
 '''
 
-tmplt["_info"] ='''
+tmplt["_catFeatOrdinalTrain"] =''' 
+select *,
+{% for key in input.catFeatures %}
+{% if loop.index > 1 %}, {% endif %}\
+(case
+    {% for value in input.catFeatures[key] %}
+        when {{ key }}_orig = '{{ value[0] }}' then {{ loop.index }}
+    {% endfor %}\
+end) as {{ key }}
+{% endfor %}\
+from (select * from {{ input.dataset }} where rand ({{ input.seed }}) < {{ input.ratio }}) as train
+group by rownum;
+'''
+
+tmplt["_catFeatOrdinalEval"] =''' 
+select *,
+{% for key in input.catFeatures %}
+{% if loop.index > 1 %}, {% endif %}\
+(case
+    {% for value in input.catFeatures[key] %}
+        when {{ key }}_orig = '{{ value[0] }}' then {{ loop.index }}
+    {% endfor %}\
+end) as {{ key }}
+{% endfor %}\
+from (select * from {{ input.dataset }} where rand ({{ input.seed }}) >= {{ input.ratio }}) as train
+group by rownum;
+'''
+
+tmplt["_CC_table"] ='''
 {% for nf in input.numFeatures %}
 {% if loop.index > 1 %}union all {% endif %}\
 select "{{ nf }}" as f, {{ nf }} as x, {{ input.target }} as y, count(*)  as nxy from {{ input.table_train }}_criterion group by {{ nf }}, {{ input.target }}\

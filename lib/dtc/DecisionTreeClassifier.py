@@ -4,15 +4,27 @@ from lib.dtc.tree import Node
 from jinja2 import Template
 import pandas as pd
 import numpy as np
+import concurrent.futures
 
 
 class DecisionTreeClassifier:
-    def __init__(self, db, dataset='', target='', table_train='', table_eval=''):
+    def __init__(self, db, dataset='', target='', target_classes=None, max_samples=2, table_train='', table_eval=''):
         self.db_connection = Database(db)
         self.engine = self.db_connection.engine
         self.dataset = dataset
-        self.target = target
-        self.max_samples = 1000
+        self.max_samples = max_samples
+
+        if target == '':
+            colnames = self.db_connection.execute_query("SELECT * FROM {} LIMIT 0".format(self.dataset), self.engine,
+                                                        True)
+            self.target = colnames.columns[-1]
+
+        if target_classes is None:
+            target_classes = self.db_connection.execute_query(
+                "SELECT DISTINCT {} FROM {} ORDER BY {} ASC".format(self.target, self.dataset, self.target),
+                self.engine, True)
+        self.target_classes = target_classes.to_numpy().flatten()
+
         if table_train == '':
             self.table_train = self.dataset + '_train'
         else:
@@ -22,69 +34,124 @@ class DecisionTreeClassifier:
         else:
             self.table_eval = table_eval
 
-    def train_test_split(self, ratio=0.8, seed=1):
+    def train_test_split(self, ratio=0.8, seed=1, encode=False):
         self.ratio = ratio
         self.seed = seed
+        if encode:
+            self.__feature_encoding()
+        else:
+            self.db_connection.materializedView(
+                'Splitting table into training set',
+                self.table_train,
+                Template(sql.tmplt['_train']).render(input=self), self.engine)
 
-        self.db_connection.materializedView(
-            'Splitting table into training set',
-            self.table_train,
-            Template(sql.tmplt['_train']).render(input=self), self.engine)
+            self.db_connection.materializedView(
+                'Splitting table into evaluation set',
+                self.table_eval,
+                Template(sql.tmplt['_eval']).render(input=self), self.engine)
 
-        self.db_connection.materializedView(
-            'Splitting table into evaluation set',
-            self.table_eval,
-            Template(sql.tmplt['_eval']).render(input=self), self.engine)
+    def __feature_encoding(self):
+        # Get first row of dataset to see the which features are numerical, which are not
+        features = self.db_connection.execute_query("select * from {} limit 1".format(self.dataset), self.engine, True)
+        # Select only the non numerical features and putting them into a dataframe
+        catFeature = features.select_dtypes(include='object').columns
 
-    def __create_table_info(self, numFeatures, catFeatures):
-        self.numFeatures = numFeatures
-        self.catFeatures = catFeatures
-        self.db_connection.materializedView(
-            'Computing information table with target',
-            self.dataset + '_info',
-            Template(sql.tmplt['_info']).render(input=self),
+        # Add id column to dataset, needed for grouping for ordinal encoding
+        self.db_connection.execute(
+            "ALTER TABLE {} ADD column `rownum` INT NOT NULL AUTO_INCREMENT unique first;".format(self.dataset),
             self.engine)
 
-    def __get_table_info(self):
-        info = self.db_connection.execute_query(
-            query='select * from {}_info'.format(self.dataset),
+        # Get all characteristics of each categorical feature
+        features = {}
+        for f in catFeature:
+            features[f] = np.array(
+                self.db_connection.execute_query("select distinct {} from {}".format(f, self.dataset), self.engine))
+
+        self.catFeatures = features
+
+        # rename categorical columns since the reformatted will have the same name and the originals will be dropped
+        # later
+        for key in self.catFeatures:
+            self.db_connection.execute(
+                "alter table {} rename column {} to {}_orig".format(self.dataset, key, key), self.engine)
+
+        self.db_connection.materializedView(
+            'Creating categorical feature columns as ordinal values and splitting into training set',
+            self.table_train,
+            Template(sql.tmplt['_catFeatOrdinalTrain']).render(input=self), self.engine)
+
+        self.db_connection.materializedView(
+            'Creating categorical feature columns as ordinal values and splitting into evaluation set',
+            self.table_eval,
+            Template(sql.tmplt['_catFeatOrdinalEval']).render(input=self), self.engine)
+
+        for key in self.catFeatures:
+            self.db_connection.execute(
+                "alter table {} drop column {}_orig".format(self.table_train, key), self.engine)
+            self.db_connection.execute(
+                "alter table {} drop column {}_orig".format(self.table_eval, key), self.engine)
+
+        self.db_connection.execute(
+            "alter table {} drop column rownum".format(self.dataset), self.engine)
+        self.db_connection.execute(
+            "alter table {} drop column rownum".format(self.table_train), self.engine)
+        self.db_connection.execute(
+            "alter table {} drop column rownum".format(self.table_eval), self.engine)
+
+        for key in self.catFeatures:
+            self.db_connection.execute(
+                "alter table {} rename column {}_orig to {}".format(self.dataset, key, key), self.engine)
+
+        self.catFeatures = self.catFeatures.keys()
+
+    def __create_cc_table(self):
+        self.db_connection.materializedView(
+            'Computing information table with target',
+            self.dataset + '_CC_table',
+            Template(sql.tmplt['_CC_table']).render(input=self),
+            self.engine)
+
+    def __get_cc_table(self):
+        cc_table = self.db_connection.execute_query(
+            query='select * from {}_CC_table'.format(self.dataset),
             engine=self.engine, as_df=True)
 
-        return info
+        return cc_table
 
-    def __calc_mutual_information(self, info):
+    def __calc_mutual_information(self, cc_table):
         # Creating nx_,ndy_gx,min_nxy
-        info = info.join(info.groupby(['f', 'x']).nxy.agg(nx_='sum', ndy_gx='count', min_nxy='min'), on=['f', 'x'])
+        cc_table = cc_table.join(cc_table.groupby(['f', 'x']).nxy.agg(nx_='sum', ndy_gx='count', min_nxy='min'),
+                                 on=['f', 'x'])
 
         # Creating n__
-        info = info.join(info.groupby(['f']).nxy.agg(n__='sum'), on=['f'])
+        cc_table = cc_table.join(cc_table.groupby(['f']).nxy.agg(n__='sum'), on=['f'])
 
         # Creating n_y
-        info = info.join(info.groupby(['f', 'y']).nxy.agg(n_y='sum'), on=['f', 'y'])
+        cc_table = cc_table.join(cc_table.groupby(['f', 'y']).nxy.agg(n_y='sum'), on=['f', 'y'])
 
         # Creating ndygx - which is a division from the nx_ and ndy_gx columns
-        # This is done for faster processing as opposed to a function
-        info['ndygx'] = info.nx_ / info.ndy_gx
+        # This interim step is being done for faster processing as opposed to a seperate function
+        cc_table['ndygx'] = cc_table.nx_ / cc_table.ndy_gx
 
         # Calculating the cum_nx_ column
-        info = info.merge( \
-            info.groupby(['f', 'x']).ndygx.agg('sum').groupby(level=0).agg(cum_nx_='cumsum').round().reset_index() \
+        cc_table = cc_table.merge( \
+            cc_table.groupby(['f', 'x']).ndygx.agg('sum').groupby(level=0).agg(cum_nx_='cumsum').round().reset_index() \
             , on=['f', 'x']).sort_values(by=['f', 'y', 'x'])
 
         # Calculating the cum_nxy column
-        info['cum_nxy'] = info.sort_values(by=['x']).groupby(['f', 'y']).nxy.transform(np.cumsum)
+        cc_table['cum_nxy'] = cc_table.sort_values(by=['x']).groupby(['f', 'y']).nxy.transform(np.cumsum)
 
         # Saving the sorted dataframe
-        info = info.sort_values(by=['f', 'y', 'x'])
+        cc_table = cc_table.sort_values(by=['f', 'y', 'x'])
 
         # Calculating the probabiliy columns and the unsummized mutual information
-        info['p_xy'] = info['cum_nxy'] / info['n__']
-        info['p_y'] = info['n_y'] / info['n__']
-        info['p_x'] = info['cum_nx_'] / info['n__']
-        info['mi'] = info['p_xy'] * np.log2(info['p_xy'] / (info['p_y'] * info['p_x']))
+        cc_table['p_xy'] = cc_table['cum_nxy'] / cc_table['n__']
+        cc_table['p_y'] = cc_table['n_y'] / cc_table['n__']
+        cc_table['p_x'] = cc_table['cum_nx_'] / cc_table['n__']
+        cc_table['mi'] = cc_table['p_xy'] * np.log2(cc_table['p_xy'] / (cc_table['p_y'] * cc_table['p_x']))
 
         # Creating the mutual_information dataframe
-        mutual_inf = info.groupby(['f', 'x'], as_index=False).agg({"mi": "sum", "cum_nx_": "min", "n__": "min"})
+        mutual_inf = cc_table.groupby(['f', 'x'], as_index=False).agg({"mi": "sum", "cum_nx_": "min", "n__": "min"})
 
         # Creating the mx column, which is the max value of mi
         mutual_inf = mutual_inf.groupby(['f']).mi.agg(mx='max').merge(mutual_inf, on=['f'])
@@ -98,21 +165,23 @@ class DecisionTreeClassifier:
                 by=['mi'], ascending=False)
         mutual_inf = mutual_inf.loc[mutual_inf.mi == mutual_inf.mi.agg('max')]
 
-        targets = [1, 2, 3, 4, 5, 6, 7]
-        for i in targets:
-            mutual_inf['ny' + str(i)] = info.loc[
-                (info.y == i) & (info.f == mutual_inf.f.values[0]) & (info.x <= mutual_inf.x.values[0])].nxy.sum()
-        for i in targets:
-            mutual_inf['alt_ny' + str(i)] = info.loc[
-                (info.y == i) & (info.f == mutual_inf.f.values[0]) & (info.x > mutual_inf.x.values[0])].nxy.sum()
+        for i in self.target_classes:
+            mutual_inf['ny' + str(i)] = cc_table.loc[
+                (cc_table.y == i) & (cc_table.f == mutual_inf.f.values[0]) & (
+                        cc_table.x <= mutual_inf.x.values[0])].nxy.sum()
+        for i in self.target_classes:
+            mutual_inf['alt_ny' + str(i)] = cc_table.loc[
+                (cc_table.y == i) & (cc_table.f == mutual_inf.f.values[0]) & (
+                        cc_table.x > mutual_inf.x.values[0])].nxy.sum()
         return mutual_inf
 
     def estimate(self, numFeatures, catFeatures):
         """Build decision tree classifier."""
-        self.n_classes_ = len([1, 2, 3, 4, 5, 6, 7])  # classes are assumed to go from 0 to n-1
+        self.n_classes_ = len(self.target_classes)  # classes are assumed to go from 0 to n-1
         self.numFeatures = numFeatures
         self.catFeatures = catFeatures
         self.tree_ = self.__grow_tree('')
+        self.db_connection.execute('drop table {}_criterion'.format(self.table_train), self.engine)
 
     def __grow_tree(self, query=''):
         """Build a decision tree by recursively finding the best split with the info table and the resulting mutual information table."""
@@ -129,9 +198,9 @@ class DecisionTreeClassifier:
                 'select * from {}'.format(self.table_train)
                 , self.engine)
 
-        self.__create_table_info(self.numFeatures, self.catFeatures)
-        info = self.__get_table_info()
-        mutual_inf = self.__calc_mutual_information(info)
+        self.__create_cc_table()
+        cc_table = self.__get_cc_table()
+        mutual_inf = self.__calc_mutual_information(cc_table)
         num_samples_per_class = mutual_inf.iloc[0, 6:13].max()
         predicted_class = int(mutual_inf.iloc[0:1, 6:13].idxmax(axis=1).values[0][2])
         node = Node(
@@ -143,24 +212,55 @@ class DecisionTreeClassifier:
 
         if mutual_inf.empty:
             return node
+        elif mutual_inf.mi.values[0] < 0.01:
+            return node
 
         # Split recursively until maximum depth is reached.
         if self.max_samples <= int(mutual_inf.n__.values[0]):
             if query == '':
-                X_left = ' where {} <= {} '.format(mutual_inf.f.values[0], mutual_inf.x.values[0])
-                X_right = ' where {} > {} '.format(mutual_inf.f.values[0], mutual_inf.x.values[0])
+                if mutual_inf.f.values[0] not in self.catFeatures:
+                    X_left = ' where {} <= {} '.format(mutual_inf.f.values[0], mutual_inf.x.values[0])
+                    X_right = ' where {} > {} '.format(mutual_inf.f.values[0], mutual_inf.x.values[0])
+                else:
+                    X_left = ' where {} = {} '.format(mutual_inf.f.values[0], mutual_inf.x.values[0])
+                    X_right = ' where {} <> {} '.format(mutual_inf.f.values[0], mutual_inf.x.values[0])
+                self.db_connection.execute(
+                    "alter table {} add index ({})".format(self.table_train, mutual_inf.f.values[0]), self.engine
+                )
             else:
-                X_left = query + ' and {} <= {} '.format(mutual_inf.f.values[0], mutual_inf.x.values[0])
-                X_right = query + ' and {} > {} '.format(mutual_inf.f.values[0], mutual_inf.x.values[0])
+                if mutual_inf.f.values[0] not in self.catFeatures:
+                    X_left = query + ' and {} <= {} '.format(mutual_inf.f.values[0], mutual_inf.x.values[0])
+                    X_right = query + ' and {} > {} '.format(mutual_inf.f.values[0], mutual_inf.x.values[0])
+                else:
+                    X_left = query + ' and {} = {} '.format(mutual_inf.f.values[0], mutual_inf.x.values[0])
+                    X_right = query + ' and {} <> {} '.format(mutual_inf.f.values[0], mutual_inf.x.values[0])
+                indexes = self.db_connection.execute_query(
+                    "SHOW indexes from {}".format(self.table_train), self.engine, True)
+                if len(indexes.index) < 64:
+                    prev_index = \
+                        indexes.groupby(['Key_name'])['Column_name'].apply(','.join).reset_index().iloc[-1:]
+                    if mutual_inf.f.values[0] not in prev_index['Column_name'].values[0]:
+                        self.db_connection.execute(
+                            "alter table {} add index ({})".format(self.table_train,
+                                                                   prev_index['Column_name'].values[0] + ',' +
+                                                                   mutual_inf.f.values[0]),
+                            self.engine
+                        )
+
             node.feature = mutual_inf.f.values[0]
             node.threshold = mutual_inf.x.values[0]
-            node.left = self.__grow_tree(X_left)
-            node.right = self.__grow_tree(X_right)
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                node.left = executor.submit(self.__grow_tree, X_left).result()
+                node.right = executor.submit(self.__grow_tree, X_right).result()
+            # node.left = self.__grow_tree(X_left)
+            # node.right = self.__grow_tree(X_right)
         return node
 
-    def visualize_tree(self, feature_names, class_names, show_details=True):
+    def visualize_tree(self, show_details=True):
         """Print ASCII visualization of decision tree."""
-        self.tree_.debug(feature_names, class_names, show_details)
+        self.tree_.debug(self.numFeatures.append(self.catFeatures),
+                         [self.target + " {}".format(i - 1) for i in self.target_classes],
+                         show_details)
 
     def predict(self, X):
         pred = []
