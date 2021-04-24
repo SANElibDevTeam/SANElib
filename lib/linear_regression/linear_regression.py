@@ -173,6 +173,9 @@ class LinearRegression:
             self.model.prediction_table = table
             self.model.prediction_columns = x_columns
             self.__manage_prediction_one_hot_encoding()
+            if self.model.input_size - 1 != len(self.model.prediction_columns):
+                raise Exception(
+                    'Please ensure the number of columns to be predicted matches the columns used in estimate!')
             self.__save_model()
         input_table = self.model.prediction_table
         coefficients = self.get_coefficients()
