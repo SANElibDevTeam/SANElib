@@ -1,6 +1,5 @@
 from lib.linear_regression.model import Model
 import numpy as np
-from lib.linear_regression import sql_templates
 import logging
 
 
@@ -10,9 +9,11 @@ class LinearRegression:
         self.database = db.database_name
         self.model = None
         if db.driver_name == 'mysql+mysqlconnector':
-            self.sql_templates = sql_templates.tmpl_mysql
+            from lib.linear_regression.sql_templates.mysql import tmpl_mysql
+            self.sql_templates = tmpl_mysql
         elif db.driver_name == 'sqlite':
-            self.sql_templates = sql_templates.tmpl_sqlite
+            from lib.linear_regression.sql_templates.sqlite import tmpl_sqlite
+            self.sql_templates = tmpl_sqlite
 
     def set_log_level(self, level):
         if level == "INFO":
