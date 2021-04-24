@@ -15,7 +15,7 @@ The goal of this work is to implement specific ML procedures using SQL code gene
   In order to test the SANElib library run the main.py file. We created a sql script, which creates a revised version of the Covertype dataset, where the categorical attributes have been unpivoted, and it has been formated for MySQL.
   It can be downloaded here: https://doi.org/10.5281/zenodo.4562534
 
-  To be able to connect to the local database, a constants.py file must be added to the project. The constants_example.py file shows which information must be contained in the constants.py file.
+  To be able to connect to the local database, fill out the necessary information in the config.py file.
 
 - ## Linear Regression
 
@@ -43,7 +43,7 @@ The goal of this work is to implement specific ML procedures using SQL code gene
 
   - **predict**(table=None, x_columns=None)
 
-    Predicts values based on the Linear Regression estimation.
+    Predicts values based on the Linear Regression estimation. (Be aware that the provided columns (if any) must match the columns used in estimate()!)
 
     `Parameters`
 
