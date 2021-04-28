@@ -1,8 +1,5 @@
 import sanelib
-from lib.mdh import example as mdh_example
-from lib.linear_regression import example as lr_example
-from util import timer
-from util.database_functions import multiply_matrices
+from util.database_functions.mysql import multiply_matrices
 
 # Starting time
 # timer.start()
