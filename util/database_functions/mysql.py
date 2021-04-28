@@ -8,6 +8,10 @@ tmpl['table_columns'] = Template('''
             WHERE TABLE_SCHEMA='{{ database }}' AND TABLE_NAME='{{ table }}';
             ''')
 
+tmpl['drop_table'] = Template('''
+            DROP TABLE IF EXISTS {{ table }};
+            ''')
+
 tmpl['init_table'] = Template('''
             CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
                 id INT NOT NULL AUTO_INCREMENT,
@@ -18,6 +22,10 @@ tmpl['init_table'] = Template('''
             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
             ''')
 
+tmpl['transpose_table'] = Template('''
+            INSERT INTO {{ table }}({{ x_column_string }}) VALUES({{ selection_string }});
+            ''')
+
 
 def get_column_names(database, table):
     sql_statement = tmpl['table_columns'].render(database=database.database_name, table=table)
@@ -25,17 +33,39 @@ def get_column_names(database, table):
     return np.asarray(data)
 
 
-# Multiply matrixA/tableA by matrixB/tableB: C(result_table) = AB, tables must contain id's!
-def multiply_matrices(database, tableA, tableB, result_table):
-    # Init table a_transposed, Transpose table A
+# Matrix-Multiply tableA with tableB: result_table = AB, input tables must contain id's!
+def multiply_matrices(database, tableA, tableB, result_table_name):
+    sql_statement = tmpl['drop_table'].render(table="a_transposed")
+    database.execute(sql_statement)
+
     number_of_a_columns = len(get_column_names(database, tableA)) - 1
     x_columns = []
     for i in range(number_of_a_columns):
-        x_columns.append("x"+str(i+1))
-    sql_statement = tmpl['init_table'].render(database=database.database_name, table="a_transposed", x_columns=x_columns)
+        x_columns.append("x" + str(i + 1))
+    sql_statement = tmpl['init_table'].render(database=database.database_name, table="a_transposed",
+                                              x_columns=x_columns)
     database.execute(sql_statement)
 
+    x_column_string = ""
+    for i in range(number_of_a_columns):
+        x_column_string = x_column_string + "x" + str(i + 1)
+        if i < number_of_a_columns - 1:
+            x_column_string = x_column_string + ","
+
+    for i in range(number_of_a_columns):
+        selection_string = ""
+        for j in range(number_of_a_columns):
+            if j == 0:
+                limit = "1"
+            else:
+                limit = str(j) + "," + str(j)
+            selection_string = selection_string + "(SELECT x" + str(i + 1) + " FROM " + str(
+                tableA) + " LIMIT " + limit + ")"
+            if j < number_of_a_columns - 1:
+                selection_string = selection_string + ","
+        sql_statement = tmpl['transpose_table'].render(table="a_transposed", x_column_string=x_column_string,
+                                                       selection_string=selection_string)
+        database.execute(sql_statement)
 
     # Init matrix_multiplication_calculation, fill table with values
     # Init result_table, calculate results
-
