@@ -130,6 +130,26 @@ class LinearRegression:
         return "Model " + self.model.id + "\n" + "Name: " + self.model.name + "\n" + "Input table: " + self.model.input_table + "\n" + "X columns: " + str(
             self.model.x_columns) + "\n" + "Y column: " + str(self.model.y_column)
 
+    def experimental_estimate(self, k):
+        # Estimating Thetas by calculating (XTX^-1)*XTY
+        self.__add_ones_column()
+        # Init XTX table
+
+        # Init XTY table
+
+        # Calculate XTX and XTY matrix
+
+        # Generate eye matrix with same dimensions as XTX
+
+        # Calculate I-XTX
+
+        # Init XTX^-1=I
+
+        # Loop k times: XTX^-1 = XTX^-1 + (I-XTX)^k
+
+        # Multiply XTX^-1 with XTY
+
+
     def estimate(self, table=None, x_columns=None, y_column=None, ohe_handling=False):
         logging.info("\n-----\nESTIMATING")
         if table is not None or x_columns is not None or y_column is not None:
