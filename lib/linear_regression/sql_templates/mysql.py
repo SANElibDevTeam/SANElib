@@ -93,6 +93,29 @@ tmpl_mysql['init_calculation_table'] = Template('''
             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
             ''')
 
+tmpl_mysql['init_xtx_table'] = Template('''
+            CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
+                {% for x in x_columns %}
+                    {{ x }} DOUBLE NULL,
+                {% endfor %};
+            ''')
+
+tmpl_mysql['init_xty_table'] = Template('''
+            CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
+                y DOUBLE NULL;
+            ''')
+
+tmpl_mysql['init_matrix_table'] = Template('''
+            CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
+                {% for statement in column_statements %}
+                    {{ statement }}
+                {% endfor %});
+            ''')
+
+tmpl_mysql['multiply_matrices'] = Template('''
+            
+            ''')
+
 tmpl_mysql['init_result_table'] = Template('''
             CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
                 id INT NOT NULL AUTO_INCREMENT,
