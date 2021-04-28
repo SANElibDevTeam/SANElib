@@ -12,6 +12,10 @@ tmpl['drop_table'] = Template('''
             DROP TABLE IF EXISTS {{ table }};
             ''')
 
+tmpl['select_count'] = Template('''
+            SELECT COUNT(*) FROM {{ table }};
+            ''')
+
 tmpl['init_table'] = Template('''
             CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
                 id INT NOT NULL AUTO_INCREMENT,
@@ -35,6 +39,25 @@ def get_column_names(database, table):
 
 # Matrix-Multiply tableA with tableB: result_table = AB, input tables must contain id's!
 def multiply_matrices(database, tableA, tableB, result_table_name):
+    # Init calculation table (nxm)
+    sql_statement = tmpl['select_count'].render(table=tableA)
+    n = np.asarray(database.execute_query(sql_statement))[0][0]
+    m = len(get_column_names(database, tableB)) - 1
+
+    sql_statement = tmpl['drop_table'].render(table="matmul_calculation")
+    database.execute(sql_statement)
+
+    calculation_columns = []
+    for i in range(n):
+        calculation_columns.append("a" + str(i + 1))
+    for i in range(m):
+        calculation_columns.append("b" + str(i + 1))
+
+    sql_statement = tmpl['init_table'].render(database=database.database_name, table="matmul_calculation",
+                                              x_columns=calculation_columns)
+    database.execute(sql_statement)
+
+    # Transpose tableA
     sql_statement = tmpl['drop_table'].render(table="a_transposed")
     database.execute(sql_statement)
 
@@ -52,7 +75,7 @@ def multiply_matrices(database, tableA, tableB, result_table_name):
         if i < number_of_a_columns - 1:
             x_column_string = x_column_string + ","
 
-    for i in range(number_of_a_columns):
+    for i in range(n):
         selection_string = ""
         for j in range(number_of_a_columns):
             if j == 0:
@@ -67,5 +90,7 @@ def multiply_matrices(database, tableA, tableB, result_table_name):
                                                        selection_string=selection_string)
         database.execute(sql_statement)
 
-    # Init matrix_multiplication_calculation, fill table with values
-    # Init result_table, calculate results
+    # Calculate results
+        # Init result_table, calculate results
+
+    # Drop temporary tables
