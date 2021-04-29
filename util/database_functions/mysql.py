@@ -39,7 +39,7 @@ tmpl['transpose_table'] = Template('''
             ''')
 
 tmpl['calculate_matmul'] = Template('''
-            INSERT INTO {{ table }} ({{ x_column_string}}) 
+            INSERT INTO {{ table }} ({{ x_column_string }}) 
             VALUES({% for x in sum_statements %}{{ x }}{% endfor %});
             ''')
 
@@ -156,10 +156,10 @@ def multiply_matrices(database, table_a, table_b, result_table_name):
     x_column_string = ""
     for i in range(m):
         x_column_string = x_column_string + "x" + str(i + 1)
-        if i < n - 1:
+        if i < m - 1:
             x_column_string = x_column_string + ","
 
-    for i in range(len(transposed_a_columns)):
+    for i in range(n):
         sum_statements = []
         for j in range(m):
             statement = "(SELECT sum(" + str(calculation_columns_a[i]) + "*" + str(calculation_columns_b[j]) + ") FROM matmul_calculation)"
@@ -172,7 +172,7 @@ def multiply_matrices(database, table_a, table_b, result_table_name):
         database.execute(sql_statement)
 
     # Drop temporary tables
-    # sql_statement = tmpl['drop_table'].render(table="matmul_a_transposed")
-    # database.execute(sql_statement)
-    # sql_statement = tmpl['drop_table'].render(table="matmul_calculation")
-    # database.execute(sql_statement)
+    sql_statement = tmpl['drop_table'].render(table="matmul_a_transposed")
+    database.execute(sql_statement)
+    sql_statement = tmpl['drop_table'].render(table="matmul_calculation")
+    database.execute(sql_statement)
