@@ -2,7 +2,7 @@
 
 The goal of this prototype is to implement ML procedures using SQL code generation. The idea is, that there are some efficiency advantages in calculating the results of ML algorithms directly in SQL. 
 
-## Contributing
+## Contribute
 
 If you're interested to contribute to this project note the following information:
 
@@ -52,70 +52,70 @@ If you're interested to contribute to this project note the following informatio
 
 - Quick Start (please also refer to existing implementations):
 
-  1. Create Issue
+1. Create Issue
 
-     ![Create Issue](images/Issues.png)
+2. ![Create Issue](images/Issues.png)
 
-  2. Create new branch from dev named like issue.
+3. Create new branch from dev named like issue.
 
-     You can create a new branch directly on Git, or you can create a new branch the following:
+4. You can create a new branch directly on Git, or you can create a new branch the following:
 
-     ```bash
-     git checkout dev
-     git pull
-     git branch issue
-     git checkout issue
-     ```
+5. ```bash
+   git checkout dev
+   git pull
+   git branch issue
+   git checkout issue
+   ```
 
-  3. Commit your changes and push to issue branch
+6. Commit your changes and push to issue branch
 
-  4. Checkout to dev branch
+7. Checkout to dev branch
 
-     ```bash
-     git checkout dev
-     ```
+8. ```bash
+   git checkout dev
+   ```
 
-  5. Pull newest dev branch
+9. Pull newest dev branch
 
-     ```bash
-     git pull
-     ```
+10. ```bash
+    git pull
+    ```
 
-  6. Checkout to issue branch
+11. Checkout to issue branch
 
-     ```bash
-     git checkout issue
-     ```
+12. ```bash
+    git checkout issue
+    ```
 
-  7. Add new changes from dev branch to feature branch
+13. Add new changes from dev branch to feature branch
 
-     ```bash
-     git merge dev
-     ```
+14. ```bash
+    git merge dev
+    ```
 
-     ![git merge main](images/GitMerge.png)
+15. ![git merge main](images/GitMerge.png)
 
-  8. Commit and push all changes to origin
+16. Commit and push all changes to origin
 
-     ```bash
-     git commit -m "Merged changes on dev to issue branch"
-     git push
-     ```
+17. ```bash
+    git commit -m "Merged changes on dev to issue branch"
+    git push
+    ```
 
-  9. Create pull request to merge issue branch to dev branch.
+18. Create pull request to merge issue branch to dev branch.
 
-     Choose the branch you want to merge on the right (here kmeans) and the dev branch on the left.
-       ![Create Pull request](images/PullRequest.png)
+19. Choose the branch you want to merge on the right (here kmeans) and the dev branch on the left.
+      ![Create Pull request](images/PullRequest.png)
 
-  10. Create a new folder under lib with the name of your implementation.
+20. Create a new folder under lib with the name of your implementation.
 
-  11. Create a new folder "sql_templates" in your implementation folder.
+21. Create a new folder "sql_templates" in your implementation folder.
 
-  12. Create your main python file (e.g. "implementation_x").
+22. Create your main python file (e.g. "implementation_x").
 
-  13. Add your implemenation_x.py to init.py inside the lib folder.
+23. Add your implemenation_x.py to init.py inside the lib folder.
 
-  14. Extend sanelib.py with your implementation (x = lib.x.x(db))
+24. Extend sanelib.py with your implementation (x = lib.x.x(db))
 
 #### Database functions (util)
 
