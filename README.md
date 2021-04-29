@@ -16,29 +16,41 @@ If you're interested to contribute to this project note the following informatio
 
   |- lib (Main library)
 
-  ----------|- linear_regression
+  -----|- linear_regression
 
-  ----------|- mdh
+  -----|- mdh
 
-  ----------|- ...
+  -----|- ...
 
   |- util (General utilities)
 
-  ----------|- database (Database connection utilities)
+  -----|- database (Database connection utilities)
 
   |- example_datasets (Example datasets for implementations)
 
-  |- images (Documentation images)												
+  |- images (Documentation images)			
 
-  ​	
+- util/database.py DBConnection
 
-- SQL Templates:
+  - **execute**(query)
 
-- Configuration:
+    Executes query inside the database.
 
-- README Structure:
+    `Parameters`
 
-- Quick Start:
+    *query: SQL query (String/Text)*.
+
+  - **execute_query**(query)
+
+    Executes query inside the database and returns it's results.
+
+    `Parameters`
+
+    *query: SQL query (String/Text)*.
+
+    `Return`: *Returns the result of the query provided*. 	 									
+
+- Quick Start (please also refer to existing implementations):
 
   1. Create Issue
 
@@ -91,8 +103,19 @@ If you're interested to contribute to this project note the following informatio
      ```
 
   9. Create pull request to merge issue branch to dev branch.
+
      Choose the branch you want to merge on the right (here kmeans) and the dev branch on the left.
        ![Create Pull request](images/PullRequest.png)
+
+  10. Create a new folder under lib with the name of your implementation.
+
+  11. Create a new folder "sql_templates" in your implementation folder.
+
+  12. Create your main python file (e.g. "implementation_x").
+
+  13. Add your implemenation_x.py to init.py inside the lib folder.
+
+  14. Extend sanelib.py with your implementation (x = lib.x.x(db))
 
 #### Database functions (util)
 
