@@ -58,7 +58,7 @@ def get_number_of_rows(database, table):
 
 # Matrix-Multiply tableA with tableB: result_table = AB, input tables must contain id's (column id)!
 def multiply_matrices(database, table_a, table_b, result_table_name):
-    # Get column names & Init m, n
+    # Get column names & Init m, n & Check compatibility
     a_column_names = get_column_names(database, table_a)[:, 0]
     b_column_names = get_column_names(database, table_b)[:, 0]
     a_column_names_string = ""
@@ -71,6 +71,12 @@ def multiply_matrices(database, table_a, table_b, result_table_name):
         b_column_names_string = b_column_names_string + str(b_column_names[i])
         if i < len(b_column_names) - 1:
             b_column_names_string = b_column_names_string + ","
+
+    width_a = len(a_column_names) - 1
+    height_b = get_number_of_rows(database, table_b)
+
+    if width_a != height_b:
+        raise Exception('Unable to matrix multiplicate A & B! Dimension mismatch!')
 
     number_of_rows_a = get_number_of_rows(database, table_a)
     n = number_of_rows_a
