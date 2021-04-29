@@ -71,6 +71,7 @@ def multiply_matrices(database, table_a, table_b, result_table_name):
         b_column_names_string = b_column_names_string + str(b_column_names[i])
         if i < len(b_column_names) - 1:
             b_column_names_string = b_column_names_string + ","
+
     number_of_rows_a = get_number_of_rows(database, table_a)
     n = number_of_rows_a
     m = len(b_column_names) - 1
@@ -120,7 +121,7 @@ def multiply_matrices(database, table_a, table_b, result_table_name):
         calculation_columns_a.append("a" + str(i + 1))
     for i in range(m):
         calculation_columns.append("b" + str(i + 1))
-        calculation_columns_b.append("a" + str(i + 1))
+        calculation_columns_b.append("b" + str(i + 1))
     calculation_columns_string = ""
     for i in range(len(calculation_columns)):
         calculation_columns_string = calculation_columns_string + str(calculation_columns[i])
@@ -153,17 +154,16 @@ def multiply_matrices(database, table_a, table_b, result_table_name):
         if i < n - 1:
             x_column_string = x_column_string + ","
 
-    b_column_names_without_id = np.delete(b_column_names, np.argwhere(b_column_names == "id"))
     for i in range(len(transposed_a_columns)):
         sum_statements = []
         for j in range(m):
-            statement = "(SELECT sum(" + str(transposed_a_columns[i]) + "*" + str(b_column_names_without_id[j]) + ")"
+            statement = "(SELECT sum(" + str(calculation_columns_a[i]) + "*" + str(calculation_columns_b[j]) + ") FROM matmul_calculation)"
             if j < m - 1:
                 statement = statement + ","
             sum_statements.append(statement)
 
         sql_statement = tmpl['calculate_matmul'].render(table=result_table_name, x_column_string=x_column_string,
                                                         sum_statements=sum_statements)
-        print(sql_statement)
+        database.execute(sql_statement)
 
     # Drop temporary tables
