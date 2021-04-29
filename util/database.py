@@ -36,14 +36,14 @@ class Database:
         """
         self.connection = self.engine.connect()
 
-    def execute(self, query, engine=None):
+    def execute(self, statement, engine=None):
         self.connect()
-        self.connection.execute(text(query))
+        self.connection.execute(text(statement))
         self.disconnect()
 
-    def execute_query(self, query, engine=None):
+    def execute_query(self, statement, engine=None):
         self.connect()
-        result = self.connection.execute(text(query))
+        result = self.connection.execute(text(statement))
         result = result.fetchall()
         self.disconnect()
         return result

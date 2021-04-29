@@ -1,4 +1,4 @@
-class Model():
+class Model:
     def __init__(self, table, x_columns, y_column, state=None):
         self.id = "m0"
         self.name = self.id

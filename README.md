@@ -138,6 +138,22 @@ If you're interested to contribute to this project note the following informatio
     *table: Table to query the number of rows from.*
 
     `Return`: *Returns the number of rows listed in a table.*
+    
+  - **multiply_matrices**(database, table_a, table_b, result_table_name)
+  
+    Calculates the result of the matrix multiplication from AB (table_a*table_b) and stores the result in matrix form into result_table_name. 
+  
+    !Important: both table_a and table_b must contain a column named id and this id must represent the place of each row in the matrix.
+  
+    `Parameters`
+  
+    *database: Database the tables table_a and table_b are available.*
+  
+    *table_a: Left input table.*
+  
+    *table_b: Right input table.*
+  
+    *result_table_name: Name of the table to be created/replaced, used to store the result matrix.*
 
 ## Available implementations
 

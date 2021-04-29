@@ -114,7 +114,7 @@ def multiply_matrices(database, table_a, table_b, result_table_name):
                                                        selection_string=selection_string)
         database.execute(sql_statement)
 
-    # Init calculation table (nxm)
+    # Init calculation table
     sql_statement = tmpl['drop_table'].render(table="matmul_calculation")
     database.execute(sql_statement)
 
