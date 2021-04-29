@@ -1,8 +1,15 @@
 # SANElib Prototype
 
-The goal of this work is to implement specific ML procedures using SQL code generation, and is then made interactively available via Python using a wrapper to evaluate and compare its speed and predictive performance. The expected result of the project is a Python package, which allows the following functions.
+The goal of this prototype is to implement ML procedures using SQL code generation. The idea is, that there are some efficiency advantages in calculating the results of ML algorithms directly in SQL. 
 
-- ## Multidimensional histogram (MDH) probability estimation
+- ## Contributing
+
+  #### Util
+
+- ## Available implementations
+
+  ### Multidimensional histogram (MDH) probability estimation
+
   - **Input**: A data table, which is larger than the working memory, can be input as parameter. This table is processed based on a file or a database. 
   - **Training phase**: The input data table is quantized (equal size, N_TILE vs. equal width, WIDTH_BUCKET) and indexed in a SQL-DBMS using SQL. This quantized index then represents an in-database model for density estimation.
   - **Prediction phase**: Based on this model For a new record or set of records, it is possible to determine a multivariate density estimation for a new data record or a whole set of records for selected columns of the table.
@@ -17,13 +24,15 @@ The goal of this work is to implement specific ML procedures using SQL code gene
 
   To be able to connect to the local database, fill out the necessary information in the config.py file.
 
-- ## Linear Regression
+  ------
 
-  ### General information
+  ### Linear Regression
+
+  #### General information
 
   Currently only fully supports MySQL!
 
-  ### Methods
+  #### Methods
 
   - **estimate**(table=None, x_columns=None, y_column=None, ohe_handling=False)
 
@@ -125,13 +134,13 @@ The goal of this work is to implement specific ML procedures using SQL code gene
 
     `Return`: -
 
-  ### Usage
+  #### Usage
 
   1. Configure database connection by setting all necessary connection details in config.py (DB_TYPE: MYSQL, SQLITE).
   2. Create Linear Regression object (lr = sanelib.linear_regression).
   3. Execute required methods on Linear Regression object.
 
-  ### Example
+  #### Example
 
   To run the provided example, you'll need to go through the following steps:
 
