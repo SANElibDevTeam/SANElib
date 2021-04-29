@@ -12,6 +12,10 @@ tmpl['drop_table'] = Template('''
             DROP TABLE IF EXISTS {{ table }};
             ''')
 
+tmpl['select_count'] = Template('''
+            SELECT COUNT(*) FROM {{ table }};
+            ''')
+
 tmpl['init_table'] = Template('''
             CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
                 id INT NOT NULL AUTO_INCREMENT,
@@ -35,8 +39,8 @@ tmpl['transpose_table'] = Template('''
             ''')
 
 tmpl['calculate_matmul'] = Template('''
-            INSERT INTO linreg_matrix (x1, x2) VALUES((SELECT sum(a1*b1) FROM t_calculation), (SELECT sum(a1*b2) FROM t_calculation));
-            INSERT INTO linreg_matrix (x1, x2) VALUES((SELECT sum(a2*b1) FROM t_calculation), (SELECT sum(a2*b2) FROM t_calculation));
+            INSERT INTO {{ table }} ({{ x_column_string}}) 
+            VALUES({% for x in sum_statements %}{{ x }}{% endfor %});
             ''')
 
 
@@ -44,6 +48,12 @@ def get_column_names(database, table):
     sql_statement = tmpl['table_columns'].render(database=database.database_name, table=table)
     data = database.execute_query(sql_statement)
     return np.asarray(data)
+
+
+def get_number_of_rows(database, table):
+    sql_statement = tmpl['select_count'].render(table=table)
+    data = database.execute_query(sql_statement)
+    return np.asarray(data)[0][0]
 
 
 # Matrix-Multiply tableA with tableB: result_table = AB, input tables must contain id's (column id)!
@@ -61,8 +71,8 @@ def multiply_matrices(database, table_a, table_b, result_table_name):
         b_column_names_string = b_column_names_string + str(b_column_names[i])
         if i < len(b_column_names) - 1:
             b_column_names_string = b_column_names_string + ","
-
-    n = len(a_column_names) - 1
+    number_of_rows_a = get_number_of_rows(database, table_a)
+    n = number_of_rows_a
     m = len(b_column_names) - 1
 
     # Transpose tableA
@@ -103,10 +113,14 @@ def multiply_matrices(database, table_a, table_b, result_table_name):
     database.execute(sql_statement)
 
     calculation_columns = []
+    calculation_columns_a = []
+    calculation_columns_b = []
     for i in range(n):
         calculation_columns.append("a" + str(i + 1))
+        calculation_columns_a.append("a" + str(i + 1))
     for i in range(m):
         calculation_columns.append("b" + str(i + 1))
+        calculation_columns_b.append("a" + str(i + 1))
     calculation_columns_string = ""
     for i in range(len(calculation_columns)):
         calculation_columns_string = calculation_columns_string + str(calculation_columns[i])
@@ -124,7 +138,6 @@ def multiply_matrices(database, table_a, table_b, result_table_name):
     database.execute(sql_statement)
 
     # Calculate results
-        # Init result_table, calculate results
     sql_statement = tmpl['drop_table'].render(table=result_table_name)
     database.execute(sql_statement)
     x_columns = []
@@ -133,5 +146,24 @@ def multiply_matrices(database, table_a, table_b, result_table_name):
     sql_statement = tmpl['init_table'].render(database=database.database_name, table=result_table_name,
                                               x_columns=x_columns)
     database.execute(sql_statement)
+
+    x_column_string = ""
+    for i in range(m):
+        x_column_string = x_column_string + "x" + str(i + 1)
+        if i < n - 1:
+            x_column_string = x_column_string + ","
+
+    b_column_names_without_id = np.delete(b_column_names, np.argwhere(b_column_names == "id"))
+    for i in range(len(transposed_a_columns)):
+        sum_statements = []
+        for j in range(m):
+            statement = "(SELECT sum(" + str(transposed_a_columns[i]) + "*" + str(b_column_names_without_id[j]) + ")"
+            if j < m - 1:
+                statement = statement + ","
+            sum_statements.append(statement)
+
+        sql_statement = tmpl['calculate_matmul'].render(table=result_table_name, x_column_string=x_column_string,
+                                                        sum_statements=sum_statements)
+        print(sql_statement)
 
     # Drop temporary tables
