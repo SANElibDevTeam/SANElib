@@ -72,10 +72,10 @@ def multiply_matrices(database, table_a, table_b, result_table_name):
         if i < len(b_column_names) - 1:
             b_column_names_string = b_column_names_string + ","
 
-    width_a = len(a_column_names) - 1
-    height_b = get_number_of_rows(database, table_b)
+    number_of_a_columns = len(a_column_names) - 1
+    number_of_rows_b = get_number_of_rows(database, table_b)
 
-    if width_a != height_b:
+    if number_of_a_columns != number_of_rows_b:
         raise Exception('Unable to matrix multiplicate A & B! Dimension mismatch!')
 
     number_of_rows_a = get_number_of_rows(database, table_a)
@@ -86,7 +86,6 @@ def multiply_matrices(database, table_a, table_b, result_table_name):
     sql_statement = tmpl['drop_table'].render(table="matmul_a_transposed")
     database.execute(sql_statement)
 
-    number_of_a_columns = len(a_column_names) - 1
     transposed_a_columns = []
     for i in range(n):
         transposed_a_columns.append("x" + str(i + 1))
@@ -100,16 +99,16 @@ def multiply_matrices(database, table_a, table_b, result_table_name):
         if i < n - 1:
             x_column_string = x_column_string + ","
 
-    for i in range(n):
+    for i in range(number_of_a_columns):
         selection_string = ""
-        for j in range(number_of_a_columns):
+        for j in range(number_of_rows_a):
             if j == 0:
                 limit = "1"
             else:
                 limit = str(j) + "," + str(j)
             selection_string = selection_string + "(SELECT x" + str(i + 1) + " FROM " + str(
                 table_a) + " LIMIT " + limit + ")"
-            if j < number_of_a_columns - 1:
+            if j < number_of_rows_a - 1:
                 selection_string = selection_string + ","
         sql_statement = tmpl['transpose_table'].render(table="matmul_a_transposed", x_column_string=x_column_string,
                                                        selection_string=selection_string)
@@ -173,7 +172,7 @@ def multiply_matrices(database, table_a, table_b, result_table_name):
         database.execute(sql_statement)
 
     # Drop temporary tables
-    sql_statement = tmpl['drop_table'].render(table="matmul_a_transposed")
-    database.execute(sql_statement)
-    sql_statement = tmpl['drop_table'].render(table="matmul_calculation")
-    database.execute(sql_statement)
+    # sql_statement = tmpl['drop_table'].render(table="matmul_a_transposed")
+    # database.execute(sql_statement)
+    # sql_statement = tmpl['drop_table'].render(table="matmul_calculation")
+    # database.execute(sql_statement)
