@@ -105,7 +105,7 @@ If you're interested to contribute to this project note the following informatio
 18. Create pull request to merge issue branch to dev branch.
 
 19. Choose the branch you want to merge on the right (here kmeans) and the dev branch on the left.
-      ![Create Pull request](images/PullRequest.png)
+      ![Create Pull request](images/PullRequest.PNG)
 
 20. Create a new folder under lib with the name of your implementation.
 
@@ -117,27 +117,27 @@ If you're interested to contribute to this project note the following informatio
 
 24. Extend sanelib.py with your implementation (x = lib.x.x(db))
 
-#### Database functions (util)
+- #### Database functions (util)
 
-- **get_column**(database, table)
+  - **get_column**(database, table)
 
-  `Parameters`
+    `Parameters`
 
-  *database: Database in which the table to be queried lies.* 
+    *database: Database in which the table to be queried lies.* 
 
-  *table: Table to query the column names from.*
+    *table: Table to query the column names from.*
 
-  `Return`: *Returns all column names of a table in a numpy array.*
+    `Return`: *Returns all column names of a table in a numpy array.*
 
-- **get_number_of_rows**(database, table)
+  - **get_number_of_rows**(database, table)
 
-  `Parameters`
+    `Parameters`
 
-  *database: Database in which the table to be queried lies.*
+    *database: Database in which the table to be queried lies.*
 
-  *table: Table to query the number of rows from.*
+    *table: Table to query the number of rows from.*
 
-  `Return`: *Returns the number of rows listed in a table.*
+    `Return`: *Returns the number of rows listed in a table.*
 
 ## Available implementations
 
