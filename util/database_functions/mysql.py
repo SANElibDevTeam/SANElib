@@ -167,3 +167,7 @@ def multiply_matrices(database, table_a, table_b, result_table_name):
         database.execute(sql_statement)
 
     # Drop temporary tables
+    sql_statement = tmpl['drop_table'].render(table="matmul_a_transposed")
+    database.execute(sql_statement)
+    sql_statement = tmpl['drop_table'].render(table="matmul_calculation")
+    database.execute(sql_statement)
