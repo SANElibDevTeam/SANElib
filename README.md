@@ -16,15 +16,15 @@ If you're interested to contribute to this project note the following informatio
 
   |- lib (Main library)
 
-  ​																|- linear_regression
+  ----------|- linear_regression
 
-  ​																|- mdh
+  ----------|- mdh
 
-  ​																|- ...
+  ----------|- ...
 
   |- util (General utilities)
 
-  ​																|- database (Database connection utilities)
+  ----------|- database (Database connection utilities)
 
   |- example_datasets (Example datasets for implementations)
 
