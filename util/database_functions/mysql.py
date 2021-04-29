@@ -43,7 +43,7 @@ def get_column_names(database, table):
 
 # Matrix-Multiply tableA with tableB: result_table = AB, input tables must contain id's!
 def multiply_matrices(database, table_a, table_b, result_table_name):
-    # Get column names
+    # Get column names & Init m, n
     a_column_names = get_column_names(database, table_a)[:, 0]
     b_column_names = get_column_names(database, table_b)[:, 0]
     a_column_names_string = ""
@@ -69,7 +69,7 @@ def multiply_matrices(database, table_a, table_b, result_table_name):
     for i in range(n):
         transposed_a_columns.append("x" + str(i + 1))
     sql_statement = tmpl['init_table'].render(database=database.database_name, table="a_transposed",
-                                                  x_columns=transposed_a_columns)
+                                              x_columns=transposed_a_columns)
     database.execute(sql_statement)
 
     x_column_string = ""
@@ -90,7 +90,7 @@ def multiply_matrices(database, table_a, table_b, result_table_name):
             if j < number_of_a_columns - 1:
                 selection_string = selection_string + ","
         sql_statement = tmpl['transpose_table'].render(table="a_transposed", x_column_string=x_column_string,
-                                                           selection_string=selection_string)
+                                                       selection_string=selection_string)
         database.execute(sql_statement)
 
     # Init calculation table (nxm)
@@ -113,12 +113,10 @@ def multiply_matrices(database, table_a, table_b, result_table_name):
     database.execute(sql_statement)
     sql_statement = tmpl['fill_matmul_calulation_table'].render(table="matmul_calculation",
                                                                 column_string=calculation_columns_string,
-                                                                a_columns=a_column_names,
-                                                                b_columns=b_column_names, table_a=table_a,
+                                                                a_columns=transposed_a_columns,
+                                                                b_columns=b_column_names, table_a="a_transposed",
                                                                 table_b=table_b)
     database.execute(sql_statement)
-
-
 
     # Calculate results
     # Init result_table, calculate results
