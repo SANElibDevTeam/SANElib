@@ -104,8 +104,9 @@ If you're interested to contribute to this project note the following informatio
 
 18. Create pull request to merge issue branch to dev branch.
 
+    ![Create Pull request](images/PullRequest.PNG)
+
 19. Choose the branch you want to merge on the right (here kmeans) and the dev branch on the left.
-      ![Create Pull request](images/PullRequest.PNG)
 
 20. Create a new folder under lib with the name of your implementation.
 

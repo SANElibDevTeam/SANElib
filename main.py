@@ -11,9 +11,8 @@ from lib.linear_regression.example import run_bmi_example
 
 # Run LinearRegression example
 # run_bmi_example()
-database = sanelib.db
-multiply_matrices(database, "ma", "mb", "mc")
-
+# database = sanelib.db
+# multiply_matrices(database, "ma", "mb", "mc")
 
 # End time
 # timer.end()
