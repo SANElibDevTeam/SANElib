@@ -8,7 +8,7 @@ from lib.kmeans.sql_templates import SqlTemplates
 class SqliteTemplates(SqlTemplates):
     # sqlite has no information_schema.tables
     def get_select_models(self):
-        return "select name from sqlite_master;"
+        return "select name from sqlite_master where name like '%model';"
 
     # sqlite does not support stdev()
     def get_create_table_x(self, normalization, feature_names, d, tablename, table_x):

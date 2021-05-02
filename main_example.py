@@ -30,13 +30,14 @@ feature_names = ["sepallength", "sepalwidth", "petallength", "petalwidth"]
 # feature_names = ["x","y"]
 
 k = 3
+k_list = range(2,5)
 model_identifier = "example"
 normalizations = [None, "min-max", "z-score"]
 
 init_time = time.time()
-model = kmeans.create_model(tablename, feature_names, k, model_identifier, normalizations[1])
+model = kmeans.create_ideal_model(tablename, feature_names, k_list, model_identifier, normalizations[1])
 train_time = time.time()
-model.estimate(max_steps=10)
+# model.estimate(max_steps=10)
 print(f"Information: {model.get_information()}")
 print(f"Initialization: {train_time - init_time} [s]")
 print(f"Training: {time.time() - train_time} [s]")

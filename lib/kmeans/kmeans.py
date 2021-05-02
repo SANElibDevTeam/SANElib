@@ -21,6 +21,15 @@ class KMeans:
         }
         return statements
 
+    def create_ideal_model(self, tablename, feature_names, k_list, model_identifier, normalization=None):
+        results = {}
+        for k in k_list:
+            results[k] = self.create_model(tablename, feature_names, k, f"{model_identifier}_k{k}", normalization).estimate().get_information()
+            print(f"result for k={k}: {results[k]}")
+        # TODO: use silhouette method to find best result
+        k = k_list[-1]
+        return self.load_model(f"{tablename}_{model_identifier}_k{k}")
+
     def create_model(self, tablename, feature_names, k, model_identifier, normalization=None):
         model_name = f"{tablename}_{model_identifier}"
         table_model = f"{model_name}_model"
@@ -60,9 +69,9 @@ class KMeans:
         return KMeansModel(self.__db, statements)
 
     def load_model(self, model_name):
-        table_model = f"{table_prefix}_model"
-        table_x = f"{table_prefix}_x"
-        table_c = f"{table_prefix}_c"
+        table_model = f"{model_name}_model"
+        table_x = f"{model_name}_x"
+        table_c = f"{model_name}_c"
 
         select_information = self.__templates.get_select_information(table_model)
         query_result = self.__db.execute_query(select_information)
