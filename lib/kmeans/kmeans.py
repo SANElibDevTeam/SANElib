@@ -1,7 +1,7 @@
 import logging
 
 import matplotlib.pyplot as plt
-from lib.kmeans import sql_templates
+from lib.kmeans.template_factory import get_templates
 from mpl_toolkits.mplot3d import Axes3D
 from pandas import DataFrame
 
@@ -9,7 +9,7 @@ from pandas import DataFrame
 class KMeans:
     def __init__(self, db):
         self.__db = db
-        self.__templates = sql_templates.get_templates(db.driver_name)
+        self.__templates = get_templates(db.driver_name)
 
     def __generate_sql(self, table_model, table_c, table_x, n, d, k):
         statements = {
