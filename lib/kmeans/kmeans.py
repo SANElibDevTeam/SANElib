@@ -56,7 +56,8 @@ class KMeans:
         self.__db.execute(statements["add_variance_column"])
         
         # create and initialize table x
-        self.__db.execute(statements["create_table_x"])
+        for statement in statements["create_table_x"]:
+            self.__db.execute(statement)
         for statement in statements["add_cluster_columns"]:
             self.__db.execute(statement)
         

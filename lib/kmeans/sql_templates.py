@@ -6,6 +6,16 @@ class SqlTemplates:
     def get_row_count(self, tablename):
         return f"select count(*) as row_count from {tablename};"
 
+    def get_create_table_with_pk(self, tablename, pk_column, query):
+        return [
+            f"drop view if exists temp_view;", 
+            f"create view temp_view as ({query});",
+            f"create table {tablename} as (select * from temp_view where 1=0);",
+            f"alter table {tablename} add primary key ({pk_column});",
+            f"insert into {tablename} select * from temp_view;",
+            f"drop view if exists temp_view;", 
+        ]
+
     def get_create_table_model(self, table_model, n, d, k, tablename):
         return f"create table {table_model} as select {n} as n, {d} as d, {k} as k, 0 as steps from {tablename} limit 1;"
 
@@ -26,7 +36,8 @@ class SqlTemplates:
         else:
             features_with_alias = ", ".join([f"{feature_names[l]} as x_{l}" for l in range(d)])
             further_tables = ""
-        return f"create table {table_x} as select row_number() over () as i, {features_with_alias} from {tablename}{further_tables};"
+        query = f"select row_number() over () as i, {features_with_alias} from {tablename}{further_tables}"
+        return self.get_create_table_with_pk(table_x, "i", query)
 
     def get_add_cluster_columns(self, table_x):
         return [f"alter table {table_x} add min_dist double, add j int;"]
@@ -55,7 +66,7 @@ class SqlTemplates:
         distances_columns = ", ".join([f"dist_{j}" for j in range(k)])
         case_dist_match = " ".join([f"when dist_{j} = sub_table.min_dist then {j}" for j in range(k)])
         return [f"update {table_x} join (select *, least({distances_columns}) as min_dist from ({sub_query_distances}) distances) sub_table on sub_table.i = {table_x}.i set {table_x}.min_dist = sub_table.min_dist, j = case {case_dist_match} end;"]
-            
+
     def get_update_table_model(self, table_model, n, table_x):
         return f"update {table_model} set steps = steps + 1, variance = (select sum(min_dist)/{n} from {table_x});"
 
