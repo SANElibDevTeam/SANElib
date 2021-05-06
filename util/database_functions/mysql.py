@@ -105,7 +105,7 @@ def multiply_matrices(database, table_a, table_b, result_table_name):
             if j == 0:
                 limit = "1"
             else:
-                limit = str(j) + "," + str(j)
+                limit = str(j) + "," + str(1)
             selection_string = selection_string + "(SELECT x" + str(i + 1) + " FROM " + str(
                 table_a) + " LIMIT " + limit + ")"
             if j < number_of_rows_a - 1:

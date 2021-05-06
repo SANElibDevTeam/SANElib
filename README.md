@@ -110,7 +110,7 @@ If you're interested to contribute to this project note the following informatio
 
 20. Create a new folder under lib with the name of your implementation.
 
-21. Create a new folder "sql_templates" in your implementation folder.
+21. Create a new folder "sql_templates" in your implementation folder. Make a separate .py file for all database types the algorithm supports.
 
 22. Create your main python file (e.g. "implementation_x").
 
