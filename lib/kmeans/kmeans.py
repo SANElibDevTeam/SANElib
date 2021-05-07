@@ -18,7 +18,8 @@ class KMeans:
             "set_clusters": self.__templates.get_set_clusters(table_c, table_x, d, k),
             "update_table_model": self.__templates.get_update_table_model(table_model, n, table_x),  
             "update_table_c": self.__templates.get_update_table_c(table_c, d, k, table_x),
-            "select_visualization":  self.__templates.get_select_visualization(table_x, d, k),
+            "select_visualization": self.__templates.get_select_visualization(table_x, d, k),
+            "select_silhouette_avg": self.__templates.get_select_silhouette_avg(table_x, d),
         }
         return statements
 
@@ -168,7 +169,8 @@ class KMeansModel:
         return self
 
     def get_silhouette_avg(self):
-        return uniform(-1, 1) # TODO: implement properly
+        query_result = self.__db.execute_query(self.__statements["select_silhouette_avg"])
+        return query_result[0][0]
     
     def __get_axis(self, x, axis_order, feature_names, axis_index):
         if axis_index < len(axis_order):

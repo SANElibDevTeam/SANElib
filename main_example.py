@@ -6,6 +6,7 @@ import lib
 import sanelib
 from util.database import Database
 
+"""
 iris_df = pd.read_csv("datasets/iris.csv")
 db_connection = {
     "drivername": "sqlite",
@@ -13,8 +14,8 @@ db_connection = {
 }
 db = Database(db_connection=db_connection, dataframe=iris_df, dfname="iris")
 kmeans = lib.kmeans.KMeans(db)
-
-# kmeans = sanelib.kmeans
+"""
+kmeans = sanelib.kmeans
 
 model_names = kmeans.get_model_names()
 print(f"models: {model_names}")
@@ -40,10 +41,13 @@ init_time = time.time()
 model = kmeans.create_ideal_model(tablename, feature_names, k_list, model_identifier, normalizations[1])
 train_time = time.time()
 # model.estimate(max_steps=10)
+silhouette_time = time.time()
+print(f"Average Silhouette: {model.get_silhouette_avg()}")
+
 print(f"Information: {model.get_information()}")
 print(f"Initialization: {train_time - init_time} [s]")
 print(f"Training: {time.time() - train_time} [s]")
-
+print(f"Silhouette: {time.time() - silhouette_time} [s]")
 
 axis_order = [3, 0, 2]
-model.visualize(feature_names)
+# model.visualize(feature_names)

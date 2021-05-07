@@ -93,3 +93,12 @@ class SqlTemplates:
 
     def get_drop_model(self, model_name, table):
         return f"drop table if exists {model_name}_{table};"
+    
+    def get_select_silhouette_avg(self, table_x, d):
+        distance = " + ".join([f"power(a.x_{l} - b.x_{l}, 2)" for l in range(d)])
+        sub_a = f"(select {distance} as dist, b.j from {table_x} a join {table_x} b on a.i=o and a.i <> b.i and a.j = b.j) sub_a"
+        sub_c = f"(select {distance} as dist, b.j from {table_x} a join {table_x} b on a.i=o and a.i <> b.i and a.j <> b.j) sub_c"
+        sub_b = f"(select sum(dist)/count(dist) as dist_c, j from {sub_c} group by j) dist_c"
+        sub_ab = f"(select sum(dist)/count(dist) as dist_a, min(dist_c) as dist_b from {sub_a}, {sub_b}) sub_ab"
+        s_o = f"(select (dist_b - dist_a) / case when dist_a < dist_b then dist_b else dist_a end from {sub_ab}) as s_o" 
+        return f"select avg(s_o) from (select i as o, {s_o} from {table_x}) silhouettes;"
