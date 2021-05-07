@@ -21,7 +21,7 @@ class Node:
         # See https://stackoverflow.com/a/54074933/1143396 for similar code.
         is_leaf = not self.right
         if is_leaf:
-            lines = [class_names[self.predicted_class]]
+            lines = [class_names[self.predicted_class-1]]
         else:
             lines = [
                 "{} < {:.2f}".format(self.feature, self.threshold)

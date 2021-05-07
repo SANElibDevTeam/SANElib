@@ -2,12 +2,15 @@ import pandas as pd
 from sqlalchemy.engine.url import URL
 from sqlalchemy import create_engine
 from sqlalchemy import text
-
+import pyodbc
+import pymssql
 
 class Database:
     def __init__(self, db_connection=None, dataframe=pd.DataFrame({'A': []}), dfname="DF_NAME"):
         if db_connection is not None:
-            self.engine = create_engine(URL(**db_connection), pool_pre_ping=True)
+            #self.engine = create_engine(URL(**db_connection), pool_pre_ping=True)
+            #self.engine = create_engine('sqlite:///C:\\Users\\nedeo\\dbml.db')
+            self.engine = create_engine('mssql+pyodbc://desktop-g9l3lcq/dbml?trusted_connection=yes&driver=ODBC+Driver+13+for+SQL+Server')
         elif not dataframe.empty:
             self.import_df(dataframe, dfname)
         else:

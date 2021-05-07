@@ -1,8 +1,15 @@
 import lib
 import config as cons
 
+if 'mysql' in cons.DB_ENGINE:
+    drivername = 'mysql+mysqlconnector'
+elif 'sqlite' in cons.DB_ENGINE:
+    drivername = 'sqlite'
+elif 'microsoft' or 'mssql' in cons.DB_ENGINE:
+    drivername = 'mssql + pyodbc'
+
 db = {
-    'drivername': 'mysql+mysqlconnector',
+    'drivername': drivername,
     'host': cons.DB_HOST,
     'port': cons.DB_PORT,
     'username': cons.DB_USER,

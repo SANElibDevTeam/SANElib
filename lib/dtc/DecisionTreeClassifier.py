@@ -13,15 +13,17 @@ class DecisionTreeClassifier:
         self.engine = self.db_connection.engine
         self.dataset = dataset
         self.max_samples = max_samples
+        self.table_indices = {}
+        self.model = ''
 
         if target == '':
-            colnames = self.db_connection.execute_query("SELECT * FROM {} LIMIT 0".format(self.dataset), self.engine,
-                                                        True)
+            colnames = self.db_connection.execute_query(
+                Template(sql.tmplt['_getColumns']).render(input=self), self.engine, True)
             self.target = colnames.columns[-1]
 
         if target_classes is None:
             target_classes = self.db_connection.execute_query(
-                "SELECT DISTINCT {} FROM {} ORDER BY {} ASC".format(self.target, self.dataset, self.target),
+                Template(sql.tmplt["_distinctValues"]).render(table=self.dataset, column=self.target),
                 self.engine, True)
         self.target_classes = target_classes.to_numpy().flatten()
 
@@ -52,20 +54,25 @@ class DecisionTreeClassifier:
 
     def __feature_encoding(self):
         # Get first row of dataset to see the which features are numerical, which are not
-        features = self.db_connection.execute_query("select * from {} limit 1".format(self.dataset), self.engine, True)
+        features = \
+            self.db_connection.execute_query(Template(sql.tmplt['_getColumns']).render(input=self), self.engine, True)
         # Select only the non numerical features and putting them into a dataframe
         catFeature = features.select_dtypes(include='object').columns
 
         # Add id column to dataset, needed for grouping for ordinal encoding
         self.db_connection.execute(
-            "ALTER TABLE {} ADD column `rownum` INT NOT NULL AUTO_INCREMENT unique first;".format(self.dataset),
+            Template(sql.tmplt['_addRownum']).render(input=self),
             self.engine)
 
         # Get all characteristics of each categorical feature
         features = {}
         for f in catFeature:
             features[f] = np.array(
-                self.db_connection.execute_query("select distinct {} from {}".format(f, self.dataset), self.engine))
+                self.db_connection.execute_query(Template(sql.tmplt["_distinctValues"]).render(table=self.dataset, column=f),
+                                                 self.engine))
+
+        # if the the features contain a number, sort the characteristics by its number, if not natural sorting
+        # todo
 
         self.catFeatures = features
 
@@ -73,42 +80,42 @@ class DecisionTreeClassifier:
         # later
         for key in self.catFeatures:
             self.db_connection.execute(
-                "alter table {} rename column {} to {}_orig".format(self.dataset, key, key), self.engine)
+                Template(sql.tmplt['_renameColumn']).render(input=self, orig=key, to=key+'_orig'), self.engine)
 
         self.db_connection.materializedView(
             'Creating categorical feature columns as ordinal values and splitting into training set',
             self.table_train,
-            Template(sql.tmplt['_catFeatOrdinalTrain']).render(input=self), self.engine)
-
+            Template(sql.tmplt['_catFeatOrdinal']).render(input=self, table=self.dataset, operator='<='), self.engine)
         self.db_connection.materializedView(
             'Creating categorical feature columns as ordinal values and splitting into evaluation set',
             self.table_eval,
-            Template(sql.tmplt['_catFeatOrdinalEval']).render(input=self), self.engine)
+            Template(sql.tmplt['_catFeatOrdinal']).render(input=self, table=self.dataset, operator='>'), self.engine)
 
         for key in self.catFeatures:
             self.db_connection.execute(
-                "alter table {} drop column {}_orig".format(self.table_train, key), self.engine)
+                Template(sql.tmplt['_dropColumn']).render(table=self.table_train, column=key+'_orig'), self.engine)
             self.db_connection.execute(
-                "alter table {} drop column {}_orig".format(self.table_eval, key), self.engine)
+                Template(sql.tmplt['_dropColumn']).render(table=self.table_eval, column=key+'_orig'), self.engine)
 
         self.db_connection.execute(
-            "alter table {} drop column rownum".format(self.dataset), self.engine)
+            Template(sql.tmplt['_dropColumn']).render(table=self.dataset, column='rownum'), self.engine)
         self.db_connection.execute(
-            "alter table {} drop column rownum".format(self.table_train), self.engine)
+            Template(sql.tmplt['_dropColumn']).render(table=self.table_train, column='rownum'), self.engine)
         self.db_connection.execute(
-            "alter table {} drop column rownum".format(self.table_eval), self.engine)
+            Template(sql.tmplt['_dropColumn']).render(table=self.table_eval, column='rownum'), self.engine)
 
         for key in self.catFeatures:
             self.db_connection.execute(
-                "alter table {} rename column {}_orig to {}".format(self.dataset, key, key), self.engine)
+                Template(sql.tmplt['_renameColumn']).render(input=self, orig=key+'_orig', to=key), self.engine)
 
         self.catFeatures = self.catFeatures.keys()
 
-    def __create_cc_table(self):
+    def __create_cc_table(self, query=''):
         self.db_connection.materializedView(
-            'Computing information table with target',
+            'creating counts table',
             self.dataset + '_CC_table',
-            Template(sql.tmplt['_CC_table']).render(input=self),
+            Template(sql.tmplt['_CC_table']).render(input=self,
+                                                    subquery="(select * from {} {})".format(self.table_train, query)),
             self.engine)
 
     def __get_cc_table(self):
@@ -180,25 +187,35 @@ class DecisionTreeClassifier:
         self.n_classes_ = len(self.target_classes)  # classes are assumed to go from 0 to n-1
         self.numFeatures = numFeatures
         self.catFeatures = catFeatures
-        self.tree_ = self.__grow_tree('')
-        self.db_connection.execute('drop table {}_criterion'.format(self.table_train), self.engine)
+        # self.tree_ = self.__initial_nodes()
+        self.tree_ = self.__grow_tree()
+        # self.db_connection.execute('drop table {}_criterion'.format(self.table_train), self.engine)
+
+    def __binning(self):
+        return 1
+
+    def __initial_nodes(self):
+        tree = []
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            fut = [executor.submit(self.__grow_tree, "where xq_Elevation = {}".format(i + 1)) for i in range(1000)]
+            for r in concurrent.futures.as_completed(fut):
+                tree.append(r.result())
+        return tree
 
     def __grow_tree(self, query=''):
-        """Build a decision tree by recursively finding the best split with the info table and the resulting mutual information table."""
-        if not query == '':
-            self.db_connection.materializedView(
-                'Creating the train table with criteria',
-                self.table_train + '_criterion',
-                'select * from {} {}'.format(self.table_train, query)
-                , self.engine)
-        else:
-            self.db_connection.materializedView(
-                'Creating initial criteria table from train table',
-                self.table_train + '_criterion',
-                'select * from {}'.format(self.table_train)
-                , self.engine)
+        """Build a decision tree by recursively finding the best split with the info table and the resulting mutual
+        information table. """
+        # if not query == '':
+        #     self.db_connection.execute(
+        #         'create or replace view {}_criterion as select * from {} {}'.format(self.table_train, self.table_train,
+        #                                                                             query)
+        #         , self.engine)
+        # else:
+        #     self.db_connection.execute(
+        #         "create or replace view {}_criterion as select * from {}".format(self.table_train, self.table_train)
+        #         , self.engine)
 
-        self.__create_cc_table()
+        self.__create_cc_table(query)
         cc_table = self.__get_cc_table()
         mutual_inf = self.__calc_mutual_information(cc_table)
         num_samples_per_class = mutual_inf.iloc[0, 6:13].max()
@@ -210,13 +227,16 @@ class DecisionTreeClassifier:
             predicted_class=predicted_class,
         )
 
+        # If there is no mutual information the node can be returned
         if mutual_inf.empty:
             return node
-        elif mutual_inf.mi.values[0] < 0.01:
+        elif mutual_inf.mi.values[0] < 0.05:
             return node
-
+        # if there is only one class left, there is no point in splitting further
+        elif len(cc_table.y.drop_duplicates().values) <= 1:
+            return node
         # Split recursively until maximum depth is reached.
-        if self.max_samples <= int(mutual_inf.n__.values[0]):
+        elif self.max_samples <= int(mutual_inf.n__.values[0]):
             if query == '':
                 if mutual_inf.f.values[0] not in self.catFeatures:
                     X_left = ' where {} <= {} '.format(mutual_inf.f.values[0], mutual_inf.x.values[0])
@@ -224,8 +244,9 @@ class DecisionTreeClassifier:
                 else:
                     X_left = ' where {} = {} '.format(mutual_inf.f.values[0], mutual_inf.x.values[0])
                     X_right = ' where {} <> {} '.format(mutual_inf.f.values[0], mutual_inf.x.values[0])
+                self.table_indices[1] = mutual_inf.f.values[0]
                 self.db_connection.execute(
-                    "alter table {} add index ({})".format(self.table_train, mutual_inf.f.values[0]), self.engine
+                    Template(sql.tmplt['_addIndex']).render(input=self, idx=self.table_indices[1]), self.engine
                 )
             else:
                 if mutual_inf.f.values[0] not in self.catFeatures:
@@ -234,33 +255,43 @@ class DecisionTreeClassifier:
                 else:
                     X_left = query + ' and {} = {} '.format(mutual_inf.f.values[0], mutual_inf.x.values[0])
                     X_right = query + ' and {} <> {} '.format(mutual_inf.f.values[0], mutual_inf.x.values[0])
-                indexes = self.db_connection.execute_query(
-                    "SHOW indexes from {}".format(self.table_train), self.engine, True)
-                if len(indexes.index) < 64:
-                    prev_index = \
-                        indexes.groupby(['Key_name'])['Column_name'].apply(','.join).reset_index().iloc[-1:]
-                    if mutual_inf.f.values[0] not in prev_index['Column_name'].values[0]:
+                if mutual_inf.f.values[0] not in list(self.table_indices.values())[-1]:
+                    # increment last key by 1 and concatenate this feature to last indexes to make a clustered index
+                    self.table_indices[list(self.table_indices.keys())[-1] + 1] = \
+                        list(self.table_indices.values())[-1] + ', {}'.format(mutual_inf.f.values[0])
+                    if len(self.table_indices.keys()) < 64:
                         self.db_connection.execute(
-                            "alter table {} add index ({})".format(self.table_train,
-                                                                   prev_index['Column_name'].values[0] + ',' +
-                                                                   mutual_inf.f.values[0]),
-                            self.engine
+                            Template(sql.tmplt['_addIndex']).render(
+                                input=self, idx=self.table_indices[list(self.table_indices.keys())[-1]]), self.engine
                         )
-
             node.feature = mutual_inf.f.values[0]
             node.threshold = mutual_inf.x.values[0]
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 node.left = executor.submit(self.__grow_tree, X_left).result()
                 node.right = executor.submit(self.__grow_tree, X_right).result()
-            # node.left = self.__grow_tree(X_left)
-            # node.right = self.__grow_tree(X_right)
         return node
 
     def visualize_tree(self, show_details=True):
         """Print ASCII visualization of decision tree."""
         self.tree_.debug(self.numFeatures.append(self.catFeatures),
-                         [self.target + " {}".format(i - 1) for i in self.target_classes],
+                         [self.target + " {}".format(i) for i in self.target_classes],
                          show_details)
+
+    def create_model(self):
+        self.model = self.__model_aux(self.tree_)
+
+    def __model_aux(self, node):
+        is_leaf = not node.right
+        if is_leaf:
+            return str(node.predicted_class)
+        # If not a leaf, must have two children.
+        left = self.__model_aux(node.left)
+        right = self.__model_aux(node.right)
+        if node.feature in self.catFeatures:
+            line = '\nCASE WHEN {} = {} THEN {} \nELSE {} END'.format(node.feature, node.threshold, left, right)
+        else:
+            line = '\nCASE WHEN {} <= {} THEN {} \nELSE {} END'.format(node.feature, node.threshold, left, right)
+        return line
 
     def predict(self, X):
         pred = []
@@ -276,3 +307,55 @@ class DecisionTreeClassifier:
             else:
                 node = node.right
         return node.predicted_class
+
+    def predict2(self, X):
+        pred = []
+        for r in X.itertuples():
+            pred.append(self.__predict2(r))
+        return pred
+
+    def __predict2(self, r):
+        node = self.tree_
+        while node.left:
+            if node.feature not in self.catFeatures:
+                if (getattr(r, node.feature)) <= node.threshold:
+                    node = node.left
+                else:
+                    node = node.right
+            else:
+                if (getattr(r, node.feature)) == node.threshold:
+                    node = node.left
+                else:
+                    node = node.right
+        return node.predicted_class
+
+    def predict_table(self):
+        self.create_model()
+        print('Adding column Prediction to table {}'.format(self.table_eval))
+        self.db_connection.execute(
+            Template(sql.tmplt['_predictEval']).render(input=self, model=self.model),
+            self.engine
+        )
+        print('Creating Prediction as stored procedure')
+        self.db_connection.execute(
+            Template(sql.tmplt['_predictionProcedure']).render(
+                input=self,
+                features=self.numFeatures + self.catFeatures,
+                model=self.__model_procedure(self.tree_)),
+            self.engine
+        )
+
+    def __model_procedure(self, node):
+        is_leaf = not node.right
+        if is_leaf:
+            return 'SET predictedClass = {};'.format(node.predicted_class)
+        # If not a leaf, must have two children.
+        left = self.__model_procedure(node.left)
+        right = self.__model_procedure(node.right)
+        if node.feature not in self.catFeatures:
+            line = '\nCASE WHEN {} <= {} THEN {} \nELSE {} END CASE;'.format(node.feature, node.threshold, left,
+                                                                             right)
+        else:
+            line = line = '\nCASE WHEN {} = {} THEN {} \nELSE {} END CASE;'.format(node.feature, node.threshold,
+                                                                                   left, right)
+        return line

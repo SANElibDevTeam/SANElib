@@ -9,32 +9,7 @@ tmplt["_eval"] = '''
 (select * from {{ input.dataset }} where rand ({{ input.seed }}) >= {{ input.ratio }});
 '''
 
-tmplt["_getColumns"] = '''
-SELECT * FROM {{ input.dataset }} LIMIT 1
-;
-'''
-
-tmplt["_distinctValues"] = '''
-SELECT DISTINCT {{ column }} FROM {{ table }} ORDER BY {{ column }} ASC
-;
-'''
-
-tmplt["_addRownum"] = '''
-ALTER TABLE {{ input.dataset }} ADD column `rownum` INT NOT NULL AUTO_INCREMENT unique first;
-;
-'''
-
-tmplt["_renameColumn"] = '''
-alter table {{ input.dataset }} rename column {{ orig }} to {{ to }}
-;
-'''
-
-tmplt["_dropColumn"] = '''
-alter table {{ table }} drop column {{ column }}
-;
-'''
-
-tmplt["_catFeatOrdinal"] =''' 
+tmplt["_catFeatOrdinalTrain"] =''' 
 select *,
 {% for key in input.catFeatures %}
 {% if loop.index > 1 %}, {% endif %}\
@@ -44,13 +19,22 @@ select *,
     {% endfor %}\
 end) as {{ key }}
 {% endfor %}\
-from (select * from {{ table }} where rand ({{ input.seed }}) {{ operator }} {{ input.ratio }}) as train
+from (select * from {{ input.dataset }} where rand ({{ input.seed }}) < {{ input.ratio }}) as train
 group by rownum;
 '''
 
-tmplt["_addIndex"] = '''
-alter table {{ input.table_train }} add index ({{ idx }})
-;
+tmplt["_catFeatOrdinalEval"] =''' 
+select *,
+{% for key in input.catFeatures %}
+{% if loop.index > 1 %}, {% endif %}\
+(case
+    {% for value in input.catFeatures[key] %}
+        when {{ key }}_orig = '{{ value[0] }}' then {{ loop.index }}
+    {% endfor %}\
+end) as {{ key }}
+{% endfor %}\
+from (select * from {{ input.dataset }} where rand ({{ input.seed }}) >= {{ input.ratio }}) as train
+group by rownum;
 '''
 
 tmplt["_CC_table"] ='''
