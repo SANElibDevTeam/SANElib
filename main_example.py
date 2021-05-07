@@ -13,6 +13,7 @@ db_connection = {
 }
 db = Database(db_connection=db_connection, dataframe=iris_df, dfname="iris")
 kmeans = lib.kmeans.KMeans(db)
+
 # kmeans = sanelib.kmeans
 
 model_names = kmeans.get_model_names()
@@ -31,10 +32,11 @@ feature_names = ["sepallength", "sepalwidth", "petallength", "petalwidth"]
 
 k = 3
 k_list = range(2,5)
-model_identifier = "example"
+model_identifier = "time"
 normalizations = [None, "min-max", "z-score"]
 
 init_time = time.time()
+# model = kmeans.create_model(tablename, feature_names, k, model_identifier, normalizations[0])
 model = kmeans.create_ideal_model(tablename, feature_names, k_list, model_identifier, normalizations[1])
 train_time = time.time()
 # model.estimate(max_steps=10)

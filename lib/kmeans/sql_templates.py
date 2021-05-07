@@ -9,8 +9,8 @@ class SqlTemplates:
     def get_create_table_with_pk(self, tablename, pk_column, query):
         return [
             f"drop view if exists temp_view;", 
-            f"create view temp_view as ({query});",
-            f"create table {tablename} as (select * from temp_view where 1=0);",
+            f"create view temp_view as {query};",
+            f"create table {tablename} as select * from temp_view where 1=0;",
             f"alter table {tablename} add primary key ({pk_column});",
             f"insert into {tablename} select * from temp_view;",
             f"drop view if exists temp_view;", 
@@ -40,16 +40,21 @@ class SqlTemplates:
         return self.get_create_table_with_pk(table_x, "i", query)
 
     def get_add_cluster_columns(self, table_x):
-        return [f"alter table {table_x} add min_dist double, add j int;"]
+        return [
+            f"alter table {table_x} add min_dist double, add j int;"
+        ]
 
     def get_create_table_c(self, d, k, table_c, table_x):
         columns = ", ".join([f"x_{l} as x_{l}_{j}" for j in range(k) for l in range(d)])
         return f"create table {table_c} as select {columns} from {table_x} where i = 1;"
 
-    def get_init_table_c(self, table_c, table_x, n, d, k):
+    def get_init_table_c(self, table_c, table_x, n, d, start_indexes):
+        k = len(start_indexes)
         def get_setters_init(j):
             return ", ".join([f"x_{l}_{j} = x_{l}" for l in range(d)])
-        return [f"update {table_c} join {table_x} on i = {randrange(1, n)} set {get_setters_init(j)};" for j in range(k)]
+        return [
+            f"update {table_c} join {table_x} on i = {start_indexes[j]} set {get_setters_init(j)};" for j in range(k)
+        ]
     
     def get_select_models(self):
         return f"select table_name from information_schema.tables where table_name like '%model';"
@@ -65,7 +70,9 @@ class SqlTemplates:
         sub_query_distances = f"select i, {distances_to_clusters} from {table_x}, {table_c} group by i"
         distances_columns = ", ".join([f"dist_{j}" for j in range(k)])
         case_dist_match = " ".join([f"when dist_{j} = sub_table.min_dist then {j}" for j in range(k)])
-        return [f"update {table_x} join (select *, least({distances_columns}) as min_dist from ({sub_query_distances}) distances) sub_table on sub_table.i = {table_x}.i set {table_x}.min_dist = sub_table.min_dist, j = case {case_dist_match} end;"]
+        return [
+            f"update {table_x} join (select *, least({distances_columns}) as min_dist from ({sub_query_distances}) distances) sub_table on sub_table.i = {table_x}.i set {table_x}.min_dist = sub_table.min_dist, j = case {case_dist_match} end;"
+        ]
 
     def get_update_table_model(self, table_model, n, table_x):
         return f"update {table_model} set steps = steps + 1, variance = (select sum(min_dist)/{n} from {table_x});"
@@ -75,7 +82,9 @@ class SqlTemplates:
             return ", ".join([f"sum(x_{l})/count(*) as x_{l}_{j}" for l in range(d)])
         def get_setters_move(j):
             return ", ".join([f"{table_c}.x_{l}_{j} = case when sub_table.x_{l}_{j} is null then {table_c}.x_{l}_{j} else sub_table.x_{l}_{j} end" for l in range(d)])
-        return [f"update {table_c}, (select {get_sub_selectors(j)} from {table_x} where j={j}) sub_table set {get_setters_move(j)};" for j in range(k)]
+        return [
+            f"update {table_c}, (select {get_sub_selectors(j)} from {table_x} where j={j}) sub_table set {get_setters_move(j)};" for j in range(k)
+        ]
 
     def get_select_visualization(self, table_x, d, k):
         feature_aliases = ", ".join([f"x_{l}" for l in range(d)])

@@ -1,4 +1,3 @@
-from random import randrange
 
 import numpy as np
 from lib.kmeans.sql_templates import SqlTemplates
@@ -11,22 +10,37 @@ class SqliteTemplates(SqlTemplates):
         return "select name from sqlite_master where name like '%model';"
 
     # sqlite does not support stdev()
-    def get_create_table_x(self, normalization, feature_names, d, tablename, table_x):
-        if(normalization=="z-score"):
+    # sqlite does not support alter table add primary key
+    def get_create_table_x(self, normalization, feature_names, d, tablename, table_x):        
+        if(normalization=="min-max"):
+            features_with_alias = ", ".join([f"({feature_names[l]}-min_{l})/(max_{l}-min_{l}) as x_{l}" for l in range(d)])
+            min_features = ", ".join([f"min({feature_names[l]}) as min_{l}" for l in range(d)])
+            max_features = ", ".join([f"max({feature_names[l]}) as max_{l}" for l in range(d)])
+            further_tables = f", (select {min_features}, {max_features} from {tablename}) min_max"
+        elif(normalization=="z-score"):
             raise NotImplementedError("z-score-normalisation is not supported in sqlite because of the missing standard deviation.")
         else:
-            return super().get_create_table_x(normalization, feature_names, d, tablename, table_x)
-
+            features_with_alias = ", ".join([f"{feature_names[l]} as x_{l}" for l in range(d)])
+            further_tables = ""
+        query = f"select row_number() over () as i, {features_with_alias} from {tablename}{further_tables}"
+        return [
+            f"create table {table_x} as {query};",
+        ]
+        
     # sqlite doesn't allow multiple columns to be added in one statement
     def get_add_cluster_columns(self, table_x):
-        return [f"alter table {table_x} add min_dist double;", f"alter table {table_x} add j int;"]
+        return [
+            f"alter table {table_x} add min_dist double;", f"alter table {table_x} add j int;"
+        ]
 
     # sqlite does not support update with join
-    def get_init_table_c(self, table_c, table_x, n, d, k):
+    def get_init_table_c(self, table_c, table_x, n, d, start_indexes):
+        k = len(start_indexes)
         def get_setters_init(j):
-            rand_index = randrange(1, n)
-            return ", ".join([f"x_{l}_{j} = (select x_{l} from {table_x} where i = {rand_index})" for l in range(d)])
-        return [f"update {table_c} set {get_setters_init(j)};" for j in range(k)]
+            return ", ".join([f"x_{l}_{j} = (select x_{l} from {table_x} where i = {start_indexes[j]})" for l in range(d)])
+        return [
+            f"update {table_c} set {get_setters_init(j)};" for j in range(k)
+        ]
     
     # sqlite does not support update with join
     # sqlite also does not support power()
@@ -39,7 +53,10 @@ class SqliteTemplates(SqlTemplates):
         sub_query_distances = f"select i, {distances_to_clusters} from {table_x}, {table_c} group by i"
         distances_columns = ", ".join([f"dist_{j}" for j in range(k)])
         case_dist_match = " ".join([f"when min_dist = (select dist_{j} from temp where temp.i = {table_x}.i) then {j}" for j in range(k)])
-        return [f"create view temp as select *, min({distances_columns}) as min_dist from ({sub_query_distances});", f"update {table_x} set min_dist = (select min_dist from temp where temp.i = {table_x}.i), j = case {case_dist_match} end;", "drop view temp;"]
+        return [
+            f"create view temp as select *, min({distances_columns}) as min_dist from ({sub_query_distances});", 
+            f"update {table_x} set min_dist = (select min_dist from temp where temp.i = {table_x}.i), j = case {case_dist_match} end;", "drop view temp;"
+        ]
 
     # sqlite does not support update with join
     def get_update_table_c(self, table_c, d, k, table_x):

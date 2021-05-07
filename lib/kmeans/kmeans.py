@@ -1,4 +1,5 @@
 import logging
+from random import randrange, uniform
 
 import matplotlib.pyplot as plt
 from lib.kmeans.template_factory import get_templates
@@ -22,13 +23,15 @@ class KMeans:
         return statements
 
     def create_ideal_model(self, tablename, feature_names, k_list, model_identifier, normalization=None):
-        results = {}
+        best_results = -10
+        best_k = 0
         for k in k_list:
-            results[k] = self.create_model(tablename, feature_names, k, f"{model_identifier}_k{k}", normalization).estimate().get_information()
-            print(f"result for k={k}: {results[k]}")
-        # TODO: use silhouette method to find best result
-        k = k_list[-1]
-        return self.load_model(f"{tablename}_{model_identifier}_k{k}")
+            result = self.create_model(tablename, feature_names, k, f"{model_identifier}_k{k}", normalization).estimate().get_silhouette_avg()
+            logging.info(f"result for k={k}: {result}")
+            if(best_results < result):
+                best_results = result
+                best_k = k
+        return self.load_model(f"{tablename}_{model_identifier}_k{best_k}")
 
     def create_model(self, tablename, feature_names, k, model_identifier, normalization=None):
         model_name = f"{tablename}_{model_identifier}"
@@ -40,7 +43,8 @@ class KMeans:
         count_rows_query = self.__templates.get_row_count(tablename)
         n = self.__db.execute_query(count_rows_query)[0][0]
         d = len(feature_names)
-
+        start_indexes = [randrange(1, n) for _ in range(k)]
+        
         # statements
         statements = {
             "create_table_model": self.__templates.get_create_table_model(table_model, n, d, k, tablename),
@@ -48,7 +52,7 @@ class KMeans:
             "create_table_x": self.__templates.get_create_table_x(normalization, feature_names, d, tablename, table_x),
             "add_cluster_columns": self.__templates.get_add_cluster_columns(table_x),
             "create_table_c": self.__templates.get_create_table_c(d, k, table_c, table_x),
-            "init_table_c": self.__templates.get_init_table_c(table_c, table_x, n, d, k),
+            "init_table_c": self.__templates.get_init_table_c(table_c, table_x, n, d, start_indexes),
         }
 
         # create and initialize table model
@@ -162,6 +166,9 @@ class KMeansModel:
 
         plt.show()
         return self
+
+    def get_silhouette_avg(self):
+        return uniform(-1, 1) # TODO: implement properly
     
     def __get_axis(self, x, axis_order, feature_names, axis_index):
         if axis_index < len(axis_order):
