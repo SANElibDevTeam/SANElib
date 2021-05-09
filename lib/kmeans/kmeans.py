@@ -24,6 +24,8 @@ class KMeans:
         return statements
 
     def create_ideal_model(self, tablename, feature_names, k_list, model_identifier, normalization=None):
+        if self.__db.driver_name == "sqlite":
+            raise NotImplementedError("silhouette is not supported with sqlite")
         best_results = -10
         best_k = 0
         for k in k_list:
@@ -169,6 +171,8 @@ class KMeansModel:
         return self
 
     def get_silhouette_avg(self):
+        if self.__db.driver_name == "sqlite":
+            raise NotImplementedError("silhouette is not supported with sqlite")
         query_result = self.__db.execute_query(self.__statements["select_silhouette_avg"])
         return query_result[0][0]
     

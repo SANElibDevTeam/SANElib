@@ -71,3 +71,8 @@ class SqliteTemplates(SqlTemplates):
         feature_aliases = ", ".join([f"x_{l}" for l in range(d)])
         cluster_examples = " union ".join([f"select * from (select {feature_aliases}, j from {table_x} where j = {j} limit 500)" for j in range(k)])
         return f"{cluster_examples};"
+
+    # sqlite does not support power()
+    # sqlite also does not support using the alias of the main query be used in a subquery
+    def get_select_silhouette_avg(self, table_x, d):
+        return f"query not available;"
