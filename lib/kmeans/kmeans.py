@@ -13,6 +13,10 @@ class KMeans:
         self.__templates = get_templates(db.driver_name)
 
     def __generate_sql(self, table_model, table_c, table_x, n, d, k):
+        """
+        all statements get rendered once and will be reused when needed.
+        """
+
         statements = {
             "select_information": self.__templates.get_select_information(table_model),
             "set_clusters": self.__templates.get_set_clusters(table_c, table_x, d, k),
@@ -24,6 +28,13 @@ class KMeans:
         return statements
 
     def create_ideal_model(self, tablename, feature_names, k_list, model_identifier, normalization=None):
+        """
+        This creates a model for every element in k_list and calculates the silhouette for every model.
+        The model with the best silhouette gets returned.
+        The other models get not deleted and can be loaded and used afterwards.
+        This is not recommended for huge datasets due to various reasons.
+        """
+
         if self.__db.driver_name == "sqlite":
             raise NotImplementedError("silhouette is not supported with sqlite")
         best_results = -10
@@ -37,6 +48,13 @@ class KMeans:
         return self.load_model(f"{tablename}_{model_identifier}_k{best_k}")
 
     def create_model(self, tablename, feature_names, k, model_identifier, normalization=None):
+        """
+        This creates the following three tables:
+         - table_x: feature columns of source data (normalized if normalization is given) with the additional column and primary key "i"
+         - table_c: all cluster centers in a single row
+         - table_model: single row with the parameters of the model
+        """
+
         model_name = f"{tablename}_{model_identifier}"
         table_model = f"{model_name}_model"
         table_x = f"{model_name}_x"
@@ -77,6 +95,10 @@ class KMeans:
         return KMeansModel(self.__db, statements)
 
     def load_model(self, model_name):
+        """
+        This returns an already created model which can be used for further training or analysis.
+        """
+
         table_model = f"{model_name}_model"
         table_x = f"{model_name}_x"
         table_c = f"{model_name}_c"
@@ -92,11 +114,19 @@ class KMeans:
         return KMeansModel(self.__db, statements)
 
     def drop_model(self, model_name):
+        """
+        This deletes the three tables of the model.
+        """
+
         tables = ['model', 'x', 'c']
         for table in tables:
             self.__db.execute(self.__templates.get_drop_model(model_name, table))
 
     def get_model_names(self):
+        """
+        This returns the names of all existing models. The names can be used for loading or deleting the models.
+        """
+
         select_models = self.__templates.get_select_models()
         rows = self.__db.execute_query(select_models)
         model_names = []
@@ -110,7 +140,11 @@ class KMeansModel:
         self.__db = db
         self.__statements = statements
 
-    def estimate(self, max_steps=100):        
+    def estimate(self, max_steps=100):
+        """
+        This continous the clustering which allows clustering in stages.
+        """
+
         variance = -1
         step = 0
         while step < max_steps:
@@ -131,6 +165,15 @@ class KMeansModel:
         return self
 
     def get_information(self):
+        """
+        The following parameters get returned:
+         - "n": number of rows
+         - "d": number of dimensions/features
+         - "k": number of clusters
+         - "steps": number of already trained iterations
+         - "variance": sum of errors divided by the number of rows
+        """
+
         query_result = self.__db.execute_query(self.__statements["select_information"])
         return {
             "n": query_result[0][0],
@@ -141,6 +184,10 @@ class KMeansModel:
         }
 
     def visualize(self, feature_names, axis_order=None):
+        """
+        This visualizes the data and classes in a three dimensional plot.
+        """
+
         if axis_order is None:
             axis_order = range(len(feature_names))
         d = len(axis_order[:3])
@@ -171,12 +218,21 @@ class KMeansModel:
         return self
 
     def get_silhouette_avg(self):
+        """
+        This calculates the silhouette of every data point and returns the average value.
+        This is not recommended for huge datasets due to the performance.
+        """
+
         if self.__db.driver_name == "sqlite":
             raise NotImplementedError("silhouette is not supported with sqlite")
         query_result = self.__db.execute_query(self.__statements["select_silhouette_avg"])
         return query_result[0][0]
     
     def __get_axis(self, x, axis_order, feature_names, axis_index):
+        """
+        This private function is used for the visualization.
+        """
+        
         if axis_index < len(axis_order):
             label = feature_names[axis_order[axis_index]]
             scatter = x[:, axis_order[axis_index]]

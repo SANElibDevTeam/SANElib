@@ -1,8 +1,11 @@
 from random import randrange
 
 
-# parent class for default statements
 class SqlTemplates:
+    """
+    This is the parent class for all templates and returns the default implementation of every statements.
+    """
+
     def get_row_count(self, tablename):
         return f"select count(*) as row_count from {tablename};"
 
