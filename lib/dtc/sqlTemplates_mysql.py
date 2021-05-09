@@ -19,22 +19,15 @@ SELECT DISTINCT {{ column }} FROM {{ table }} ORDER BY {{ column }} ASC
 ;
 '''
 
-tmplt["_addRownum"] = '''
-ALTER TABLE {{ input.dataset }} ADD column `rownum` INT NOT NULL AUTO_INCREMENT unique first;
-;
-'''
-
 tmplt["_renameColumn"] = '''
-alter table {{ input.dataset }} rename column {{ orig }} to {{ to }}
+ALTER TABLE {{ input.dataset }} RENAME COLUMN {{ orig }} TO {{ to }}
 ;
 '''
 
-tmplt["_dropColumn"] = '''
-alter table {{ table }} drop column {{ column }}
-;
-'''
-
-tmplt["_catFeatOrdinal"] =''' 
+tmplt["_encodeTableTrainEval"] = [
+    '''ALTER TABLE {{ input.dataset }} ADD column `rownum` INT NOT NULL AUTO_INCREMENT unique first;''',
+    '''
+create table {{ input.table_train }} as
 select *,
 {% for key in input.catFeatures %}
 {% if loop.index > 1 %}, {% endif %}\
@@ -44,16 +37,50 @@ select *,
     {% endfor %}\
 end) as {{ key }}
 {% endfor %}\
-from (select * from {{ table }} where rand ({{ input.seed }}) {{ operator }} {{ input.ratio }}) as train
+from (select * from {{ input.dataset }} where rand ({{ input.seed }}) <= {{ input.ratio }}) as train
 group by rownum;
+''',
+    '''
+create table {{ input.table_eval }} as
+select *,
+{% for key in input.catFeatures %}
+{% if loop.index > 1 %}, {% endif %}\
+(case
+    {% for value in input.catFeatures[key] %}
+        when {{ key }}_orig = '{{ value[0] }}' then {{ loop.index }}
+    {% endfor %}\
+end) as {{ key }}
+{% endfor %}\
+from (select * from {{ input.dataset }} where rand ({{ input.seed }}) > {{ input.ratio }}) as eval
+group by rownum;
+''',
+'''alter table {{ input.dataset }} drop column `rownum`;''',
+'''alter table {{ input.table_train }} drop column `rownum`;''',
+'''alter table {{ input.table_eval }} drop column `rownum`;''',
 '''
+alter table {{ input.table_train }}
+{% for key in input.catFeatures %}
+{% if loop.index > 1 %}, {% endif %}\
+drop column {{ key }}_orig
+{% endfor %}\
+;
+''',
+'''
+alter table {{ input.table_eval }}
+{% for key in input.catFeatures %}
+{% if loop.index > 1 %}, {% endif %}\
+drop column {{ key }}_orig
+{% endfor %}\
+;
+'''
+]
 
 tmplt["_addIndex"] = '''
 alter table {{ input.table_train }} add index ({{ idx }})
 ;
 '''
 
-tmplt["_CC_table"] ='''
+tmplt["_CC_table"] = '''
 {% for nf in input.numFeatures %}
 {% if loop.index > 1 %}union all {% endif %}\
 select "{{ nf }}" as f, {{ nf }} as x, {{ input.target }} as y, count(*)  as nxy from {{ subquery }} as subq group by {{ nf }}, {{ input.target }}\
@@ -64,8 +91,7 @@ select "{{ cf }}" as f, {{ cf }} as x, {{ input.target }} as y, count(*)  as nxy
 {% endfor %}\
 ;'''
 
-
-tmplt["_sqlMI"] ='''
+tmplt["_sqlMI"] = '''
 (select  f, x, mi, cum_nx_, n__-cum_nx_ as alt,  n__ ,
 (select sum(nxy) from info where y = 1 and info.f = e.f and info.x <= e.x) ny1,
 (select sum(nxy) from info where y = 2 and info.f = e.f and info.x <= e.x) ny2,
@@ -128,8 +154,7 @@ order by mx desc
 ) e )
 ;'''
 
-
-tmplt["_DFmi"] ='''
+tmplt["_DFmi"] = '''
 (select  f, x, mi, cum_nx_, n__-cum_nx_ as alt,  n__ ,
 {% for tg in input.targetValues %}
 (select sum(nxy) from dtctraintest_info where y = {{ tg }} and dtctraintest_info.f = temp_mutual_inf.f and dtctraintest_info.x <= temp_mutual_inf.x) ny{{ tg }},
@@ -141,7 +166,7 @@ tmplt["_DFmi"] ='''
 from temp_mutual_inf)
 ;'''
 
-tmplt["_train_view"] ='''
+tmplt["_train_view"] = '''
 (select * from {{ input.table_train }} where 
 {% for key,value in input.mutual_inf.iterrows() %}
 {% if loop.index > 1 %} and {% endif %}\
@@ -150,13 +175,13 @@ tmplt["_train_view"] ='''
 )
 ;'''
 
-tmplt["_predictEval"] ='''
+tmplt["_predictEval"] = '''
 alter table {{ input.table_eval }} add column Prediction int as (
 {{ model }}
 )
 ;'''
 
-tmplt["_predictionProcedure"] ='''
+tmplt["_predictionProcedure"] = '''
 CREATE PROCEDURE predict_{{ input.dataset }}(
 {% for f in features %}
 IN {{ f }} INT,

@@ -9,21 +9,21 @@ tmplt["_eval"] = '''
 (select * from {{ input.dataset }} where rand ({{ input.seed }}) >= {{ input.ratio }});
 '''
 
-tmplt["_catFeatOrdinalTrain"] =''' 
-select *,
-{% for key in input.catFeatures %}
-{% if loop.index > 1 %}, {% endif %}\
-(case
-    {% for value in input.catFeatures[key] %}
-        when {{ key }}_orig = '{{ value[0] }}' then {{ loop.index }}
-    {% endfor %}\
-end) as {{ key }}
-{% endfor %}\
-from (select * from {{ input.dataset }} where rand ({{ input.seed }}) < {{ input.ratio }}) as train
-group by rownum;
+tmplt["_getColumns"] = '''
+SELECT TOP 1 * FROM {{ input.dataset }}
+;
 '''
 
-tmplt["_catFeatOrdinalEval"] =''' 
+tmplt["_distinctValues"] = '''
+SELECT DISTINCT {{ column }} FROM {{ table }} ORDER BY {{ column }} ASC
+;
+'''
+
+tmplt["_renameColumn"] = '''
+EXEC dbo.sp_rename '{{ input.dataset }}.{{ orig }}', '{{ to }}', 'COLUMN';
+'''
+
+tmplt["_encodeTableTrainEval"] = ['''
 select *,
 {% for key in input.catFeatures %}
 {% if loop.index > 1 %}, {% endif %}\
@@ -33,19 +33,64 @@ select *,
     {% endfor %}\
 end) as {{ key }}
 {% endfor %}\
-from (select * from {{ input.dataset }} where rand ({{ input.seed }}) >= {{ input.ratio }}) as train
-group by rownum;
+into {{ input.table_train }}
+from (SELECT TOP ({{ input.ratio  }}* 100) PERCENT * from {{ input.dataset }} ORDER BY NEWID()) as train
+;
+''',
 '''
+select *,
+{% for key in input.catFeatures %}
+{% if loop.index > 1 %}, {% endif %}\
+(case
+    {% for value in input.catFeatures[key] %}
+        when {{ key }}_orig = '{{ value[0] }}' then {{ loop.index }}
+    {% endfor %}\
+end) as {{ key }}
+{% endfor %}\
+into {{ input.table_eval }}
+from (SELECT TOP ((1 - {{ input.ratio }}) * 100) PERCENT * from {{ input.dataset }} ORDER BY NEWID()) as train
+''',
+'''
+alter table {{ input.table_train }} drop
+{% for key in input.catFeatures %}
+{% if loop.index > 1 %}, {% endif %}\
+column {{ key }}_orig
+{% endfor %}\
+;
+''',
+'''
+alter table {{ input.table_eval }} drop
+{% for key in input.catFeatures %}
+{% if loop.index > 1 %}, {% endif %}\
+column {{ key }}_orig
+{% endfor %}\
+;
+''']
+
+tmplt["_addIndex"] = '''
+create index idx{{ enumidx }} on {{ input.table_train }} ({{ idx }})
+;
+'''
+
 
 tmplt["_CC_table"] ='''
+select f, x, {{ input.target }} as y, count(*) as nxy into {{ input.dataset }}_CC_table from
+{{ subquery }} as p
+unpivot
+(
+x for f in (
 {% for nf in input.numFeatures %}
-{% if loop.index > 1 %}union all {% endif %}\
-select "{{ nf }}" as f, {{ nf }} as x, {{ input.target }} as y, count(*)  as nxy from {{ subquery }} as subq group by {{ nf }}, {{ input.target }}\
+{% if loop.index > 1 %},{% endif %}\
+{{ nf }}
 {% endfor %}\
-{% for cf in input.catFeatures %}
-{% if loop.index + input.numFeatures|length  > 1 %} union {% endif %}\
-select "{{ cf }}" as f, {{ cf }} as x, {{ input.target }} as y, count(*)  as nxy from {{ subquery }} as subq group by {{ cf }}, {{ input.target }}
+{% if input.catFeatures is defined %},{% endif %}\
+{% for nf in input.catFeatures %}
+{% if loop.index > 1 %},{% endif %}\
+{{ nf }}
 {% endfor %}\
+)
+) as unpinv
+group by f,x,{{ input.target }}
 ;'''
 
 

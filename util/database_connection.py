@@ -37,7 +37,8 @@ class Database:
             connection = self.get_connection(self.engine)
         else:
             connection = self.get_connection(engine)
-        connection.execute(text(query))
+        with connection.execution_options(autocommit=True) as conn:
+            conn.execute(text(query))
         connection.close()
 
     def execute_query(self, query, engine=None, as_df=False):
@@ -59,6 +60,9 @@ class Database:
         self.execute('''
             drop table if exists {}'''
                      .format(tablename), engine)
-        self.execute('''
-            create table {} as '''
-                     .format(tablename) + query, engine)
+        if 'mysql' in self.engine.name:
+            self.execute('''
+                create table {} as '''
+                         .format(tablename) + query, engine)
+        elif 'mssql' in self.engine.name:
+            self.execute(query, engine)

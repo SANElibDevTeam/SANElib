@@ -1,10 +1,16 @@
 from util.database_connection import Database
-from lib.dtc import sqlTemplates as sql
 from lib.dtc.tree import Node
 from jinja2 import Template
 import pandas as pd
 import numpy as np
 import concurrent.futures
+import config as cons
+# todo
+# drivername noch anpassen. jetzt beides gleich noch
+if 'mssql' in cons.DB_ENGINE:
+    from lib.dtc import sqlTemplates_mssql as sql
+elif 'mysql' in cons.DB_ENGINE:
+    from lib.dtc import sqlTemplates_mssql as sql
 
 
 class DecisionTreeClassifier:
@@ -59,11 +65,6 @@ class DecisionTreeClassifier:
         # Select only the non numerical features and putting them into a dataframe
         catFeature = features.select_dtypes(include='object').columns
 
-        # Add id column to dataset, needed for grouping for ordinal encoding
-        self.db_connection.execute(
-            Template(sql.tmplt['_addRownum']).render(input=self),
-            self.engine)
-
         # Get all characteristics of each categorical feature
         features = {}
         for f in catFeature:
@@ -82,27 +83,14 @@ class DecisionTreeClassifier:
             self.db_connection.execute(
                 Template(sql.tmplt['_renameColumn']).render(input=self, orig=key, to=key+'_orig'), self.engine)
 
-        self.db_connection.materializedView(
-            'Creating categorical feature columns as ordinal values and splitting into training set',
-            self.table_train,
-            Template(sql.tmplt['_catFeatOrdinal']).render(input=self, table=self.dataset, operator='<='), self.engine)
-        self.db_connection.materializedView(
-            'Creating categorical feature columns as ordinal values and splitting into evaluation set',
-            self.table_eval,
-            Template(sql.tmplt['_catFeatOrdinal']).render(input=self, table=self.dataset, operator='>'), self.engine)
-
-        for key in self.catFeatures:
+        # in the encode table train eval template, the categorical features will be encoded
+        # according to the capabilities of each database technology
+        # since each database engine connector has different SQL capabilities, the _encodeTableTrainEval entry
+        # has several array items. they need to be iterated, since a connector can't handle multiple statements
+        # depending on the database engine
+        for i in sql.tmplt['_encodeTableTrainEval']:
             self.db_connection.execute(
-                Template(sql.tmplt['_dropColumn']).render(table=self.table_train, column=key+'_orig'), self.engine)
-            self.db_connection.execute(
-                Template(sql.tmplt['_dropColumn']).render(table=self.table_eval, column=key+'_orig'), self.engine)
-
-        self.db_connection.execute(
-            Template(sql.tmplt['_dropColumn']).render(table=self.dataset, column='rownum'), self.engine)
-        self.db_connection.execute(
-            Template(sql.tmplt['_dropColumn']).render(table=self.table_train, column='rownum'), self.engine)
-        self.db_connection.execute(
-            Template(sql.tmplt['_dropColumn']).render(table=self.table_eval, column='rownum'), self.engine)
+                Template(i).render(input=self), self.engine)
 
         for key in self.catFeatures:
             self.db_connection.execute(
@@ -230,8 +218,8 @@ class DecisionTreeClassifier:
         # If there is no mutual information the node can be returned
         if mutual_inf.empty:
             return node
-        elif mutual_inf.mi.values[0] < 0.05:
-            return node
+        # elif mutual_inf.mi.values[0] < 0.01:
+        #     return node
         # if there is only one class left, there is no point in splitting further
         elif len(cc_table.y.drop_duplicates().values) <= 1:
             return node
@@ -246,7 +234,7 @@ class DecisionTreeClassifier:
                     X_right = ' where {} <> {} '.format(mutual_inf.f.values[0], mutual_inf.x.values[0])
                 self.table_indices[1] = mutual_inf.f.values[0]
                 self.db_connection.execute(
-                    Template(sql.tmplt['_addIndex']).render(input=self, idx=self.table_indices[1]), self.engine
+                    Template(sql.tmplt['_addIndex']).render(input=self, idx=self.table_indices[1], enumidx=1), self.engine
                 )
             else:
                 if mutual_inf.f.values[0] not in self.catFeatures:
@@ -262,7 +250,8 @@ class DecisionTreeClassifier:
                     if len(self.table_indices.keys()) < 64:
                         self.db_connection.execute(
                             Template(sql.tmplt['_addIndex']).render(
-                                input=self, idx=self.table_indices[list(self.table_indices.keys())[-1]]), self.engine
+                                input=self, idx=self.table_indices[list(self.table_indices.keys())[-1]],
+                                enumidx=len(self.table_indices.keys())+1), self.engine
                         )
             node.feature = mutual_inf.f.values[0]
             node.threshold = mutual_inf.x.values[0]

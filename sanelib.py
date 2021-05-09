@@ -6,7 +6,7 @@ if 'mysql' in cons.DB_ENGINE:
 elif 'sqlite' in cons.DB_ENGINE:
     drivername = 'sqlite'
 elif 'microsoft' or 'mssql' in cons.DB_ENGINE:
-    drivername = 'mssql + pyodbc'
+    drivername = 'mssql+pyodbc'
 
 db = {
     'drivername': drivername,

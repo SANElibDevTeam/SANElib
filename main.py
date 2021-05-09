@@ -26,7 +26,7 @@ catFeatures = ['Wilderness_Area', 'Soil_Type']
 
 dtc = sanelib.dtc.DecisionTreeClassifier(db=sanelib.db, dataset='covtyptest2', max_samples=2)
 
-dtc.train_test_split(ratio=0.01, seed=1, encode=True)
+dtc.train_test_split(ratio=0.2, seed=1, encode=True)
 
 dtc.estimate(numFeatures=numFeatures, catFeatures=catFeatures)
 timer.end()
@@ -42,4 +42,4 @@ test['pred2'] = dtc.predict2(test)
 acc2 = 1 - (test.query('pred2 != Cover_Type').shape[0] / test.shape[0])
 print('Accuracy with categorical differentiation: {}'.format(acc2))
 
-dtc.predict_table()
+#dtc.predict_table()
