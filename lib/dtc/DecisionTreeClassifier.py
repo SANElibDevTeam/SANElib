@@ -11,7 +11,7 @@ import config as cons
 if 'mssql' in cons.DB_ENGINE:
     from lib.dtc import sqlTemplates_mssql as sql
 elif 'mysql' in cons.DB_ENGINE:
-    from lib.dtc import sqlTemplates_mssql as sql
+    from lib.dtc import sqlTemplates_mysql as sql
 
 
 class DecisionTreeClassifier:
