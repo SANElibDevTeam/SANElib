@@ -180,20 +180,27 @@ tmplt["_train_view"] ='''
 ;'''
 
 tmplt["_predictEval"] ='''
-alter table {{ input.table_eval }} add column Prediction int as (
-{{ model }}
+alter table {{ input.table_eval }} add Prediction as (
+{% for f in input.model %}
+{{ f }}
+{% endfor %}\
 )
 ;'''
 
 tmplt["_predictionProcedure"] ='''
-CREATE PROCEDURE predict_{{ input.dataset }}(
-{% for f in features %}
-IN {{ f }} INT,
+CREATE PROCEDURE predict_{{ input.dataset }}
+{% for f in input.numFeatures %}
+{% if loop.index > 1 %},{% endif %}\
+@{{ f }} INT = 0
 {% endfor %}\
-OUT predictedClass INT
-)
-BEGIN
-
-{{ model }}
-END
+{% for f in input.catFeatures %}
+{% if loop.index > 1 %},{% endif %}\
+@{{ f }} INT = 0
+{% endfor %}\
+AS
+DECLARE @pred INT
+{% for f in input.model %}
+{{ f }}
+{% endfor %}\
+print(@pred)
 '''
