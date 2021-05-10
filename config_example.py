@@ -1,9 +1,11 @@
 """
-EXAMPLE for the config.py which is stored local only and excluded from Github.
-config.py Stores configs which are used throughout the whole application.
+Config for accessing database.
+DB_TYPE: Type of database to connect to. Options: MYSQL, SQLITE
 """
-DB_HOST = "localhost"
-DB_USER = "root"
-DB_PW = "password"
-DB_NAME = "dbname"
-DB_PORT = 3306
+DB_TYPE = "DB_TYPE"
+DB_PATH = "DB_PATH"
+DB_HOST = "DB_HOST"
+DB_USER = "DB_USER"
+DB_PW = "DB_PW"
+DB_NAME = "DB_NAME"
+DB_PORT = DB_PORT

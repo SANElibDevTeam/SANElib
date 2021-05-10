@@ -160,13 +160,13 @@ class MDH:
                     maximum = 'mx_{}'.format(i)
 
             num = self.db_connectionn.execute_query('''
-                        select distinct {} as xq, {} as mn, {} as mx, 
+                        select distinct {} as xq, {} as mn, {} as mx,
                         ({}+{})/2 as x_,
-                        concat({}, ': ]', {}, ',', {}, ']') as bin, 
+                        concat({}, ': ]', {}, ',', {}, ']') as bin,
                         cast(y_ as char) as {},
                         sum(nxy)over(partition by {}, y_)*1.0/
-                        sum(nxy) over()  as p 
-                        from {}_m 
+                        sum(nxy) over()  as p
+                        from {}_m
                         order by {}, cast(y_ as char);'''.format(bins, minimum, maximum,
                                                                  maximum, minimum,
                                                                  bins, minimum, maximum,
@@ -205,11 +205,11 @@ class MDH:
 
             # Categorical
             cat = self.db_connectionn.execute_query('''
-                        select distinct {} as xc, 
+                        select distinct {} as xc,
                         cast(y_ as char) as {},
                         sum(nxy)over(partition by {}, y_)*1.0/
-                        sum(nxy) over()  as p 
-                        from {}_m 
+                        sum(nxy) over()  as p
+                        from {}_m
                         order by {}, cast(y_ as char);'''.format(feature1, target, bins,
                                                                  self.model_id, feature1), self.analysis.engine)
 
@@ -246,14 +246,14 @@ class MDH:
                     maximum = 'mx_{}'.format(i)
 
             multi = self.db_connectionn.execute_query('''
-                        select distinct {} as xq, {} as mn, {} as mx, 
+                        select distinct {} as xq, {} as mn, {} as mx,
                         ({}+{})/2 as x_,
                         concat({}, ': ]', {}, ',', {}, ']') as bin,
-                         {} as xc,  
+                         {} as xc,
                         cast(y_ as char) as {},
                         sum(nxy)over(partition by {}, {}, y_)*1.0/
-                        sum(nxy) over()  as p 
-                        from {}_m 
+                        sum(nxy) over()  as p
+                        from {}_m
                         order by {}, xc, cast(y_ as char);'''.format(bins, minimum, maximum,
                                                                      maximum, minimum,
                                                                      bins, minimum, maximum,
@@ -317,7 +317,7 @@ class MDH:
             count(distinct id) as  cases,
             sum(case when e.y = p.y_ then 1 else 0 end) as tp,
             sum(case when e.y = p.y_ then 1 else 0 end) /  count(distinct id)  as accuracy
-            from {}_qe e 
+            from {}_qe e
             left outer join {}_p p using(id);
                 '''.format(
             self.model_id,

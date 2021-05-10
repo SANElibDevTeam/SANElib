@@ -30,3 +30,4 @@ db = Database(db_connection)
 kmeans = lib.kmeans.KMeans(db)
 mdh = lib.mdh.MDH(db)
 linear_regression = lib.linear_regression.LinearRegression(db)
+dtc = lib.DecisionTreeClassifier
