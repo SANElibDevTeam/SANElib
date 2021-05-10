@@ -15,13 +15,14 @@ elif 'mysql' in cons.DB_ENGINE:
 
 
 class DecisionTreeClassifier:
-    def __init__(self, db, dataset='', target='', target_classes=None, max_samples=2, table_train='', table_eval=''):
+    def __init__(self, db, dataset='', target='', target_classes=None, max_samples=2, table_train='', table_eval='', max_mutual_inf=0):
         self.db_connection = Database(db)
         self.engine = self.db_connection.engine
         self.dataset = dataset
         self.max_samples = max_samples
         self.table_indices = {}
         self.model = []
+        self.max_mutual_inf = max_mutual_inf
 
         if target == '':
             colnames = self.db_connection.execute_query(
@@ -265,8 +266,9 @@ class DecisionTreeClassifier:
         # If there is no mutual information the node can be returned
         if mutual_inf.empty:
             return node
-        # elif mutual_inf.mi.values[0] < 0.05:
-        #     return node
+        elif self.max_mutual_inf != 0:
+            if mutual_inf.mi.values[0] < self.max_mutual_inf:
+                return node
         # if there is only one class left, there is no point in splitting further
         elif len(cc_table.y.drop_duplicates().values) <= 1:
             return node
