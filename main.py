@@ -16,7 +16,7 @@ from util import timer
 # Run KMeans example
 # run_covtype_example()
 
-# Run DecisionTreeClassifier
+# Run DecisionTreeClassifier example
 # dtc = DecisionTreeClassifier(db=sanelib.db_connection, dataset='covtype', max_samples=2)
 # dtc.train_test_split(ratio=0.02, seed=1, encode=False)
 # dtc.estimate()

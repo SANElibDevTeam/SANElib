@@ -12,7 +12,7 @@ class SqliteTemplates(SqlTemplates):
         # sqlite has no information_schema.tables
         return "select name from sqlite_master where name like '%model';"
 
-    def get_create_table_x(self, normalization, feature_names, d, tablename, table_x):        
+    def get_create_table_x(self, normalization, feature_names, d, tablename, table_x):
         # sqlite does not support stdev()
         # sqlite does not support alter table add primary key
         if(normalization=="min-max"):
@@ -20,7 +20,7 @@ class SqliteTemplates(SqlTemplates):
             min_features = ", ".join([f"min({feature_names[l]}) as min_{l}" for l in range(d)])
             max_features = ", ".join([f"max({feature_names[l]}) as max_{l}" for l in range(d)])
             further_tables = f", (select {min_features}, {max_features} from {tablename}) min_max"
-        elif(normalization=="z-score"):
+        elif(normalization == "z-score"):
             raise NotImplementedError("z-score-normalisation is not supported in sqlite because of the missing standard deviation.")
         else:
             features_with_alias = ", ".join([f"{feature_names[l]} as x_{l}" for l in range(d)])
@@ -29,7 +29,7 @@ class SqliteTemplates(SqlTemplates):
         return [
             f"create table {table_x} as {query};",
         ]
-        
+
     def get_add_cluster_columns(self, table_x):
         # sqlite doesn't allow multiple columns to be added in one statement
         return [
@@ -44,7 +44,7 @@ class SqliteTemplates(SqlTemplates):
         return [
             f"update {table_c} set {get_setters_init(j)};" for j in range(k)
         ]
-    
+
     def get_set_clusters(self, table_c, table_x, d, k):
         # sqlite does not support update with join
         # sqlite also does not support power()
@@ -57,7 +57,7 @@ class SqliteTemplates(SqlTemplates):
         distances_columns = ", ".join([f"dist_{j}" for j in range(k)])
         case_dist_match = " ".join([f"when min_dist = (select dist_{j} from temp where temp.i = {table_x}.i) then {j}" for j in range(k)])
         return [
-            f"create view temp as select *, min({distances_columns}) as min_dist from ({sub_query_distances});", 
+            f"create view temp as select *, min({distances_columns}) as min_dist from ({sub_query_distances});",
             f"update {table_x} set min_dist = (select min_dist from temp where temp.i = {table_x}.i), j = case {case_dist_match} end;", "drop view temp;"
         ]
 
