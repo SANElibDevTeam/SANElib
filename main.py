@@ -9,6 +9,7 @@ from Utils import *
 import matplotlib.pyplot as plt
 import Database
 import Analysis
+import Model
 from pandas import util
 
 # starting time
@@ -26,7 +27,7 @@ db = {
 
 
 #TODO automate attribute selection based on threshold
-numFeatures = ["Elevation", "Horizontal_Distance_To_Fire_Points"]
+numFeatures = ["Elevation", "Horizontal_Distance_To_Fire_Points"] #'horizontal_distance_to_road_ways'
 bins = 57
 catFeatures = ["Wilderness_Area", "Soil_Type"]
 
@@ -42,6 +43,7 @@ catFeatures = ["Wilderness_Area", "Soil_Type"]
 #
 
 Database.Database(db).get_analysis(dataset="table_train",target='Cover_Type',seed=1,ratio=0.8,model_id='covtyptest2').rank("table_train",catFeatures,numFeatures,bins).estimate(catFeatures,bins,numFeatures).visualize1D('Wilderness_Area', 'Covertype').predict('table_eval').accuracy()
+Database.Database(db).get_analysis(dataset="table_train",target='Cover_Type',seed=1,ratio=0.8,model_id='covtyptest2').rank("table_train",catFeatures,numFeatures,bins).estimate(catFeatures,bins,numFeatures).visualize2D('Covertype', ['Elevation', 'Horizontal_Distance_To_Fire_Points'])
 
 # Estimation phase: _qt is estimated on 0.8 of table ; _qmt based off of _qt ; _m based off of _qt
 # Predicting on test set: _qe tested on 0.2 of table ; _qe_ix based off of _qe ; _p ; _p_update
