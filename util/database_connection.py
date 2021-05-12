@@ -5,20 +5,27 @@ from sqlalchemy import text
 import pyodbc
 import pymssql
 
+
 class Database:
     def __init__(self, db_connection=None, dataframe=pd.DataFrame({'A': []}), dfname="DF_NAME"):
         if db_connection is not None:
-            #self.engine = create_engine(URL(**db_connection), pool_pre_ping=True)
-            #self.engine = create_engine('sqlite:///C:\\Users\\nedeo\\dbml.db')
-            self.engine = create_engine('mssql+pyodbc://desktop-g9l3lcq/dbml?trusted_connection=yes&driver=ODBC+Driver+13+for+SQL+Server')
+            if db_connection['drivername'] == 'mssql+pyodbc':
+                self.engine = create_engine(
+                    'mssql+pyodbc://' + db_connection['host'] + '/' + db_connection[
+                        'database'] + '?trusted_connection=yes&driver=ODBC+Driver+13+for+SQL+Server')
+            elif db_connection['drivername'] == 'mysql+mysqlconnector':
+                self.engine = create_engine(URL(**db_connection), pool_pre_ping=True)
+            elif db_connection["drivername"] == "sqlite":
+                self.engine = create_engine("sqlite:///" + db_connection["path"], pool_pre_ping=True)
+                if not dataframe.empty:
+                    self.import_df(dataframe, dfname)
         elif not dataframe.empty:
             self.import_df(dataframe, dfname)
         else:
             raise ValueError("You need to pass a db connection or a dataframe")
 
     def import_df(self, dataframe, name):
-        self.engine = create_engine('sqlite://', echo=False)
-        dataframe.to_sql(name=name, con=self.engine, if_exists="replace")
+        dataframe.to_sql(name=name, con=self.engine, if_exists="replace", index=False)
 
     def disconnect_connection(self):
         """
@@ -61,6 +68,10 @@ class Database:
             drop table if exists {}'''
                      .format(tablename), engine)
         if 'mysql' in self.engine.name:
+            self.execute('''
+                create table {} as '''
+                         .format(tablename) + query, engine)
+        elif 'sqlite' in self.engine.name:
             self.execute('''
                 create table {} as '''
                          .format(tablename) + query, engine)

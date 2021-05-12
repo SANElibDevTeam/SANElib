@@ -2,11 +2,11 @@ tmplt = {}
 
 # def train_test_split():
 tmplt["_train"] = '''
-(select * from {{ input.dataset }} where rand ({{ input.seed }}) < {{ input.ratio }});
+select * from {{ input.dataset }} ORDER BY RANDOM() LIMIT (SELECT ROUND(COUNT(*) * {{ input.ratio }}) FROM {{ input.dataset }});
 '''
 
 tmplt["_eval"] = '''
-(select * from {{ input.dataset }} where rand ({{ input.seed }}) >= {{ input.ratio }});
+select * from {{ input.dataset }} ORDER BY RANDOM() LIMIT (SELECT ROUND(COUNT(*) * (1 - {{ input.ratio }})) FROM {{ input.dataset }});
 '''
 
 tmplt["_getColumns"] = '''
@@ -25,10 +25,8 @@ ALTER TABLE {{ input.dataset }} RENAME COLUMN {{ orig }} TO {{ to }}
 '''
 
 tmplt["_encodeTableTrainEval"] = [
-    '''SET GLOBAL max_allowed_packet=1073741824;''',
     '''DROP TABLE IF EXISTS {{ input.table_train }};''',
     '''DROP TABLE IF EXISTS {{ input.table_eval }};''',
-    '''ALTER TABLE {{ input.dataset }} ADD column `rownum` INT NOT NULL AUTO_INCREMENT unique first;''',
     '''
 create table {{ input.table_train }} as
 select *,
@@ -40,8 +38,7 @@ select *,
     {% endfor %}\
 end) as {{ key }}
 {% endfor %}\
-from (select * from {{ input.dataset }} where rand ({{ input.seed }}) <= {{ input.ratio }}) as train
-group by rownum;
+from (select * from {{ input.dataset }} ORDER BY RANDOM() LIMIT (SELECT ROUND(COUNT(*) * {{ input.ratio }}) FROM {{ input.dataset }}) ) as train
 ''',
     '''
 create table {{ input.table_eval }} as
@@ -54,32 +51,48 @@ select *,
     {% endfor %}\
 end) as {{ key }}
 {% endfor %}\
-from (select * from {{ input.dataset }} where rand ({{ input.seed }}) > {{ input.ratio }}) as eval
-group by rownum;
+from (select * from {{ input.dataset }} ORDER BY RANDOM() LIMIT (SELECT ROUND(COUNT(*) * (1 - {{ input.ratio }})) FROM {{ input.dataset }}) ) as eval
 ''',
-'''alter table {{ input.dataset }} drop column `rownum`;''',
-'''alter table {{ input.table_train }} drop column `rownum`;''',
-'''alter table {{ input.table_eval }} drop column `rownum`;''',
 '''
-alter table {{ input.table_train }}
+CREATE TABLE {{ input.table_train }}_temp as
+SELECT
+{% for key in input.numFeatures %}
+{% if loop.index > 1 %}, {% endif %}\
+{{ key }}
+{% endfor %}\
+,
 {% for key in input.catFeatures %}
 {% if loop.index > 1 %}, {% endif %}\
-drop column {{ key }}_orig
+{{ key }}
 {% endfor %}\
+, {{ input.target }}
+FROM {{ input.table_train }}
 ;
 ''',
 '''
-alter table {{ input.table_eval }}
+CREATE TABLE {{ input.table_eval }}_temp as
+SELECT 
+{% for key in input.numFeatures %}
+{% if loop.index > 1 %}, {% endif %}\
+{{ key }}
+{% endfor %}\
+,
 {% for key in input.catFeatures %}
 {% if loop.index > 1 %}, {% endif %}\
-drop column {{ key }}_orig
+{{ key }}
 {% endfor %}\
+, {{ input.target }}
+FROM {{ input.table_eval }}
 ;
-'''
+''',
+'''DROP TABLE {{ input.table_train }}''',
+'''DROP TABLE {{ input.table_eval }}''',
+'''ALTER TABLE {{ input.table_train }}_temp RENAME TO {{ input.table_train }}''',
+'''ALTER TABLE {{ input.table_eval }}_temp RENAME TO {{ input.table_eval }}''',
 ]
 
 tmplt["_addIndex"] = '''
-alter table {{ input.table_train }} add index ({{ idx }})
+create index idx{{ enumidx }} on {{ input.table_train }} ({{ idx }})
 ;
 '''
 
@@ -179,7 +192,7 @@ tmplt["_train_view"] = '''
 ;'''
 
 tmplt["_predictEval"] ='''
-alter table {{ input.table_eval }} add column Prediction int as (
+ALTER TABLE {{ input.table_eval }} ADD COLUMN Prediction INT GENERATED ALWAYS AS (
 {% for f in input.model %}
 {{ f }}
 {% endfor %}\
