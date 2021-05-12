@@ -24,13 +24,13 @@ class Node:
             lines = [class_names[self.predicted_class-1]]
         else:
             lines = [
-                "{} < {:.2f}".format(self.feature, self.threshold)
+                "{} < {:.2f}".format(self.feature, self.threshold),
+                str(self.num_samples_per_class)
             ]
         if show_details:
             lines += [
                 "mutual_inf = {:.2f}".format(self.mutual_inf),
-                "samples = {}".format(self.num_samples),
-                str(self.num_samples_per_class),
+                "samples = {}".format(self.num_samples)
             ]
         width = max(len(line) for line in lines)
         height = len(lines)
