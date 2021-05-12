@@ -4,6 +4,8 @@ from lib.linear_regression.example import run_bmi_example
 from lib.mdh.example import run
 from lib.kmeans.example import run_covtype_example
 from lib.dtc.DecisionTreeClassifier import DecisionTreeClassifier
+from lib.dtc.example import run_iris_example as dtc_iris_example
+from lib.dtc.example import run_covertype_example as dtc_covertype_example
 from util import timer
 
 # Run MDH example
@@ -17,6 +19,5 @@ from util import timer
 # run_covtype_example()
 
 # Run DecisionTreeClassifier example
-# dtc = DecisionTreeClassifier(db=sanelib.db_connection, dataset='covtype', max_samples=2)
-# dtc.train_test_split(ratio=0.02, seed=1, encode=False)
-# dtc.estimate()
+# dtc_iris()
+#dtc_covertype_example()

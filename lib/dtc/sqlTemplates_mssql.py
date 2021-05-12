@@ -2,11 +2,13 @@ tmplt = {}
 
 # def train_test_split():
 tmplt["_train"] = '''
-(select * from {{ input.dataset }} where rand ({{ input.seed }}) < {{ input.ratio }});
+SELECT * INTO {{ input.table_train }} FROM
+(SELECT TOP ({{ input.ratio  }}* 100) PERCENT * from {{ input.dataset }} ORDER BY NEWID()) as train;
 '''
 
 tmplt["_eval"] = '''
-(select * from {{ input.dataset }} where rand ({{ input.seed }}) >= {{ input.ratio }});
+SELECT * INTO {{ input.table_eval }} FROM
+(SELECT TOP ((1 - {{ input.ratio }}) * 100) PERCENT * from {{ input.dataset }} ORDER BY NEWID()) as eval;
 '''
 
 tmplt["_getColumns"] = '''
@@ -23,7 +25,10 @@ tmplt["_renameColumn"] = '''
 EXEC dbo.sp_rename '{{ input.dataset }}.{{ orig }}', '{{ to }}', 'COLUMN';
 '''
 
-tmplt["_encodeTableTrainEval"] = ['''
+tmplt["_encodeTableTrainEval"] = [
+'''DROP TABLE IF EXISTS {{ input.table_train }};''',
+'''DROP TABLE IF EXISTS {{ input.table_eval }};''',
+'''
 select *,
 {% for key in input.catFeatures %}
 {% if loop.index > 1 %}, {% endif %}\
@@ -83,7 +88,7 @@ x for f in (
 {% if loop.index > 1 %},{% endif %}\
 {{ nf }}
 {% endfor %}\
-{% if input.catFeatures is defined %},{% endif %}\
+{% if input.catFeatures|length > 0 %},{% endif %}\
 {% for nf in input.catFeatures %}
 {% if loop.index > 1 %},{% endif %}\
 {{ nf }}
@@ -184,7 +189,7 @@ alter table {{ input.table_eval }} add Prediction as (
 {% for f in input.model %}
 {{ f }}
 {% endfor %}\
-)
+) PERSISTED
 ;'''
 
 tmplt["_predictionProcedure"] ='''
@@ -194,12 +199,12 @@ CREATE PROCEDURE predict_{{ input.dataset }}
 @{{ f }} INT = 0
 {% endfor %}\
 {% for f in input.catFeatures %}
-{% if loop.index > 1 %},{% endif %}\
+,
 @{{ f }} INT = 0
 {% endfor %}\
 AS
 DECLARE @pred INT
-{% for f in input.model %}
+{% for f in model %}
 {{ f }}
 {% endfor %}\
 print(@pred)

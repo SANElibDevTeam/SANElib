@@ -17,6 +17,15 @@ if conf.DB_TYPE == "MYSQL":
         "database": conf.DB_NAME,
         "query": {"charset": "utf8"}
     }
+elif conf.DB_TYPE == "MSSQL":
+    driver_name = "mssql+pyodbc"
+    db_connection = {
+        "drivername": driver_name,
+        "host": conf.DB_HOST,
+        "database": conf.DB_NAME + '?trusted_connection=yes&driver=ODBC+Driver+13+for+SQL+Server'
+    }
+    dtc = lib.DecisionTreeClassifier
+    pass
 elif conf.DB_TYPE == "SQLITE":
     db_connection = {
         "drivername": "sqlite",
@@ -24,10 +33,13 @@ elif conf.DB_TYPE == "SQLITE":
         "path": conf.DB_PATH
     }
 else:
-    raise Exception("No valid DB_TYPE (config.py) provided! Please provide one of the following types: \n MYSQL\n SQLITE")
+    raise Exception("No valid DB_TYPE (config.py) provided! Please provide one of the following types: \n MYSQL\n SQLITE\n MSSQL (only for Decision Tree)")
 
-db = Database(db_connection)
-kmeans = lib.kmeans.KMeans(db)
-mdh = lib.mdh.MDH(db)
-linear_regression = lib.linear_regression.LinearRegression(db)
-dtc = lib.DecisionTreeClassifier
+if conf.DB_TYPE != "MSSQL":
+    db = Database(db_connection)
+    kmeans = lib.kmeans.KMeans(db)
+    mdh = lib.mdh.MDH(db)
+    linear_regression = lib.linear_regression.LinearRegression(db)
+    dtc = lib.DecisionTreeClassifier
+else:
+    dtc = lib.DecisionTreeClassifier

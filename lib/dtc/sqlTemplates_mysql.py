@@ -25,6 +25,9 @@ ALTER TABLE {{ input.dataset }} RENAME COLUMN {{ orig }} TO {{ to }}
 '''
 
 tmplt["_encodeTableTrainEval"] = [
+    '''SET GLOBAL max_allowed_packet=1073741824;''',
+    '''DROP TABLE IF EXISTS {{ input.table_train }};''',
+    '''DROP TABLE IF EXISTS {{ input.table_eval }};''',
     '''ALTER TABLE {{ input.dataset }} ADD column `rownum` INT NOT NULL AUTO_INCREMENT unique first;''',
     '''
 create table {{ input.table_train }} as
@@ -83,11 +86,11 @@ alter table {{ input.table_train }} add index ({{ idx }})
 tmplt["_CC_table"] = '''
 {% for nf in input.numFeatures %}
 {% if loop.index > 1 %}union all {% endif %}\
-select "{{ nf }}" as f, {{ nf }} as x, {{ input.target }} as y, count(*)  as nxy from {{ subquery }} as subq group by {{ nf }}, {{ input.target }}\
+select '{{ nf }}' as f, {{ nf }} as x, {{ input.target }} as y, count(*)  as nxy from {{ subquery }} as subq group by {{ nf }}, {{ input.target }}\
 {% endfor %}\
 {% for cf in input.catFeatures %}
 {% if loop.index + input.numFeatures|length  > 1 %} union {% endif %}\
-select "{{ cf }}" as f, {{ cf }} as x, {{ input.target }} as y, count(*)  as nxy from {{ subquery }} as subq group by {{ cf }}, {{ input.target }}
+select '{{ cf }}' as f, {{ cf }} as x, {{ input.target }} as y, count(*)  as nxy from {{ subquery }} as subq group by {{ cf }}, {{ input.target }}
 {% endfor %}\
 ;'''
 
@@ -195,7 +198,7 @@ OUT predictedClass INT
 )
 BEGIN
 
-{% for f in input.model %}
+{% for f in model %}
 {{ f }};
 END IF;
 {% endfor %}\

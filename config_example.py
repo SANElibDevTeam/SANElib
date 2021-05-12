@@ -1,6 +1,6 @@
 """
 Config for accessing database.
-DB_TYPE: Type of database to connect to. Options: MYSQL, SQLITE
+DB_TYPE: Type of database to connect to. Options: MYSQL, SQLITE, MSSQL (Only for Decision Tree Classifier as of now)
 """
 DB_TYPE = "DB_TYPE"
 DB_PATH = "DB_PATH"

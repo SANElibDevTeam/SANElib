@@ -6,22 +6,24 @@ import numpy as np
 import concurrent.futures
 import config as cons
 
-# todo
-# drivername noch anpassen. jetzt beides gleich noch
-if 'mssql' in cons.DB_ENGINE:
+if 'MSSQL' in cons.DB_TYPE:
     from lib.dtc import sqlTemplates_mssql as sql
-elif 'mysql' in cons.DB_ENGINE:
+elif 'MYSQL' in cons.DB_TYPE:
     from lib.dtc import sqlTemplates_mysql as sql
+elif 'SQLITE' in cons.DB_TYPE:
+    from lib.dtc import sqlTemplates_sqlite as sql
 
 
 class DecisionTreeClassifier:
-    def __init__(self, db, dataset='', target='', target_classes=None, max_samples=2, table_train='', table_eval=''):
+    def __init__(self, db, dataset='', target='', target_classes=None, max_samples=2, table_train='', table_eval='',
+                 max_mutual_inf=0):
         self.db_connection = Database(db)
         self.engine = self.db_connection.engine
         self.dataset = dataset
         self.max_samples = max_samples
         self.table_indices = {}
         self.model = []
+        self.max_mutual_inf = max_mutual_inf
 
         if target == '':
             colnames = self.db_connection.execute_query(
@@ -68,6 +70,7 @@ class DecisionTreeClassifier:
                 Template(sql.tmplt['_eval']).render(input=self), self.engine)
 
     def __feature_encoding(self):
+        print("Encodingcvategorical values into ordinal values")
         # Get all characteristics of each categorical feature
         features = {}
         for f in self.catFeatures:
@@ -118,9 +121,13 @@ class DecisionTreeClassifier:
         return cc_table
 
     def __calc_mutual_information(self, cc_table):
-        minfcat = self.__calc_mutual_information_cat(cc_table.loc[cc_table.f.isin(self.catFeatures)])
-        minfnum = self.__calc_mutual_information_num(cc_table.loc[cc_table.f.isin(self.numFeatures)])
-        minf = pd.concat([minfnum.rename(columns={'cum_nx_': 'nx_'}), minfcat])
+        if len(self.catFeatures) != 0:
+            minfcat = self.__calc_mutual_information_cat(cc_table.loc[cc_table.f.isin(self.catFeatures)])
+            minfnum = self.__calc_mutual_information_num(cc_table.loc[cc_table.f.isin(self.numFeatures)])
+            minf = pd.concat([minfnum.rename(columns={'cum_nx_': 'nx_'}), minfcat])
+        else:
+            minfnum = self.__calc_mutual_information_num(cc_table.loc[cc_table.f.isin(self.numFeatures)])
+            minf = minfnum.rename(columns={'cum_nx_': 'nx_'})
         return minf.sort_values(by='mi', ascending=False).head(1)
 
     def __calc_mutual_information_cat(self, cc_table):
@@ -253,11 +260,13 @@ class DecisionTreeClassifier:
         self.__create_cc_table(query)
         cc_table = self.__get_cc_table()
         mutual_inf = self.__calc_mutual_information(cc_table)
-        num_samples_per_class = mutual_inf.iloc[0, 6:13].max()
-        predicted_class = int(mutual_inf.iloc[0:1, 6:13].idxmax(axis=1).values[0][2])
+        num_samples_per_class = "left {}, right {}".format(
+            mutual_inf[(mutual_inf.filter(regex='^(ny)\d*').columns)].iloc[0].max(),
+            mutual_inf[(mutual_inf.filter(regex='^(alt_ny)\d*').columns)].iloc[0].sum())
+        predicted_class = int(mutual_inf[mutual_inf.filter(regex='^(ny)\d*').columns].head(1).idxmax(axis=1).values[0][2:])
         node = Node(
             mutual_inf=float(mutual_inf.mi.values[0]),
-            num_samples=int(mutual_inf.nx_.values[0]),
+            num_samples=int(mutual_inf.n__.values[0]),
             num_samples_per_class=num_samples_per_class,
             predicted_class=predicted_class,
         )
@@ -265,8 +274,8 @@ class DecisionTreeClassifier:
         # If there is no mutual information the node can be returned
         if mutual_inf.empty:
             return node
-        # elif mutual_inf.mi.values[0] < 0.05:
-        #     return node
+        elif (self.max_mutual_inf != 0) & (mutual_inf.mi.values[0] < self.max_mutual_inf):
+            return node
         # if there is only one class left, there is no point in splitting further
         elif len(cc_table.y.drop_duplicates().values) <= 1:
             return node
@@ -317,7 +326,7 @@ class DecisionTreeClassifier:
     def create_model(self):
         self.model.append('CASE\n')
         self.__model_aux(self.tree_)
-        self.model.append('\nEND')
+        self.model.append('\nELSE 0 \nEND')
 
     def __model_aux(self, node, path='1=1'):
         is_leaf = not node.right
@@ -334,11 +343,14 @@ class DecisionTreeClassifier:
                 self.__model_aux(node.left, '{} AND {} = {}'.format(path, feature, threshold))
                 self.__model_aux(node.right, '{} AND {} <> {}'.format(path, feature, threshold))
 
-    def predict(self, X):
+    def predict(self, X=None):
+        if X is None:
+            X = self.db_connection.execute_query("SELECT * FROM {}".format(self.table_eval), self.engine, as_df=True)
         pred = []
         for r in X.itertuples():
             pred.append(self.__predict(r))
-        return pred
+        X['prediction'] = pred
+        return X
 
     def __predict(self, r):
         node = self.tree_
@@ -363,13 +375,17 @@ class DecisionTreeClassifier:
             self.engine
         )
         if stored_procedure:
-            print('Creating Prediction as stored procedure')
-            self.db_connection.execute(
-                Template(sql.tmplt['_predictionProcedure']).render(
-                    input=self,
-                    model=self.__model_procedure(self.tree_)),
-                self.engine
-            )
+            if 'sqlite' in self.engine.name:
+                print("sqlite does not support stored procedures")
+            else:
+                print('Creating Prediction as stored procedure')
+                self.db_connection.execute("DROP PROCEDURE IF EXISTS predict_{};".format(self.dataset), self.engine)
+                self.db_connection.execute(
+                    Template(sql.tmplt['_predictionProcedure']).render(
+                        input=self,
+                        model=self.__model_procedure(self.tree_)),
+                    self.engine
+                )
 
     def score(self):
         numerator = self.db_connection.execute_query(
@@ -381,7 +397,6 @@ class DecisionTreeClassifier:
                 self.table_eval),
             self.engine, True)
         return numerator.values[0] / denominator.values[0]
-
 
     def __model_procedure(self, node):
         self.stmtprocedure = []
@@ -413,8 +428,8 @@ class DecisionTreeClassifier:
             feature = node.feature
             threshold = node.threshold
             if feature not in self.catFeatures:
-                self.__model_procedure_mysql(node.left, '{} AND @{} <= {}'.format(path, feature, threshold))
-                self.__model_procedure_mysql(node.right, '{} AND @{} > {}'.format(path, feature, threshold))
+                self.__model_procedure_mssql(node.left, '{} AND @{} <= {}'.format(path, feature, threshold))
+                self.__model_procedure_mssql(node.right, '{} AND @{} > {}'.format(path, feature, threshold))
             else:
-                self.__model_procedure_mysql(node.left, '{} AND @{} = {}'.format(path, feature, threshold))
-                self.__model_procedure_mysql(node.right, '{} AND @{} <> {}'.format(path, feature, threshold))
+                self.__model_procedure_mssql(node.left, '{} AND @{} = {}'.format(path, feature, threshold))
+                self.__model_procedure_mssql(node.right, '{} AND @{} <> {}'.format(path, feature, threshold))
