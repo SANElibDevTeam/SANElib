@@ -24,8 +24,6 @@ elif conf.DB_TYPE == "MSSQL":
         "host": conf.DB_HOST,
         "database": conf.DB_NAME + '?trusted_connection=yes&driver=ODBC+Driver+13+for+SQL+Server'
     }
-    dtc = lib.DecisionTreeClassifier
-    pass
 elif conf.DB_TYPE == "SQLITE":
     db_connection = {
         "drivername": "sqlite",

@@ -29,12 +29,16 @@ class DecisionTreeClassifier:
             colnames = self.db_connection.execute_query(
                 Template(sql.tmplt['_getColumns']).render(input=self), self.engine, True)
             self.target = colnames.columns[-1]
+        else:
+            self.target = target
 
         if target_classes is None:
             target_classes = self.db_connection.execute_query(
                 Template(sql.tmplt["_distinctValues"]).render(table=self.dataset, column=self.target),
                 self.engine, True)
-        self.target_classes = target_classes.to_numpy().flatten()
+            self.target_classes = target_classes.to_numpy().flatten()
+        else:
+            self.target_classes = target_classes
 
         if table_train == '':
             self.table_train = self.dataset + '_train'
@@ -70,7 +74,7 @@ class DecisionTreeClassifier:
                 Template(sql.tmplt['_eval']).render(input=self), self.engine)
 
     def __feature_encoding(self):
-        print("Encodingcvategorical values into ordinal values")
+        print("Encoding categorical values into ordinal values")
         # Get all characteristics of each categorical feature
         features = {}
         for f in self.catFeatures:

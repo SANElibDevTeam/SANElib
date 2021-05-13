@@ -21,3 +21,5 @@ from util import timer
 # Run DecisionTreeClassifier example
 # dtc_iris()
 #dtc_covertype_example()
+dtc = sanelib.dtc.DecisionTreeClassifier(db=sanelib.db_connection, dataset="covertype")
+dtc.train_test_split(encode=True)
