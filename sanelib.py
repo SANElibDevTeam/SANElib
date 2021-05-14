@@ -33,11 +33,12 @@ elif conf.DB_TYPE == "SQLITE":
 else:
     raise Exception("No valid DB_TYPE (config.py) provided! Please provide one of the following types: \n MYSQL\n SQLITE\n MSSQL (only for Decision Tree)")
 
+db = Database(db_connection)
+
 if conf.DB_TYPE != "MSSQL":
-    db = Database(db_connection)
     kmeans = lib.kmeans.KMeans(db)
     mdh = lib.mdh.MDH(db)
     linear_regression = lib.linear_regression.LinearRegression(db)
-    dtc = lib.DecisionTreeClassifier
+    dtc = lib.DecisionTreeClassifier.DecisionTreeClassifier(db)
 else:
-    dtc = lib.DecisionTreeClassifier
+    dtc = lib.DecisionTreeClassifier.DecisionTreeClassifier(db)
