@@ -33,7 +33,8 @@ class SqliteTemplates(SqlTemplates):
     def get_add_cluster_columns(self, table_x):
         # sqlite doesn't allow multiple columns to be added in one statement
         return [
-            f"alter table {table_x} add min_dist double;", f"alter table {table_x} add j int;"
+            f"alter table {table_x} add min_dist double;", 
+            f"alter table {table_x} add j int;"
         ]
 
     def get_init_table_c(self, table_c, table_x, n, d, start_indexes):
@@ -58,7 +59,8 @@ class SqliteTemplates(SqlTemplates):
         case_dist_match = " ".join([f"when min_dist = (select dist_{j} from temp where temp.i = {table_x}.i) then {j}" for j in range(k)])
         return [
             f"create view temp as select *, min({distances_columns}) as min_dist from ({sub_query_distances});",
-            f"update {table_x} set min_dist = (select min_dist from temp where temp.i = {table_x}.i), j = case {case_dist_match} end;", "drop view temp;"
+            f"update {table_x} set min_dist = (select min_dist from temp where temp.i = {table_x}.i), j = case {case_dist_match} end;", 
+            "drop view temp;"
         ]
 
     def get_update_table_c(self, table_c, d, k, table_x):
@@ -67,7 +69,10 @@ class SqliteTemplates(SqlTemplates):
             return ", ".join([f"sum(x_{l})/count(*) as x_{l}_{j}" for l in range(d)])
         def get_setters_move(j):
             return ", ".join([f"x_{l}_{j} = case when (select x_{l}_{j} from temp) is null then x_{l}_{j} else (select x_{l}_{j} from temp) end" for l in range(d)])
-        return np.concatenate([(f"create view temp as select {get_sub_selectors(j)} from {table_x} where j={j};", f"update {table_c} set {get_setters_move(j)};", "drop view temp;") for j in range(k)])
+        return np.concatenate([(
+            f"create view temp as select {get_sub_selectors(j)} from {table_x} where j={j};", 
+            f"update {table_c} set {get_setters_move(j)};", "drop view temp;") for j in range(k)
+        ])
 
     def get_select_visualization(self, table_x, d, k):
         # sqlite can not handle union with part result with limit, the part result needs to be wrapped therefore
