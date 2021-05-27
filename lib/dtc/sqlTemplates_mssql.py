@@ -39,7 +39,7 @@ select *,
 end) as {{ key }}
 {% endfor %}\
 into {{ input.table_train }}
-from (SELECT TOP ({{ input.ratio  }}* 100) PERCENT * from {{ input.dataset }} ORDER BY NEWID()) as train
+from (SELECT TOP ({{ input.ratio  }}* 100) PERCENT * from {{ input.dataset }} ORDER BY NEWID()) AS train
 ;
 ''',
 '''
