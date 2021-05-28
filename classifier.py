@@ -77,13 +77,21 @@ class SaneProbabilityEstimator:
 
         return results
 
-    def materializedView(self, desc, tablename, query):
+    def createView(self, desc, tablename, query, materialized=True):
         self.execute('Dropping table ' + tablename, '''
             drop table if exists {}'''
                 .format(tablename))
-        self.execute(desc, '''
-            create table {} as '''
-                .format(tablename) + query)
+        self.execute('Dropping view ' + tablename, '''
+                    drop view if exists {}'''
+                     .format(tablename))
+        if materialized:
+            self.execute(desc, '''
+                create table {} as '''
+                    .format(tablename) + query)
+        else: # dynamic view
+            self.execute(desc, '''
+                            create or replace view {} as '''
+                         .format(tablename) + query)
 
    # TODO develop an algorithm to optimize the hyper parameters
     #  for n buckets: Idea Nr. 1: Linear, straight forward. first sort the features according to 1D prediction accuracy;
@@ -124,12 +132,12 @@ class SaneProbabilityEstimator:
         self.seed = seed
         self.ratio = ratio
 
-        self.materializedView(
+        self.createView(
              'Splitting table into training set',
              self.model_id + '_train',
              Template(sql.tmplt['_train']).render(input=self))
 
-        self.materializedView(
+        self.createView(
              'Splitting table into test set',
              self.model_id + '_table_eval',
              Template(sql.tmplt['_table_eval']).render(input=self))
@@ -169,15 +177,15 @@ class SaneProbabilityEstimator:
 
         # TODO Generate queries using n features x1, x2, ..., xn; differentiate between numerical and categorical
 
-        self.materializedView(
+        self.createView(
             'Quantization of training table',
             self.model_id + '_qt',
             Template(sql.tmplt['_qt']).render(input=self))
-        self.materializedView(
+        self.createView(
             'Quantization metadata for training table',
             self.model_id + '_qmt',
             Template(sql.tmplt['_qmt']).render(input=self))
-        self.materializedView(
+        self.createView(
             'Computing predictive model as contingency table',
             self.model_id + '_m',
             Template(sql.tmplt['_m']).render(input=self))
@@ -323,13 +331,13 @@ class SaneProbabilityEstimator:
         This function estimates the probabilities for the evaluation data
         """
         self.table_eval = table_eval
-        self.materializedView(
+        self.createView(
             'Quantization metadata for evaluation table',
             self.model_id + '_qe',
             Template(sql.tmplt['_qe']).render(input=self)) ## generate SQL using Jinja 2 template
-        self.execute('Creating index _qe ',
-            Template(sql.tmplt['_qe_ix']).render(input=self))
-        self.materializedView(
+        #self.execute('Creating index _qe ',
+            #Template(sql.tmplt['_qe_ix']).render(input=self))
+        self.createView(
             'Class prediction for evaluation dataset',
             self.model_id + '_p',
             Template(sql.tmplt['_p']).render(input=self))  ## generate SQL using Jinja 2 template
@@ -360,7 +368,7 @@ class SaneProbabilityEstimator:
         self.numFeatures = numFeatures
         self.bins = bins
         self.catFeatures = catFeatures
-        self.materializedView(
+        self.createView(
             'Computing 1d contingecies with target',
             self.model_id + '_m1d',
             Template(sql.tmplt['_m1d']).render(input=self))
