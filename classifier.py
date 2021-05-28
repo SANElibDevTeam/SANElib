@@ -77,21 +77,21 @@ class SaneProbabilityEstimator:
 
         return results
 
-    def createView(self, desc, tablename, query, materialized=True):
-        self.execute('Dropping table ' + tablename, '''
+    def createView(self, desc, viewName, query, materialized=True):
+        self.execute('Dropping table ' + viewName, '''
             drop table if exists {}'''
-                .format(tablename))
-        self.execute('Dropping view ' + tablename, '''
+                     .format(viewName))
+        self.execute('Dropping view ' + viewName, '''
                     drop view if exists {}'''
-                     .format(tablename))
+                     .format(viewName))
         if materialized:
             self.execute(desc, '''
                 create table {} as '''
-                    .format(tablename) + query)
+                         .format(viewName) + query)
         else: # dynamic view
             self.execute(desc, '''
                             create or replace view {} as '''
-                         .format(tablename) + query)
+                         .format(viewName) + query)
 
    # TODO develop an algorithm to optimize the hyper parameters
     #  for n buckets: Idea Nr. 1: Linear, straight forward. first sort the features according to 1D prediction accuracy;
@@ -105,18 +105,6 @@ class SaneProbabilityEstimator:
     # Idea 3: linear in feature list, but evolutionary in n-buckets
     # TODO idea: optimize feature list using "random restaurant" simliar to random forest, but using decision "tables" instead of "trees" <-- advanced stuff
 
-
-    def trainingAccuracy(self):
-        """
-         This function evaluates the hyperparameters quickly on the training set.
-         possible parameters: size of internal modeling / validation split to make it faster
-        """
-        
-        self.train('''(select * from {} where rand() < 0.8) as t'''
-                     .format(self.table_train))
-        self.predict('''(select * from {} where rand() >= 0.2) as t'''
-                .format(self.table_train))
-        return self.accuracy()
 
 
     def train(self):
@@ -139,8 +127,8 @@ class SaneProbabilityEstimator:
 
         self.createView(
              'Splitting table into test set',
-             self.model_id + '_table_eval',
-             Template(sql.tmplt['_table_eval']).render(input=self))
+             self.model_id + '_eval',
+             Template(sql.tmplt['_eval']).render(input=self))
 
 
     def train(self, table_train, catFeatures, bins=50, numFeatures=None):
@@ -178,17 +166,21 @@ class SaneProbabilityEstimator:
         # TODO Generate queries using n features x1, x2, ..., xn; differentiate between numerical and categorical
 
         self.createView(
+            'Get aggregation values',
+            self.model_id + '_agg',
+            Template(sql.tmplt['_agg']).render(input=self))
+        self.createView(
             'Quantization of training table',
             self.model_id + '_qt',
             Template(sql.tmplt['_qt']).render(input=self))
-        self.createView(
-            'Quantization metadata for training table',
-            self.model_id + '_qmt',
-            Template(sql.tmplt['_qmt']).render(input=self))
-        self.createView(
-            'Computing predictive model as contingency table',
-            self.model_id + '_m',
-            Template(sql.tmplt['_m']).render(input=self))
+        # self.createView(
+          #  'Quantization metadata for training table',
+           # self.model_id + '_qmt',
+            #Template(sql.tmplt['_qmt']).render(input=self))
+        #self.createView(
+         #   'Computing predictive model as contingency table',
+          #  self.model_id + '_m',
+           # Template(sql.tmplt['_m']).render(input=self))
 
     def visualize1D(self, feature1, target):
 

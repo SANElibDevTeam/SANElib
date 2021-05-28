@@ -29,18 +29,15 @@ allNumFeat = [ "Elevation", "Aspect", "Slope", "Horizontal_Distance_To_Hydrology
                 "Horizontal_Distance_To_Fire_Points"]
 allCatFeat = ["Wilderness_Area", "Soil_Type"]
 
-classifier.rank('table_train', allCatFeat, allNumFeat,  50)
-
-print(f"Runtime of the program is { time.time() - start} seconds")
-
-#classifier.rank('covtyp', allCatFeat, allNumFeat,  50)
+# classifier.rank('table_train', allCatFeat, allNumFeat,  50)
+# print(f"Runtime of the program is { time.time() - start} seconds")
 
 #TODO automate attribute selection based on threshold
 numFeatures = [ "Elevation", "Horizontal_Distance_To_Roadways", "Horizontal_Distance_To_Fire_Points" ]
-bins = 39
+bins = 60
 catFeatures = ["Wilderness_Area", "Soil_Type"]
 
-classifier.train_test_split(1, 0.8)
+# classifier.train_test_split(1, 0.8)
 
 # Training phase: _qt is trained on 0.8 of table ; _qmt based off of _qt ; _m based off of _qt
 classifier.train('table_train', catFeatures, bins, numFeatures)
@@ -59,6 +56,6 @@ classifier.accuracy()
 end = time.time()
 
 # total time taken
-print(f"Runtime of the program is {end - start} seconds")
+print(f"Runtime of the program is {time.time() - start} seconds")
 
 # print('Training accuracy = ', classifier.trainingAccuracy())
