@@ -13,16 +13,22 @@ from plotnine import ggplot, aes, geom_line, geom_point, scale_x_continuous, \
 
 class SaneProbabilityEstimator:
 
-    def __init__(self, conn, table_train, target=None, model_id='table_name'):
+    def __init__(self, conn, base_table, target=None, model_id=None):
         """
         This method takes the most commonly used parameters from the user during initialization of the classifier
         - conn = database connection (format: variable)
         - target = target variable (what you are wanting to predict) (format: str)
         - table_name = name of the table that is in the database (format: str)
         """
+
         self.engine = self.set_connection(conn)
-        self.table_train = table_train
-        self.model_id = model_id
+        self.base_table = base_table
+        self.table_train = base_table
+        self.table_eval = base_table # default: eval on training data with full dataset
+        if model_id is None:
+            self.model_id = base_table;
+        else:
+            self.model_id = model_id
 
         if target is None:
             col = self.executeQuery('If last column (DESC), else first column (ASC)', '''
@@ -93,23 +99,8 @@ class SaneProbabilityEstimator:
                             create or replace view {} as '''
                          .format(viewName) + query)
 
-   # TODO develop an algorithm to optimize the hyper parameters
-    #  for n buckets: Idea Nr. 1: Linear, straight forward. first sort the features according to 1D prediction accuracy;
-    # Start with the first in the list;
-    # for each feature, increase n-buckets until convergence;
-    # Add next best feature, and so on, until convergence
-    # Idea Nr. 2: Evolutionary. again sort by 1D accuracy. Start with the first in the list;
-    # Always add the feature that brings the highest performance gain
-    # Always increase the bucket number of the feature that brings the highest performance gain.
-    # Until convergence => find method that scales well for large data set with acceptable performance
-    # Idea 3: linear in feature list, but evolutionary in n-buckets
-    # TODO idea: optimize feature list using "random restaurant" simliar to random forest, but using decision "tables" instead of "trees" <-- advanced stuff
-
-
-
     def train(self):
         self.train(self.table_train)
-
 
     def train_test_split(self, seed=1, ratio=0.8):
         """
@@ -125,28 +116,21 @@ class SaneProbabilityEstimator:
              self.model_id + '_train',
              Template(sql.tmplt['_train']).render(input=self))
 
+        self.table_train = self.model_id + '_train'
+
         self.createView(
              'Splitting table into test set',
              self.model_id + '_eval',
              Template(sql.tmplt['_eval']).render(input=self))
 
+        self.table_eval= self.model_id + '_eval'
 
-    def train(self, table_train, catFeatures, bins=50, numFeatures=None):
+
+#TODO get cat features & num features automatically and set as default
+#TODO set dictionnary as param, or set this with object instantiation
+    def train(self, catFeatures, numFeatures, bins=50, table_train=None):
         """
-        1.) Need to be feeding the train set (0.8) of original table into this --> training phase
-        2.) Then, invoking the predict method on the test set (0.2) of the original table --> prediction phase on new data
-        
-        This function is the training phase:
-        - input data is training set
-        - the input data table is quantized (equal size) and indexed.
-        - This quantized index then represents an in-database model for probability estimation
 
-        This function sets the hyperparameters
-        - features to estimate the probability of the target
-        - features = right now it is just a string, but I think we may want to explore
-                     having the user put the feature(s) into a numpy array. Similiar to
-                     how the scikit-learn ML algorithms want them. (format:str)
-        - Bins/buckets = # of bins
         """
 
         if numFeatures is None:
@@ -162,7 +146,8 @@ class SaneProbabilityEstimator:
 
         self.bins = bins
         self.catFeatures = catFeatures
-
+        if table_train is not None:
+            self.table_train = table_train
         # TODO Generate queries using n features x1, x2, ..., xn; differentiate between numerical and categorical
 
         self.createView(
@@ -173,15 +158,8 @@ class SaneProbabilityEstimator:
             'Quantization of training table',
             self.model_id + '_qt',
             Template(sql.tmplt['_qt']).render(input=self))
-        # self.createView(
-          #  'Quantization metadata for training table',
-           # self.model_id + '_qmt',
-            #Template(sql.tmplt['_qmt']).render(input=self))
-        #self.createView(
-         #   'Computing predictive model as contingency table',
-          #  self.model_id + '_m',
-           # Template(sql.tmplt['_m']).render(input=self))
 
+#todo: visualize num, cat, num + cat, cat+cat, cat+num, then get data type and decide which function based on input
     def visualize1D(self, feature1, target):
 
         if feature1 in self.numFeatures:
@@ -318,17 +296,17 @@ class SaneProbabilityEstimator:
 
             print(p)
 
-    def predict(self, table_eval):  # table_eval is the test set
+    def predict(self, table_eval=None):  # table_eval is the test set
         """
         This function estimates the probabilities for the evaluation data
         """
-        self.table_eval = table_eval
+        if not(table_eval is None):
+            self.table_eval = table_eval
+
         self.createView(
             'Quantization metadata for evaluation table',
             self.model_id + '_qe',
             Template(sql.tmplt['_qe']).render(input=self)) ## generate SQL using Jinja 2 template
-        #self.execute('Creating index _qe ',
-            #Template(sql.tmplt['_qe_ix']).render(input=self))
         self.createView(
             'Class prediction for evaluation dataset',
             self.model_id + '_p',

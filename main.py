@@ -21,8 +21,7 @@ db = {
         'query': {'charset': 'utf8'}
     }
 
-#classifier = SaneProbabilityEstimator(db, 'iris', 'class', 'irismodel')
-classifier = classifier.SaneProbabilityEstimator(db, 'table_train', 'Cover_Type', 'covtyptest2')
+classifier = classifier.SaneProbabilityEstimator(db, 'covtypall', 'Cover_Type', 'covtyptest2')
 
 allNumFeat = [ "Elevation", "Aspect", "Slope", "Horizontal_Distance_To_Hydrology", "Vertical_Distance_To_Hydrology", \
                 "Horizontal_Distance_To_Roadways", "Hillshade_9am", "Hillshade_Noon", "Hillshade_3pm", \
@@ -37,17 +36,19 @@ numFeatures = [ "Elevation", "Horizontal_Distance_To_Roadways", "Horizontal_Dist
 bins = 60
 catFeatures = ["Wilderness_Area", "Soil_Type"]
 
-# classifier.train_test_split(1, 0.8)
+classifier.train_test_split(1, 0.8)
 
 # Training phase: _qt is trained on 0.8 of table ; _qmt based off of _qt ; _m based off of _qt
-classifier.train('table_train', catFeatures, bins, numFeatures)
+classifier.train(catFeatures, numFeatures, bins)
+print(f"Runtime of the program is {time.time() - start} seconds")
 
 # Visualization methods
 #classifier.visualize1D('Wilderness_Area', 'Covertype')
 #classifier.visualize2D('Elevation', 'Wilderness_Area', 'CoverType')
 
 # Predicting on test set: _qe tested on 0.2 of table ; _qe_ix based off of _qe ; _p ; _p_update
-classifier.predict('table_eval')
+classifier.predict()
+print(f"Runtime of the program is {time.time() - start} seconds")
 
 classifier.accuracy()
 
