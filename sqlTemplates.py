@@ -165,35 +165,39 @@ where y_ is null
 
 tmplt["_m1d"] ='''
 {% for nf in input.numFeatures %}
-{% if loop.index > 1 %}union {% endif %}\
-select f, x, y, count(*) over(partition by x, y) as nxy, count(*) over (partition by x) as nx_, count(*) over (partition by y) as n_y, count(*) over() as n__ 
-from ( select
+{% if loop.index > 1 %}union all {% endif %}\
+select "{{ nf }}" as f, x, y, count(*)  as nxy 
+from 
+( select
         "{{ nf }}" as f,
 		CEIL({{ input.bins}}*RANK() OVER (ORDER BY {{ nf }} )*1.0/COUNT(*) OVER()) as x,
         {{ input.target }} as y
-from table_train ) a 
-{% endfor %}
+from table_train ) a  
+group by x, y\
+{% endfor %}\
 {% for cf in input.catFeatures %}
 {% if loop.index + input.numFeatures|length  > 1 %} union {% endif %}\
-select f, x, y, count(*) over(partition by x, y) as nxy, count(*) over (partition by x) as nx_, count(*) over (partition by y) as n_y, count(*) over() as n__ 
-from ( select
-        "{{ cf }}" as f,
-		{{ cf }} as x,
-        {{ input.target }} as y
-from table_train ) a 
-{% endfor %}
+select "{{ cf }}" as f, {{ cf }} as x, {{ input.target }} as y, count(*)  as nxy from {{ input.table_train }} group by {{ cf }}, {{ input.target }}
+{% endfor %}\
 ;'''
 
 
-tmplt["_m1d_mi"] ='''select f, 
-sum(
+
+tmplt["_m1d_mi"] ='''
+select f, 
+(sum( 
 	(nxy*1.0/n__)
     *log(2,
 		(nxy*1.0/n__)
         /( (n_y*1.0/n__) * (nx_*1.0/n__) )
-        ) ) as mi
-from {{ input.model_id }}_m1d as m
+        )  ) ) as mi
+from 
+(
+SELECT f, x, y, nxy, nx_, n_y, n__ FROM {{ input.model_id }}_m1d
+join (SELECT f, x,  sum(nxy) as nx_ FROM {{ input.model_id }}_m1d group by f, x) a using (f, x)
+join (SELECT f, y, sum(nxy) as n_y FROM {{ input.model_id }}_m1d group by f, y) b using (f, y)
+join ( select f, sum(nxy) as n__ FROM {{ input.model_id }}_m1d group by f ) c using (f) 
+) as m
 group by f 
 order by mi desc
-;
 '''
