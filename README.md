@@ -424,11 +424,7 @@ Currently fully supports MySQL, SQLite and Microsoft SQL Server
 To run the provided example, you'll need to go through the following steps:
 
 1. Make sure you imported the data from SANElib\example_datasets\covertype.csv SANElib\example_datasets\iris.csv.
-2. Import both examples into your main.py file
-'''python
-from import lib.dtc.example import run_covertype_example as dtc_covertype_example
-from lib.dtc.example import run_iris_example as dtc_iris_example  
-'''
+2. Import both examples into your main.py file; 'from import lib.dtc.example import run_covertype_example as dtc_covertype_example' 'from lib.dtc.example import run_iris_example as dtc_iris_example'
 3. Run both methods
 
 ------
