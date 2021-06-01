@@ -6,7 +6,7 @@ select * from {{ input.dataset }} ORDER BY RANDOM() LIMIT (SELECT ROUND(COUNT(*)
 '''
 
 tmplt["_eval"] = '''
-select * from {{ input.dataset }} ORDER BY RANDOM() LIMIT (SELECT ROUND(COUNT(*) * (1 - {{ input.ratio }})) FROM {{ input.dataset }});
+select * from {{ input.dataset }} EXCEPT SELECT * FROM {{ input.table_train }};
 '''
 
 tmplt["_getColumns"] = '''
@@ -51,7 +51,18 @@ select *,
     {% endfor %}\
 end) as {{ key }}
 {% endfor %}\
-from (select * from {{ input.dataset }} ORDER BY RANDOM() LIMIT (SELECT ROUND(COUNT(*) * (1 - {{ input.ratio }})) FROM {{ input.dataset }}) ) as eval
+FROM (SELECT * FROM {{ input.dataset }} EXCEPT SELECT
+{% for col in input.numFeatures %}
+{% if loop.index > 1 %}, {% endif %}\
+{{ col }}
+{% endfor %}\
+{% if input.catFeatures|length > 0 %},{% endif %}\
+{% for col in input.catFeatures %}
+{% if loop.index > 1 %},{% endif %}\
+{{ col }}_orig
+{% endfor %}\
+,{{ input.target }}
+FROM {{ input.table_train }} ) AS EVAL
 ''',
 '''
 CREATE TABLE {{ input.table_train }}_temp as

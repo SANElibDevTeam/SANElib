@@ -20,3 +20,14 @@ from util.database_functions.mysql import multiply_matrices
 # Run DecisionTreeClassifier example
 # dtc_iris_example()
 # dtc_covertype_example()
+# timer.start()
+# dtc = sanelib.dtc
+# dtc.initialize(target='Cover_Type', dataset='covertype')
+# dtc.train_test_split(ratio=0.5, encode=True)
+# dtc.estimate()
+# # dtc.read_dtc_tree("C:/Users/nedeo/DTCcomplete/mssql_tree_5050split.pk1")
+# dtc.save_dtc_tree("C:/Users/nedeo/DTCcomplete/mysql_tree_5050split.pk1")
+# pred = dtc.predict()
+# acc = len(pred.query("prediction == Cover_Type")) / len(pred)
+# print("Accuracy is {}".format(acc))
+# timer.end()

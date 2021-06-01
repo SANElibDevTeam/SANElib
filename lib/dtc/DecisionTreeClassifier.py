@@ -229,17 +229,6 @@ class DecisionTreeClassifier:
         self.tree_ = self.__grow_tree()
         # self.db_connection.execute('drop table {}_criterion'.format(self.table_train), self.engine)
 
-    def __binning(self):
-        return 1
-
-    def __initial_nodes(self):
-        tree = []
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            fut = [executor.submit(self.__grow_tree, "where xq_Elevation = {}".format(i + 1)) for i in range(1000)]
-            for r in concurrent.futures.as_completed(fut):
-                tree.append(r.result())
-        return tree
-
     def __grow_tree(self, query=''):
         """Build a decision tree by recursively finding the best split with the info table and the resulting mutual
         information table. """

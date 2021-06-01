@@ -2,13 +2,12 @@ tmplt = {}
 
 # def train_test_split():
 tmplt["_train"] = '''
-SELECT * INTO {{ input.table_train }} FROM
-(SELECT TOP ({{ input.ratio  }}* 100) PERCENT * from {{ input.dataset }} ORDER BY NEWID()) as train;
+SELECT TOP ({{ input.ratio }} * 100) PERCENT * INTO {{ input.table_train }} FROM {{ input.dataset }} ORDER BY NEWID();
 '''
 
+
 tmplt["_eval"] = '''
-SELECT * INTO {{ input.table_eval }} FROM
-(SELECT TOP ((1 - {{ input.ratio }}) * 100) PERCENT * from {{ input.dataset }} ORDER BY NEWID()) as eval;
+SELECT * INTO {{ input.table_eval}} FROM {{ input.dataset }} EXCEPT SELECT * FROM {{ input.table_train }};
 '''
 
 tmplt["_getColumns"] = '''
@@ -39,7 +38,7 @@ select *,
 end) as {{ key }}
 {% endfor %}\
 into {{ input.table_train }}
-from (SELECT TOP ({{ input.ratio  }}* 100) PERCENT * from {{ input.dataset }} ORDER BY NEWID()) AS train
+FROM (SELECT TOP ({{ input.ratio }} * 100) PERCENT * FROM {{ input.dataset }} ORDER BY NEWID()) AS TRAIN
 ;
 ''',
 '''
@@ -53,7 +52,18 @@ select *,
 end) as {{ key }}
 {% endfor %}\
 into {{ input.table_eval }}
-from (SELECT TOP ((1 - {{ input.ratio }}) * 100) PERCENT * from {{ input.dataset }} ORDER BY NEWID()) as train
+FROM (SELECT * FROM {{ input.dataset }} EXCEPT SELECT
+{% for col in input.numFeatures %}
+{% if loop.index > 1 %}, {% endif %}\
+{{ col }}
+{% endfor %}\
+{% if input.catFeatures|length > 0 %},{% endif %}\
+{% for col in input.catFeatures %}
+{% if loop.index > 1 %},{% endif %}\
+{{ col }}_orig
+{% endfor %}\
+,{{ input.target }}
+FROM {{ input.table_train }} ) AS EVAL
 ''',
 '''
 alter table {{ input.table_train }} drop
