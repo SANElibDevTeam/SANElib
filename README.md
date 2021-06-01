@@ -399,7 +399,7 @@ Currently fully supports MySQL, SQLite and Microsoft SQL Server
   
   `Parameters`
 
-  *filepath: If the filepath is not given, the self.tree_ is saved to the home directory of the user with the name dtc.pk1
+  *filepath: If the filepath is not given, the self.tree_ is saved to the home directory of the user with the name dtc.pk1*
   
   `Return`: The tree_ object is saved as a pickle file in the given directory
 
@@ -409,7 +409,7 @@ Currently fully supports MySQL, SQLite and Microsoft SQL Server
   
   `Parameters`
 
-  *filepath: if the filepath is not given, the self.tree_ property is read from the home directory of the user given the dtc.pk1 name. If there is no such file, an error is raised.
+  *filepath: if the filepath is not given, the self.tree_ property is read from the home directory of the user given the dtc.pk1 name. If there is no such file, an error is raised.*
   
   `Return`: *self*
   
