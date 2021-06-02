@@ -2,11 +2,11 @@ tmplt = {}
 
 # def train_test_split():
 tmplt["_train"] = '''
-(select * from {{ input.table_train }} where rand ({{ input.seed }}) < {{ input.ratio }});
+(select * from {{ input.base_table }} where rand ({{ input.seed }}) < {{ input.ratio }});
 '''
 
 tmplt["_eval"] = '''
-(select * from {{ input.table_train }} where rand ({{ input.seed }}) >= {{ input.ratio }});
+(select * from {{ input.base_table }} where rand ({{ input.seed }}) >= {{ input.ratio }});
 '''
 
 #######
