@@ -80,8 +80,8 @@ class DecisionTreeClassifier:
 
         self.catFeatures = features
 
-        # rename categorical columns since the reformatted will have the same name and the originals will be dropped
-        # later
+        # rename categorical columns since the reformatted will have the same name and the originals
+        # temporary column will be dropped later on
         for key in self.catFeatures:
             self.db_connection.execute(
                 Template(self.sql_template.tmplt['_renameColumn']).render(input=self, orig=key, to=key + '_orig'))
@@ -115,6 +115,8 @@ class DecisionTreeClassifier:
         return cc_table
 
     def __calc_mutual_information(self, cc_table):
+        # if there are no categorical features only the calc_mutual_information_num is being used
+        # if there are, the columns of the dataframe get separated and all data points sent to the respective method
         if len(self.catFeatures) != 0:
             minfcat = self.__calc_mutual_information_cat(cc_table.loc[cc_table.f.isin(self.catFeatures)])
             minfnum = self.__calc_mutual_information_num(cc_table.loc[cc_table.f.isin(self.numFeatures)])
@@ -149,7 +151,7 @@ class DecisionTreeClassifier:
         # Creating the alt column, which is how many items are NOT in this group
         mutual_inf['alt'] = mutual_inf['n__'] - mutual_inf['nx_']
 
-        # Overwriting mutual_inf with only the neccessary information where the max value of mi is
+        # Overwriting mutual_inf with only the necessary information where the max value of mi is
         mutual_inf = \
             mutual_inf.sort_values(by=['mi'], ascending=False)
 
@@ -189,7 +191,7 @@ class DecisionTreeClassifier:
         # Saving the sorted dataframe
         cc_table = cc_table.sort_values(by=['f', 'y', 'x'])
 
-        # Calculating the probabiliy columns and the unsummized mutual information
+        # Calculating the probability columns and the summarized mutual information for each datapoint
         cc_table['p_xy'] = cc_table['cum_nxy'] / cc_table['n__']
         cc_table['p_y'] = cc_table['n_y'] / cc_table['n__']
         cc_table['p_x'] = cc_table['cum_nx_'] / cc_table['n__']
@@ -225,22 +227,11 @@ class DecisionTreeClassifier:
         self.max_samples = max_samples
         self.max_mutual_inf = max_mutual_inf
         self.n_classes_ = len(self.target_classes)  # classes are assumed to go from 0 to n-1
-        # self.tree_ = self.__initial_nodes()
         self.tree_ = self.__grow_tree()
-        # self.db_connection.execute('drop table {}_criterion'.format(self.table_train), self.engine)
 
     def __grow_tree(self, query=''):
         """Build a decision tree by recursively finding the best split with the info table and the resulting mutual
         information table. """
-        # if not query == '':
-        #     self.db_connection.execute(
-        #         'create or replace view {}_criterion as select * from {} {}'.format(self.table_train, self.table_train,
-        #                                                                             query)
-        #         , self.engine)
-        # else:
-        #     self.db_connection.execute(
-        #         "create or replace view {}_criterion as select * from {}".format(self.table_train, self.table_train)
-        #         , self.engine)
 
         self.__create_cc_table(query)
         cc_table = self.__get_cc_table()
@@ -289,6 +280,7 @@ class DecisionTreeClassifier:
                     # increment last key by 1 and concatenate this feature to last indexes to make a clustered index
                     self.table_indices[list(self.table_indices.keys())[-1] + 1] = \
                         list(self.table_indices.values())[-1] + ', {}'.format(mutual_inf.f.values[0])
+                    # the databases in use only support up to 64 keys on one table
                     if len(self.table_indices.keys()) < 64:
                         self.db_connection.execute(
                             Template(self.sql_template.tmplt['_addIndex']).render(
@@ -308,6 +300,7 @@ class DecisionTreeClassifier:
                          show_details)
 
     def create_model(self, file_output=None):
+        # creating the case when model as an array
         self.model.append('CASE\n')
         self.__model_aux(self.tree_)
         self.model.append('\nELSE 0 \nEND')
@@ -332,6 +325,7 @@ class DecisionTreeClassifier:
                 self.__model_aux(node.right, '{} AND {} <> {}'.format(path, feature, threshold))
 
     def predict(self, X=None):
+        # if no data has been passed, the evaluation table is fetched
         if X is None:
             X = self.db_connection.execute_query("SELECT * FROM {}".format(self.table_eval), as_df=True)
         pred = []
@@ -382,6 +376,8 @@ class DecisionTreeClassifier:
         return numerator.values[0] / denominator.values[0]
 
     def __model_procedure(self, node):
+        # due to the syntax for stored procedures being so different for each database technology,
+        # different methods need to be invoked
         self.stmtprocedure = []
         if 'mysql' in self.engine.name:
             self.__model_procedure_mysql(node)
