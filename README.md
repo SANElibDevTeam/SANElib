@@ -399,7 +399,7 @@ Currently fully supports MySQL, SQLite and Microsoft SQL Server
   
   `Parameters`
 
-  *filepath: If the filepath is not given, the self.tree_ is saved to the home directory of the user with the name dtc.pk1
+  *filepath: If the filepath is not given, the self.tree_ is saved to the home directory of the user with the name dtc.pk1*
   
   `Return`: The tree_ object is saved as a pickle file in the given directory
 
@@ -409,7 +409,7 @@ Currently fully supports MySQL, SQLite and Microsoft SQL Server
   
   `Parameters`
 
-  *filepath: if the filepath is not given, the self.tree_ property is read from the home directory of the user given the dtc.pk1 name. If there is no such file, an error is raised.
+  *filepath: if the filepath is not given, the self.tree_ property is read from the home directory of the user given the dtc.pk1 name. If there is no such file, an error is raised.*
   
   `Return`: *self*
   
@@ -424,11 +424,7 @@ Currently fully supports MySQL, SQLite and Microsoft SQL Server
 To run the provided example, you'll need to go through the following steps:
 
 1. Make sure you imported the data from SANElib\example_datasets\covertype.csv SANElib\example_datasets\iris.csv.
-2. Import both examples into your main.py file
-'''python
-from import lib.dtc.example import run_covertype_example as dtc_covertype_example
-from lib.dtc.example import run_iris_example as dtc_iris_example  
-'''
+2. Import both examples into your main.py file; 'from import lib.dtc.example import run_covertype_example as dtc_covertype_example' 'from lib.dtc.example import run_iris_example as dtc_iris_example'
 3. Run both methods
 
 ------
