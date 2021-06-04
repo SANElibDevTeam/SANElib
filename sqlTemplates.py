@@ -16,7 +16,7 @@ select
     max({{ i }}) as mx{{ loop.index }}, min({{ i }})-0.001 as mn{{ loop.index }}, 
     {% endfor %} \
     count(*) as n__
-from table_train 
+from {{ input.table_train }} 
 '''
 
 # def train():
@@ -120,7 +120,7 @@ from
         "{{ nf }}" as f,
 		CEIL({{ input.bins}}*RANK() OVER (ORDER BY {{ nf }} )*1.0/COUNT(*) OVER()) as x,
         {{ input.target }} as y
-from table_train ) a  
+from {{ input.table_train }} ) a  
 group by x, y\
 {% endfor %}\
 {% for cf in input.catFeatures %}

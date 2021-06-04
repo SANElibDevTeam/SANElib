@@ -12,7 +12,7 @@ from Database import SaneDataBase
 
 class SaneProbabilityEstimator:
 
-    def __init__(self, conn, base_table, target=None, model_id=None):
+    def __init__(self, conn, base_table, target=None, model_id=None, bins=50):
         """
         This method takes the most commonly used parameters from the user during initialization of the classifier
         - conn = database connection (format: variable)
@@ -29,9 +29,14 @@ class SaneProbabilityEstimator:
             self.model_id = base_table;
         else:
             self.model_id = model_id
+        self.bins = bins
 
-
-
+        self.all_col_types = self.db.get_all_col_types(self.base_table)
+        self.all_numFeatures= self.db.get_num_cols(self.base_table)
+        self.all_catFeatures = self.db.get_cat_cols(self.base_table)
+        self.numFeatures=self.all_numFeatures
+        self.catFeatures=self.all_catFeatures
+#TODO get last column
         if target is None:
             col = self.executeQuery('If last column (DESC), else first column (ASC)', '''
                 SELECT
@@ -57,6 +62,7 @@ class SaneProbabilityEstimator:
     def train_test_split(self, seed, ratio, train_table_name=None,  eval_table_name=None):
         """
         Splitting table into training set and evaluation set
+        sets the train and eval tables automatically using model id or according to param
         :return: table_eval
         """
 
@@ -64,11 +70,15 @@ class SaneProbabilityEstimator:
             train_table_name =  self.model_id + '_train'
         if eval_table_name is None:
             eval_table_name = self.model_id + '_eval'
+
+        self.table_train = train_table_name
+        self.table_eval = eval_table_name
+
         self.seed = seed
         self.ratio = ratio
 
         self.db.createView(
-             'Create table traint',
+             'Create table train',
              train_table_name,
              Template(sql.tmplt['_train']).render(input=self))
 
@@ -82,10 +92,16 @@ class SaneProbabilityEstimator:
         self.table_eval= self.model_id + '_eval'
 
 
-    def rank(self, table_train, catFeatures, numFeatures, bins):
-        self.numFeatures = numFeatures
-        self.bins = bins
+    def rank(self, table_train=None, catFeatures=None, numFeatures=None):
+        if table_train is None:
+            table_train = self.table_train
+        if catFeatures is None:
+            catFeatures = self.all_catFeatures
         self.catFeatures = catFeatures
+        if numFeatures is None:
+            numFeatures = self.all_numFeatures
+        self.numFeatures = numFeatures
+        test = Template(sql.tmplt['_m1d']).render(input=self)
         self.db.createView(
             'Computing 1d contingecies with target',
             self.model_id + '_m1d',
@@ -95,30 +111,23 @@ class SaneProbabilityEstimator:
         df = pd.DataFrame(results)
         df.columns = ['f', 'mi']
         print(df)
-
+        self.ranked_columns = df
+        return df
 
 #TODO get cat features & num features automatically and set as default
 #TODO set dictionnary as param, or set this with object instantiation
-    def train(self, catFeatures, numFeatures, bins=50, table_train=None):
+    def train(self, table_train=None, catFeatures = None, numFeatures = None):
         """
 
         """
-        if numFeatures is None:
-            allColumns = self.executeQuery('Querying for all of the columns', '''
-            SELECT COLUMN_NAME
-            FROM INFORMATION_SCHEMA.COLUMNS
-            WHERE TABLE_NAME = '{}';  #table_train
-            '''.format(self.table_train))
-
-            self.numFeatures = [element for index, tuple in enumerate(allColumns) for index, element in enumerate(tuple)]
-        else:
-            self.numFeatures = numFeatures
-
-        self.bins = bins
+        if table_train is None:
+            table_train = self.table_train
+        if catFeatures is None:
+            catFeatures = self.all_catFeatures
         self.catFeatures = catFeatures
-        if table_train is not None:
-            self.table_train = table_train
-        # TODO Generate queries using n features x1, x2, ..., xn; differentiate between numerical and categorical
+        if numFeatures is None:
+            numFeatures = self.all_numFeatures
+        self.numFeatures = numFeatures
 
         self.db.createView(
             'Get aggregation values',
@@ -135,7 +144,6 @@ class SaneProbabilityEstimator:
         """
         if not(table_eval is None):
             self.table_eval = table_eval
-
         self.db.createView(
             'Quantization metadata for evaluation table',
             self.model_id + '_qe',
