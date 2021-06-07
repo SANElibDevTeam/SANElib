@@ -1,57 +1,22 @@
-# SANElib Prototype
-# Standard-SQL Analytics for Numerical Estimation – SANE (vs. MADlib)
-# (c) 2020  Michael Kaufmann, Gabriel Stechschulte, Anna Huber, HSLU
+import sanelib
+from lib.dtc.example import run_covertype_example as dtc_covertype_example
+from lib.dtc.example import run_iris_example as dtc_iris_example
+from lib.kmeans.example import run_iris_example as kmeans_iris_example
+from lib.linear_regression.example import run_bmi_example
+from lib.mdh.example import run
+from util import timer
+from util.database_functions.mysql import multiply_matrices
 
-# coding: utf-8
-import constants as cons
-import time
-from Utils import *
-import matplotlib.pyplot as plt
-import Database
-import Analysis
-import Model
-from pandas import util
+# Run MDH example
+# mdh = sanelib.mdh
+# run(mdh)
 
-# starting time
-start = time.time()
+# Run LinearRegression example
+# run_bmi_example()
 
-db = {
-        'drivername': 'mysql+mysqlconnector',
-        'host': cons.DB_HOST,
-        'port': cons.DB_PORT,
-        'username': cons.DB_USER,
-        'password': cons.DB_PW,
-        'database': cons.DB_NAME,
-        'query': {'charset': 'utf8'}
-    }
+# Run KMeans example
+# kmeans_iris_example()
 
-
-#TODO automate attribute selection based on threshold
-numFeatures = ["Elevation", "Horizontal_Distance_To_Fire_Points"] #'horizontal_distance_to_road_ways'
-bins = 57
-catFeatures = ["Wilderness_Area", "Soil_Type"]
-
-
-
-# df= pd.DataFrame({'A' : [1,2,3]})
-# # Add df instead of already working db with
-# # engine = Database.Database(dataframe=df).engine
-# engine = Database.Database(db).engine
-#
-# ay = Analysis.Analysis(engine=engine,dataset="table_train",target='Cover_Type',seed=1,ratio=0.8,model_id='covtyptest2')
-# ay.rank("table_train",catFeatures,numFeatures,bins).estimate(catFeatures,bins,numFeatures).visualize1D('Wilderness_Area', 'Covertype').predict('table_eval').accuracy()
-#
-
-Database.Database(db).get_analysis(dataset="table_train",target='Cover_Type',seed=1,ratio=0.8,model_id='covtyptest2').rank("table_train",catFeatures,numFeatures,bins).estimate(catFeatures,bins,numFeatures).visualize1D('Wilderness_Area', 'Covertype').predict('table_eval').accuracy()
-Database.Database(db).get_analysis(dataset="table_train",target='Cover_Type',seed=1,ratio=0.8,model_id='covtyptest2').rank("table_train",catFeatures,numFeatures,bins).estimate(catFeatures,bins,numFeatures).visualize2D('Covertype', ['Elevation', 'Horizontal_Distance_To_Fire_Points'])
-
-# Estimation phase: _qt is estimated on 0.8 of table ; _qmt based off of _qt ; _m based off of _qt
-# Predicting on test set: _qe tested on 0.2 of table ; _qe_ix based off of _qe ; _p ; _p_update
-
-# end time
-end = time.time()
-
-# total time taken
-print(f"Runtime of the program is {end - start} seconds")
-
-# print('Training accuracy = ', classifier.trainingAccuracy())
+# Run DecisionTreeClassifier example
+# dtc_iris_example()
+# dtc_covertype_example()

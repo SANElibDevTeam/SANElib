@@ -2,9 +2,10 @@
 .ipynb_checkpoints
 .idea
 .venv
+venv/
 .vscode
 __pycache__
 
 # files
 *.pdf
-constants.py
+config.py
