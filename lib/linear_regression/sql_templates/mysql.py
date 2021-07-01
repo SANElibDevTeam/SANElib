@@ -146,3 +146,12 @@ tmpl_mysql['calculate_save_score'] = Template('''
             CROSS JOIN
             (SELECT avg({{ y }}) as y_avg FROM {{ input_table }}) as subquery2;
             ''')
+
+tmpl_mysql['create_sum_view'] = Template('''
+            CREATE OR REPLACE VIEW
+            {{ table }} AS SELECT 
+                {% for sum_statement in sum_statements %}
+                    {{ sum_statement }}
+                {% endfor %}
+            FROM {{ table_input }};
+            ''')
