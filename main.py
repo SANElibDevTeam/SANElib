@@ -11,8 +11,19 @@ from util.database_functions.mysql import multiply_matrices
 # mdh = sanelib.mdh
 # run(mdh)
 
+
 # Run LinearRegression example
 # run_bmi_example()
+
+lr = sanelib.linear_regression
+# lr.set_log_level("DEBUG")
+# x_columns = []
+# for i in range(128):
+#     x_columns.append("x" + str(i + 1))
+# y_column = ["y"]
+timer.start()
+lr.estimate("example_bmi", ["Age", "Height_Inches"], ["BMI"])
+timer.end()
 
 # Run KMeans example
 # kmeans_iris_example()
