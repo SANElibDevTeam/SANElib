@@ -155,3 +155,10 @@ tmpl_mysql['create_sum_view'] = Template('''
                 {% endfor %}
             FROM {{ table_input }};
             ''')
+
+tmpl_mysql['insert_into_union'] = Template('''
+            INSERT INTO linreg_m0_calculation(x0, x1, x2, y) 
+                SELECT t1, t2, t3, t4 FROM temp_table
+                UNION ALL
+                SELECT t5, t6, t7, t8 FROM temp_table;
+            ''')
