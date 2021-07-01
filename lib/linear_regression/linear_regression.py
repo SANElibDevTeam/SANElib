@@ -498,11 +498,13 @@ class LinearRegression:
 
         sql_statement = self.sql_templates['create_sum_view'].render(
             table='temp_table', table_input=self.model.input_table, sum_statements=sum_statements)
+        logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
 
         sql_statement = self.sql_templates['insert_into_union'].render(
             table='linreg_' + self.model.id + '_calculation', view="temp_table",
             t_fields=t_fields[:-1], last_t_field=t_fields[-1], x_columns=x)
+        logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
 
 
