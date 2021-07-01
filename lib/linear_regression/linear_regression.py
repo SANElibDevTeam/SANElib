@@ -472,12 +472,11 @@ class LinearRegression:
         for i in range(self.model.input_size):
             x.append('x' + str(i))
 
-        sum_statements2 = []
+        sum_statements = []
         t_fields = []
         for i in range(self.model.input_size):
-            sum_statements = []
             sum_statement = ""
-            t = ""
+            t_field = ""
             for j in range(self.model.input_size + 1):
                 if i < self.model.input_size - 1:
                     sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
@@ -490,25 +489,15 @@ class LinearRegression:
                         sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
                             (i*(self.model.input_size + 1)) + (j + 1))
                 if j < self.model.input_size:
-                    t = t + "t" + str((i*(self.model.input_size + 1)) + (j + 1)) + ", "
-                    sum_statements.append(
-                        "sum(" + columns[i] + "*" + columns[j] + ") FROM " + self.model.input_table + "),")
+                    t_field = t_field + "t" + str((i*(self.model.input_size + 1)) + (j + 1)) + ", "
                 else:
-                    t = t + "t" + str((i * (self.model.input_size + 1)) + (j + 1))
-                    sum_statements.append(
-                        "sum(" + columns[i] + "*" + columns[j] + ") FROM " + self.model.input_table + ")")
+                    t_field = t_field + "t" + str((i * (self.model.input_size + 1)) + (j + 1))
 
-            t_fields.append(t)
-            sum_statements2.append(sum_statement)
-
-            sql_statement = self.sql_templates['calculate_equations'].render(
-                table='linreg_' + self.model.id + '_calculation', table_input=self.model.input_table,
-                sum_statements=sum_statements, x_columns=x)
-            logging.debug("SQL: " + str(sql_statement))
-            self.db_connection.execute(sql_statement)
+            t_fields.append(t_field)
+            sum_statements.append(sum_statement)
 
         sql_statement = self.sql_templates['create_sum_view'].render(
-            table='temp_table', table_input=self.model.input_table, sum_statements=sum_statements2)
+            table='temp_table', table_input=self.model.input_table, sum_statements=sum_statements)
         self.db_connection.execute(sql_statement)
 
         sql_statement = self.sql_templates['insert_into_union'].render(
