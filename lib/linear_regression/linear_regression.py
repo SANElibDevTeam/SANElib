@@ -144,8 +144,12 @@ class LinearRegression:
         self.__add_ones_column()
         self.__init_calculation_table()
         self.__init_result_table()
-        # self.__calculate_equations()
-        self.__calculate_equations2()
+        if len(self.model.x_columns) <= 34:
+            # More efficient for large datasets, but only applicable for small number of columns.
+            self.__calculate_equations_efficiently()
+        else:
+            # Less efficient, but applicable for large numbers of columns.
+            self.__calculate_equations()
         equations = self.__get_equations()
         xtx = equations[:, 1:self.model.input_size + 1]
         xty = equations[:, self.model.input_size + 1]
@@ -461,7 +465,7 @@ class LinearRegression:
             logging.debug("SQL: " + str(sql_statement))
             self.db_connection.execute(sql_statement)
 
-    def __calculate_equations2(self):
+    def __calculate_equations_efficiently(self):
         logging.info("CALCULATING EQUATIONS2")
         columns = ['linreg_ones']
         for i in range(len(self.model.x_columns)):
