@@ -141,7 +141,7 @@ class LinearRegression:
         if ohe_handling:
             self.__manage_one_hot_encoding()
 
-        self.__add_ones_column()
+        # self.__add_ones_column()
         self.__init_calculation_table()
         self.__init_result_table()
         if len(self.model.x_columns) <= 34:
@@ -440,7 +440,7 @@ class LinearRegression:
 
     def __calculate_equations(self):
         logging.info("CALCULATING EQUATIONS")
-        columns = ['linreg_ones']
+        columns = ['1']
         for i in range(len(self.model.x_columns)):
             columns.append(self.model.x_columns[i])
         columns.append(self.model.y_column[0])
@@ -466,8 +466,8 @@ class LinearRegression:
             self.db_connection.execute(sql_statement)
 
     def __calculate_equations_efficiently(self):
-        logging.info("CALCULATING EQUATIONS2")
-        columns = ['linreg_ones']
+        logging.info("CALCULATING EQUATIONS")
+        columns = ['1']
         for i in range(len(self.model.x_columns)):
             columns.append(self.model.x_columns[i])
         columns.append(self.model.y_column[0])
