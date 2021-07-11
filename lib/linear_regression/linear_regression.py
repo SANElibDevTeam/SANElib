@@ -506,7 +506,7 @@ class LinearRegression:
         self.db_connection.execute(sql_statement)
 
         sql_statement = self.sql_templates['insert_into_union'].render(
-            table='linreg_' + self.model.id + '_calculation', view="temp_table",
+            table='linreg_' + self.model.id + '_calculation', view="linreg_temp",
             t_fields=t_fields[:-1], last_t_field=t_fields[-1], x_columns=x)
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)

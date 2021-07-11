@@ -24,7 +24,7 @@ y_column = ["y"]
 timer.start()
 # lr.estimate("example_bmi", ["Age", "Height_Inches"], ["BMI"])
 # lr.estimate("linreg_2x32", x_columns, y_column)
-lr.estimate("linreg_1000x2", ["x1", "x2"], y_column)
+lr.estimate("linreg_1000000x2", ["x1", "x2"], y_column)
 
 timer.end()
 
