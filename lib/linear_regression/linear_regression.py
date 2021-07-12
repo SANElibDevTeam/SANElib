@@ -501,7 +501,7 @@ class LinearRegression:
             sum_statements.append(sum_statement)
 
         sql_statement = self.sql_templates['create_sum_view'].render(
-            table='temp_table', table_input=self.model.input_table, sum_statements=sum_statements)
+            table='linreg_temp', table_input=self.model.input_table, sum_statements=sum_statements)
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
 
