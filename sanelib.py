@@ -7,9 +7,8 @@ import lib
 from util.database import Database
 
 if conf.DB_TYPE == "MYSQL":
-    driver_name = "mysql+mysqlconnector"
     db_connection = {
-        "drivername": driver_name,
+        "drivername": "mysql+mysqlconnector",
         "host": conf.DB_HOST,
         "port": conf.DB_PORT,
         "username": conf.DB_USER,

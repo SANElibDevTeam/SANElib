@@ -5,11 +5,10 @@ from util import timer
 from util.database_functions.mysql import multiply_matrices
 
 # Run MDH example
-# mdh = sanelib.mdh
-# run(mdh)
+run(sanelib.mdh)
 
 # Run LinearRegression example
-run_bmi_example()
+# run_bmi_example()
 
 # lr = sanelib.linear_regression
 # lr.set_log_level("DEBUG")
