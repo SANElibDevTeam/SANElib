@@ -3,8 +3,7 @@ import sanelib
 
 def run_bmi_example(table_name="example_bmi", prediction_table_name="prediction_bmi"):
     lr = sanelib.linear_regression
-    # lr.set_log_level("INFO")
-    # lr.set_log_level("DEBUG")
+    lr.set_log_level("DEBUG")
 
     # Simple linear regression
     print("SIMPLE LINEAR REGRESSION")

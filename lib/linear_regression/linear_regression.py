@@ -141,10 +141,15 @@ class LinearRegression:
         if ohe_handling:
             self.__manage_one_hot_encoding()
 
-        self.__add_ones_column()
+        # self.__add_ones_column()
         self.__init_calculation_table()
         self.__init_result_table()
-        self.__calculate_equations()
+        if len(self.model.x_columns) <= 34:
+            # More efficient for large datasets, but only applicable for small number of columns.
+            self.__calculate_equations_efficiently()
+        else:
+            # Less efficient, but applicable for large numbers of columns.
+            self.__calculate_equations()
         equations = self.__get_equations()
         xtx = equations[:, 1:self.model.input_size + 1]
         xty = equations[:, self.model.input_size + 1]
@@ -435,7 +440,7 @@ class LinearRegression:
 
     def __calculate_equations(self):
         logging.info("CALCULATING EQUATIONS")
-        columns = ['linreg_ones']
+        columns = ['1']
         for i in range(len(self.model.x_columns)):
             columns.append(self.model.x_columns[i])
         columns.append(self.model.y_column[0])
@@ -459,3 +464,51 @@ class LinearRegression:
                 sum_statements=sum_statements, x_columns=x)
             logging.debug("SQL: " + str(sql_statement))
             self.db_connection.execute(sql_statement)
+
+    def __calculate_equations_efficiently(self):
+        logging.info("CALCULATING EQUATIONS")
+        columns = ['1']
+        for i in range(len(self.model.x_columns)):
+            columns.append(self.model.x_columns[i])
+        columns.append(self.model.y_column[0])
+
+        x = []
+        for i in range(self.model.input_size):
+            x.append('x' + str(i))
+
+        sum_statements = []
+        t_fields = []
+        for i in range(self.model.input_size):
+            sum_statement = ""
+            t_field = ""
+            for j in range(self.model.input_size + 1):
+                if i < self.model.input_size - 1:
+                    sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
+                        (i*(self.model.input_size + 1)) + (j + 1)) + ","
+                else:
+                    if j < self.model.input_size:
+                        sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
+                            (i*(self.model.input_size + 1)) + (j + 1)) + ","
+                    else:
+                        sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
+                            (i*(self.model.input_size + 1)) + (j + 1))
+                if j < self.model.input_size:
+                    t_field = t_field + "t" + str((i*(self.model.input_size + 1)) + (j + 1)) + ", "
+                else:
+                    t_field = t_field + "t" + str((i * (self.model.input_size + 1)) + (j + 1))
+
+            t_fields.append(t_field)
+            sum_statements.append(sum_statement)
+
+        sql_statement = self.sql_templates['create_sum_view'].render(
+            table='linreg_temp', table_input=self.model.input_table, sum_statements=sum_statements)
+        logging.debug("SQL: " + str(sql_statement))
+        self.db_connection.execute(sql_statement)
+
+        sql_statement = self.sql_templates['insert_into_union'].render(
+            table='linreg_' + self.model.id + '_calculation', view="linreg_temp",
+            t_fields=t_fields[:-1], last_t_field=t_fields[-1], x_columns=x)
+        logging.debug("SQL: " + str(sql_statement))
+        self.db_connection.execute(sql_statement)
+
+

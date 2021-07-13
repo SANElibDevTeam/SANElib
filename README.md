@@ -301,3 +301,130 @@ To run the provided example, you'll need to go through the following steps:
 
 ------
 
+### Decision Tree Classifier
+
+#### General information
+
+Currently fully supports MySQL, SQLite and Microsoft SQL Server
+
+#### Methods
+
+- **initialize**(dataset='', target='', target_classes=None, table_train='', table_eval='')
+
+  Sets the parameters of the Decision Tree Classifier class
+  
+  `Parameters`
+
+  *dataset: The database table the Decision Tree Classifier is used for.*
+  
+  *target: The target class the Decision Tree Classifier estimates the nodes with. If empty, the last column of the given table is set as the target.*
+
+  *target_classes: An array of all the possible target classifications. If empty, all distinct values from the target column will be used.*
+  
+  *table_train: The training set from the dataset, the Decision Tree Classifier will be estimated on. If empty, “_train” gets appended to the dataset.*
+  
+  *table_eval: The evaluation set from the dataset, the accuracy of the Decision Tree Classifier will be measured with. If empty, “_eval” is appended to the dataset.*
+
+  `Return`: *self*
+
+- **train_test_split**(ratio=0.8, seed=1, encode=False)
+
+  Splitting the dataset into a training and test set
+  
+  `Parameters`
+  
+  *ratio: The ratio, the dataset should be split with. Default is 0.8, which means that the dataset will be split into 80% training data and 20% evaluation data.*
+  
+  *seed: The seed the random numbers should be generated with in order to pull random datapoints from the dataset for the training set. Only used by MySQL, since MSSQL and SQLite do not use a seed to generate random numbers with.*
+  
+  *encode: If the dataset contains categorical features, and they are to be encoded into ordinal values, the categorical features are encoded for the training end evaluation set. If true, the private method __feature_encoding is invoked.*
+
+  `Return`: *self*
+
+- **estimate**(max_samples=2,max_mutual_inf=0)
+
+  Building a Decision Tree Classifier from the training set. During the estimation, count tables are generated at each node recursively and in different threads concurrently on the database with the given criteria from the preceding nodes.
+
+  `Parameters`
+
+  *max_samples: Setting the maximum samples, a node can contain. Per default, it is 2, meaning that if two samples with the given criteria from the preceding nodes remain, the node is returned as a leaf. Until then, the tree is expanded until either the node is pure or the maximum amount of samples is reached.*
+
+  *max_mutual_inf: Setting the minimum amount of mutual information, a node must contain, if default value is kept, the tree is expanded until either the maximum number of samples are reached, or the leaf is pure. If given a value, if the node will be returned as a leaf, if this threshold is fallen below of.*
+
+  `Return`: *self*
+
+- **create_model**(file_output=None)
+
+  Creating the model of the Decision Tree Classifier as a “CASE WHEN” statement for usage in the database.
+  
+  `Parameters`
+
+  *file_output: If the path of a file output is given, the entire model gets saved to a text file in the given directory and name.*
+
+  `Return`: -
+  
+- **visualize_tree**(show_details=True)
+
+  The estimated decision tree is printed as ASCII art.
+  
+  `Parameters`
+
+  *show_details: If details on the printed Decision Tree should be shown. If false, only the feature, threshold and samples per node are shown. Invokes the debug method in the class Node.*
+
+  `Return`: Printed Decision Tree
+  
+- **predict**(X=None)
+
+  Passing a Pandas DataFrame containing various datapoints and predicting their target classes with the Decision Tree Classifier. In this method, the private method __predict() gets invoked for each DataFrame tuple.
+  
+  `Parameters`
+
+  *X: The DataFrame which datapoints classifications are predicted with the Decision Tree Classifier. The predicted classes are appended as the DataFrame column “Prediction”. If X is not passed, all data from the evaluation table from the database are fetched.*
+
+  `Return`: X. The column “prediction” is appended with the classification of each datapoint.
+  
+- **score**()
+
+  Calculating the accuracy of model, e.g., the computed column “Prediction”. In the numerator are the number of occurrences in the evaluation set where the prediction is equal to the original class value. In the denominator is the number of datapoints in the evaluation set
+  
+  `Parameters`
+
+  *self: Decision Tree Classifier*
+  
+  `Return`: accuracy: float. Accuracy is calculated by numerator divided by the denominator with the given conditions*
+
+- **save_dtc_tree**(filepath=None)
+
+  If the Decision Tree Classifier model can not be given into a database as a computed column and/or a stored procedure due to restrictions on the database, the estimated tree can be saved for later usage. The tree can be re-read with the method read_dtc_tree(). Using this, a prediction can be done without the need to re-estimate the Decision Tree Classifier. The saving itself is done with the object serialization package of python – pickle
+  
+  `Parameters`
+
+  *filepath: If the filepath is not given, the self.tree_ is saved to the home directory of the user with the name dtc.pk1*
+  
+  `Return`: The tree_ object is saved as a pickle file in the given directory
+
+- **read_dtc_tree**(filepath=None)
+
+  Read a saved Decision Tree Classifier tree_ pickle object into the Decision Tree Classifier tree_ field. Note - With this method, a Decision Tree Classifier object has to be invoked first because this method only reads a self.tree_ object not the entire Decision Tree Classifier itself.
+  
+  `Parameters`
+
+  *filepath: if the filepath is not given, the self.tree_ property is read from the home directory of the user given the dtc.pk1 name. If there is no such file, an error is raised.*
+  
+  `Return`: *self*
+  
+#### Usage
+
+1. Configure database connection by setting all necessary connection details in config.py (DB_TYPE: MYSQL, SQLITE, MSSQL).
+2. Create Decision Tree Classifier object (dtc = sanelib.dtc).
+3. Execute required methods on Linear Regression object.
+
+#### Examples
+
+To run the provided example, you'll need to go through the following steps:
+
+1. Make sure you imported the data from SANElib\example_datasets\covertype.csv SANElib\example_datasets\iris.csv.
+2. Import both examples into your main.py file; 'from import lib.dtc.example import run_covertype_example as dtc_covertype_example' 'from lib.dtc.example import run_iris_example as dtc_iris_example'
+3. Run both methods
+
+------
