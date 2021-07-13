@@ -56,7 +56,7 @@ class MDH:
     def drop(self):
         pass
 
-    def materializedView(self, desc, tablename, query, engine):
+    def materializedView(self, desc, tablename, query):
         print("MaterializedView: " + str(desc))
         self.db_connectionn.execute('''
             drop table if exists {}'''
@@ -74,12 +74,12 @@ class MDH:
         self.materializedView(
             'Splitting table into training set',
             self.model_id + '_train',
-            Template(sql.tmplt['_train']).render(input=self), self.engine)
+            Template(sql.tmplt['_train']).render(input=self))
 
         self.materializedView(
             'Splitting table into test set',
             self.model_id + '_table_eval',
-            Template(sql.tmplt['_table_eval']).render(input=self), self.engine)
+            Template(sql.tmplt['_table_eval']).render(input=self))
 
     def rank(self, table_train, catFeatures, numFeatures, bins):
         self.numFeatures = numFeatures
@@ -88,7 +88,7 @@ class MDH:
         self.materializedView(
             'Computing 1d contingecies with target',
             self.model_id + '_m1d',
-            Template(sql.tmplt['_m1d']).render(input=self), self.engine)
+            Template(sql.tmplt['_m1d']).render(input=self))
         results = self.db_connectionn.execute_query(Template(sql.tmplt["_m1d_mi"]).render(input=self))
         df = pd.DataFrame(results)
         df.columns = ['f', 'mi']
@@ -118,7 +118,7 @@ class MDH:
             SELECT COLUMN_NAME
             FROM INFORMATION_SCHEMA.COLUMNS
             WHERE TABLE_NAME = '{}';  #table_train
-            '''.format(self.train), self.engine)
+            '''.format(self.train))
 
             self.numFeatures = [element for index, tuple in enumerate(allColumns) for index, element in
                                 enumerate(tuple)]
@@ -133,15 +133,15 @@ class MDH:
         self.materializedView(
             'Quantization of training table',
             self.model_id + '_qt',
-            Template(sql.tmplt['_qt']).render(input=self), self.engine)
+            Template(sql.tmplt['_qt']).render(input=self))
         self.materializedView(
             'Quantization metadata for training table',
             self.model_id + '_qmt',
-            Template(sql.tmplt['_qmt']).render(input=self), self.engine)
+            Template(sql.tmplt['_qmt']).render(input=self))
         self.materializedView(
             'Computing predictive model as contingency table',
             self.model_id + '_m',
-            Template(sql.tmplt['_m']).render(input=self), self.engine)
+            Template(sql.tmplt['_m']).render(input=self))
 
         return self
 
@@ -173,7 +173,7 @@ class MDH:
                                                                  target,
                                                                  bins,
                                                                  self.model_id,
-                                                                 bins), self.analysis.engine)
+                                                                 bins))
 
             hist_df = pd.DataFrame(num)
             columns = ['xq', 'mn', 'mx', 'x_', 'bin', 'p']
@@ -211,7 +211,7 @@ class MDH:
                         sum(nxy) over()  as p
                         from {}_m
                         order by {}, cast(y_ as char);'''.format(feature1, target, bins,
-                                                                 self.model_id, feature1), self.analysis.engine)
+                                                                 self.model_id, feature1))
 
             res_df = pd.DataFrame(cat)
             columns = ['xc', 'p']
@@ -261,7 +261,7 @@ class MDH:
                                                                      target,
                                                                      feature1, bins,
                                                                      self.model_id,
-                                                                     bins), self.analysis.engine)
+                                                                     bins))
 
             dim2 = pd.DataFrame(multi)
             columns = ['xq', 'mn', 'mx', 'x_', 'bin', 'xc', 'p']
@@ -298,12 +298,12 @@ class MDH:
         self.materializedView(
             'Quantization metadata for evaluation table',
             self.model_id + '_qe',
-            Template(sql.tmplt['_qe']).render(input=self), self.engine)  ## generate SQL using Jinja 2 template
+            Template(sql.tmplt['_qe']).render(input=self))  ## generate SQL using Jinja 2 template
         self.db_connectionn.execute(Template(sql.tmplt['_qe_ix']).render(input=self))
         self.materializedView(
             'Class prediction for evaluation dataset',
             self.model_id + '_p',
-            Template(sql.tmplt['_p']).render(input=self), self.engine)  ## generate SQL using Jinja 2 template
+            Template(sql.tmplt['_p']).render(input=self))  ## generate SQL using Jinja 2 template
         self.db_connectionn.execute(Template(sql.tmplt['_p_update']).render(input=self))
         return self
 

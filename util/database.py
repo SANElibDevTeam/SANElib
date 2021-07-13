@@ -27,41 +27,20 @@ class Database:
         dataframe.to_sql(name=name, con=self.engine, if_exists="replace", index=False)
 
     def disconnect(self):
-        """
-        Close connection to self.engine
-        """
         self.connection.close()
 
     def connect(self):
-        """
-        :return: Connection to self.engine
-        """
         self.connection = self.engine.connect()
 
     def execute(self, statement):
         self.connect()
-        if 'mssql' in self.engine.name:
-            with self.connection.execution_options(autocommit=True) as conn:
-                conn.execute(text(statement))
-        else:
-            self.connection.execute(text(statement))
+        self.connection.execute(text(statement))
         self.disconnect()
 
     def execute_query(self, statement, as_df=False):
         self.connect()
         result = self.connection.execute(text(statement))
-        keys = result.keys()
         result = result.fetchall()
         self.disconnect()
-        if as_df:
-            return pd.DataFrame(result, columns=keys)
-        else:
-            return result
+        return result
 
-    def materializedView(self, desc, tablename, query):
-        print("MaterializedView: " + desc)
-        self.execute('''drop table if exists {}'''.format(tablename))
-        if 'mssql' in self.engine.name:
-            self.execute(query)
-        else:
-            self.execute('''create table {} as '''.format(tablename) + query)
