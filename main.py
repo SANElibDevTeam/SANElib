@@ -1,7 +1,4 @@
 import sanelib
-from lib.dtc.example import run_covertype_example as dtc_covertype_example
-from lib.dtc.example import run_iris_example as dtc_iris_example
-from lib.kmeans.example import run_iris_example as kmeans_iris_example
 from lib.linear_regression.example import run_bmi_example
 from lib.mdh.example import run
 from util import timer
@@ -11,26 +8,18 @@ from util.database_functions.mysql import multiply_matrices
 # mdh = sanelib.mdh
 # run(mdh)
 
-
 # Run LinearRegression example
-# run_bmi_example()
+run_bmi_example()
 
-lr = sanelib.linear_regression
+# lr = sanelib.linear_regression
 # lr.set_log_level("DEBUG")
 # x_columns = []
 # for i in range(32):
 #     x_columns.append("x" + str(i + 1))
-y_column = ["y"]
-timer.start()
+# y_column = ["y"]
+# timer.start()
 # lr.estimate("example_bmi", ["Age", "Height_Inches"], ["BMI"])
 # lr.estimate("linreg_2x32", x_columns, y_column)
-lr.estimate("linreg_1000000x2", ["x1", "x2"], y_column)
+# lr.estimate("linreg_1000000x2", ["x1", "x2"], y_column)
 
-timer.end()
-
-# Run KMeans example
-# kmeans_iris_example()
-
-# Run DecisionTreeClassifier example
-# dtc_iris_example()
-# dtc_covertype_example()
+# timer.end()
