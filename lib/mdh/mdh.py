@@ -60,10 +60,10 @@ class MDH:
         print("MaterializedView: " + str(desc))
         self.db_connectionn.execute('''
             drop table if exists {}'''
-                     .format(tablename), engine)
+                     .format(tablename))
         self.db_connectionn.execute('''
             create table {} as '''
-                     .format(tablename) + query, engine)
+                     .format(tablename) + query)
 
     def train_test_split(self):
         """
@@ -89,7 +89,7 @@ class MDH:
             'Computing 1d contingecies with target',
             self.model_id + '_m1d',
             Template(sql.tmplt['_m1d']).render(input=self), self.engine)
-        results = self.db_connectionn.execute_query(Template(sql.tmplt["_m1d_mi"]).render(input=self), self.engine)
+        results = self.db_connectionn.execute_query(Template(sql.tmplt["_m1d_mi"]).render(input=self))
         df = pd.DataFrame(results)
         df.columns = ['f', 'mi']
         print(df)
@@ -299,12 +299,12 @@ class MDH:
             'Quantization metadata for evaluation table',
             self.model_id + '_qe',
             Template(sql.tmplt['_qe']).render(input=self), self.engine)  ## generate SQL using Jinja 2 template
-        self.db_connectionn.execute(Template(sql.tmplt['_qe_ix']).render(input=self), self.engine)
+        self.db_connectionn.execute(Template(sql.tmplt['_qe_ix']).render(input=self))
         self.materializedView(
             'Class prediction for evaluation dataset',
             self.model_id + '_p',
             Template(sql.tmplt['_p']).render(input=self), self.engine)  ## generate SQL using Jinja 2 template
-        self.db_connectionn.execute(Template(sql.tmplt['_p_update']).render(input=self), self.engine)
+        self.db_connectionn.execute(Template(sql.tmplt['_p_update']).render(input=self))
         return self
 
     def accuracy(self):
@@ -321,7 +321,7 @@ class MDH:
             left outer join {}_p p using(id);
                 '''.format(
             self.model_id,
-            self.model_id), self.engine)
+            self.model_id))
 
         df = pd.DataFrame(results)
         df.columns = ['Total', 'TP', 'Accuracy']
