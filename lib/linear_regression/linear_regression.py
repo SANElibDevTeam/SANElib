@@ -560,48 +560,68 @@ class LinearRegression:
         self.__init_result_table()
         n = self.model.input_size
 
-        # TODO Further increase efficiency - experiment
-        sums_experimental = self.__calculate_equations_efficiently2()[0]
+        # Only query for unique values (everything above the diagonal)
+        sum_values = self.__calculate_equations_efficiently2()[0]
         partial_equations = []
-        full_equations = []
-        for x in sums_experimental:
+        for x in sum_values:
             partial_equations.append(float(x))
 
-        value_counter_start = 0
-        value_counter_end = n + 1
-        value_counter_distance = n
-        number_of_values_to_fill = 0
-        fill_in_positions = [1]
-
-         # TODO Split xtx and xty
+        # Split xtx and xty and fill in mirrored values in xtx
         y_value_position = n
+        x_value_position = 0
+        xtx_experimental = []
+        xtx_partial = []
         xty_experimental = []
         for i in range(n):
-            print(y_value_position)
+            for x in partial_equations[x_value_position:x_value_position+n-i]:
+                xtx_partial.append(x)
+            x_value_position = x_value_position + n + 1 - i
+
+        value_start = 0
+        value_distance = n
+        fill_in_positions = [1]
+        start_filling = False
+        for i in range(n):
+            current_row = []
+            if start_filling:
+                for x in fill_in_positions:
+                    current_row.append(xtx_partial[x])
+
+                fill_in_positions = [x+1 for x in fill_in_positions]
+                fill_in_positions.append(fill_in_positions[-1]+value_distance)
+
+            for x in xtx_partial[value_start:value_start+value_distance]:
+                current_row.append(x)
+            value_start = value_start + value_distance
+            value_distance = value_distance - 1
+
+            start_filling = True
+            xtx_experimental.append(current_row)
+
+        for i in range(n):
             xty_experimental.append(partial_equations[y_value_position])
-            print(partial_equations[y_value_position])
             y_value_position = y_value_position + n - i
         # XTX
+        xtx = np.asarray(xtx_experimental)
 
         # XTY
-        print(np.asarray(xty_experimental))
+        xty = np.asarray(xty_experimental)
 
+        # sums = self.__calculate_equations_efficiently()[0]
+        # equations = []
+        # for i in range(n):
+        #     values = []
+        #     for j in range(n+1):
+        #         values.append(float('{:.9f}'.format(sums[j+i*(n+1)])))
+        #     equations.append(values)
+        #
+        # equations = np.asarray(equations)
+        #
+        # xtx = equations[:, 0:self.model.input_size]
+        # print(xtx)
+        # xty = equations[:, self.model.input_size]
+        # print(xty)
 
-
-
-        sums = self.__calculate_equations_efficiently()[0]
-        equations = []
-        for i in range(n):
-            values = []
-            for j in range(n+1):
-                values.append(float('{:.9f}'.format(sums[j+i*(n+1)])))
-            equations.append(values)
-
-        equations = np.asarray(equations)
-
-        xtx = equations[:, 0:self.model.input_size]
-        xty = equations[:, self.model.input_size]
-        print(xty)
         theta = np.linalg.lstsq(xtx, xty, rcond=None)[0]
 
         for x in theta:

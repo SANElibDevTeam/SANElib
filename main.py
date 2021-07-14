@@ -22,7 +22,7 @@ run_bmi_example()
 # lr.estimate("linreg_100000x16", x_columns, y_column)
 # lr.estimate2("linreg_100000x2", ["x1", "x2"], ["y"])
 
-# x_columns = ['Height_Inches', 'Weight_Pounds']
+# x_columns = ['Height_Inches', 'Weight_Pounds', 'Age']
 # y_column = ['BMI']
 # lr.estimate("example_bmi", x_columns, y_column)
 
