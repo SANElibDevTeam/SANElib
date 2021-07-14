@@ -171,29 +171,6 @@ class LinearRegression:
             logging.debug("SQL: " + str(sql_statement))
             self.db_connection.execute(sql_statement)
 
-    def estimate_fast(self):
-        self.__init_result_table()
-        sums = self.__calculate_equations_efficiently()[0]
-        n = self.model.input_size
-        equations = []
-        for i in range(n):
-            values = []
-            for j in range(n+1):
-                values.append(float('{:.9f}'.format(sums[j+i*(n+1)])))
-            equations.append(values)
-
-        equations = np.asarray(equations)
-
-        xtx = equations[:, 0:self.model.input_size]
-        xty = equations[:, self.model.input_size]
-        theta = np.linalg.lstsq(xtx, xty, rcond=None)[0]
-
-        for x in theta:
-            sql_statement = self.sql_templates['save_theta'].render(table="linreg_" + self.model.id + "_result",
-                                                                    value=x)
-            logging.debug("SQL: " + str(sql_statement))
-            self.db_connection.execute(sql_statement)
-
     def predict(self, table=None, x_columns=None):
         logging.info("\n-----\nPREDICTING")
         if self.model is None:
@@ -504,7 +481,6 @@ class LinearRegression:
             x.append('x' + str(i))
 
         sum_statements = []
-        t_fields = []
         for i in range(self.model.input_size):
             sum_statement = ""
             t_field = ""
@@ -530,13 +506,76 @@ class LinearRegression:
                     else:
                         sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
                             (i * (self.model.input_size + 1)) + (j + 1))
-                if j < self.model.input_size:
-                    t_field = t_field + "t" + str((i * (self.model.input_size + 1)) + (j + 1)) + ", "
-                else:
-                    t_field = t_field + "t" + str((i * (self.model.input_size + 1)) + (j + 1))
 
-            t_fields.append(t_field)
             sum_statements.append(sum_statement)
         sql_statement = self.sql_templates['select_sums'].render(table_input=self.model.input_table, sum_statements=sum_statements)
         logging.debug("SQL: " + str(sql_statement))
         return self.db_connection.execute_query(sql_statement)
+
+    def __calculate_equations_efficiently2(self):
+        logging.info("CALCULATING EQUATIONS")
+        columns = ['1']
+        for i in range(len(self.model.x_columns)):
+            columns.append(self.model.x_columns[i])
+        columns.append(self.model.y_column[0])
+
+        x = []
+        for i in range(self.model.input_size):
+            x.append('x' + str(i))
+
+        sum_statements = []
+        for i in range(self.model.input_size):
+            sum_statement = ""
+            t_field = ""
+            for j in range(self.model.input_size + 1):
+                if i < self.model.input_size - 1:
+                    if columns[i] != '1' and columns[j] != '1':
+                        sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
+                            (i * (self.model.input_size + 1)) + (j + 1)) + ","
+                    else:
+                        if columns[i] == '1':
+                            sum_statement = sum_statement + "sum(" + columns[j] + ") as t" + str(
+                                (i * (self.model.input_size + 1)) + (j + 1)) + ","
+                        elif columns[j] == '1':
+                            sum_statement = sum_statement + "sum(" + columns[i] + ") as t" + str(
+                                (i * (self.model.input_size + 1)) + (j + 1)) + ","
+                        elif columns[i] == '1' and columns[j] == '1':
+                            sum_statement = sum_statement + "sum(" + "1" + ") as t" + str(
+                                (i * (self.model.input_size + 1)) + (j + 1)) + ","
+                else:
+                    if j < self.model.input_size:
+                        sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
+                            (i * (self.model.input_size + 1)) + (j + 1)) + ","
+                    else:
+                        sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
+                            (i * (self.model.input_size + 1)) + (j + 1))
+
+            sum_statements.append(sum_statement)
+        print(sum_statements)
+        sql_statement = self.sql_templates['select_sums'].render(table_input=self.model.input_table, sum_statements=sum_statements)
+        logging.debug("SQL: " + str(sql_statement))
+        return self.db_connection.execute_query(sql_statement)
+
+    def estimate_fast(self):
+        self.__init_result_table()
+        self.__calculate_equations_efficiently2()
+        sums = self.__calculate_equations_efficiently()[0]
+        n = self.model.input_size
+        equations = []
+        for i in range(n):
+            values = []
+            for j in range(n+1):
+                values.append(float('{:.9f}'.format(sums[j+i*(n+1)])))
+            equations.append(values)
+
+        equations = np.asarray(equations)
+
+        xtx = equations[:, 0:self.model.input_size]
+        xty = equations[:, self.model.input_size]
+        theta = np.linalg.lstsq(xtx, xty, rcond=None)[0]
+
+        for x in theta:
+            sql_statement = self.sql_templates['save_theta'].render(table="linreg_" + self.model.id + "_result",
+                                                                    value=x)
+            logging.debug("SQL: " + str(sql_statement))
+            self.db_connection.execute(sql_statement)

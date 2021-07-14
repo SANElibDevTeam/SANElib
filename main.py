@@ -12,13 +12,18 @@ run_bmi_example()
 
 # lr = sanelib.linear_regression
 # lr.set_log_level("DEBUG")
+
+# timer.start()
 # x_columns = []
-# for i in range(32):
+# for i in range(16):
 #     x_columns.append("x" + str(i + 1))
 # y_column = ["y"]
-timer.start()
 # lr.estimate("example_bmi", ["Age", "Height_Inches"], ["BMI"])
-# lr.estimate("linreg_1000x32", x_columns, y_column)
+# lr.estimate("linreg_100000x16", x_columns, y_column)
 # lr.estimate2("linreg_100000x2", ["x1", "x2"], ["y"])
 
-timer.end()
+# x_columns = ['Height_Inches']
+# y_column = ['BMI']
+# lr.estimate("example_bmi", x_columns, y_column)
+#
+# timer.end()
