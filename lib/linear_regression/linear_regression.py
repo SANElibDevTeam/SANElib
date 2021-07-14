@@ -485,50 +485,7 @@ class LinearRegression:
             sum_statement = ""
             t_field = ""
             for j in range(self.model.input_size + 1):
-                if i < self.model.input_size - 1:
-                    if columns[i] != '1' and columns[j] != '1':
-                        sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
-                            (i * (self.model.input_size + 1)) + (j + 1)) + ","
-                    else:
-                        if columns[i] == '1':
-                            sum_statement = sum_statement + "sum(" + columns[j] + ") as t" + str(
-                                (i * (self.model.input_size + 1)) + (j + 1)) + ","
-                        elif columns[j] == '1':
-                            sum_statement = sum_statement + "sum(" + columns[i] + ") as t" + str(
-                                (i * (self.model.input_size + 1)) + (j + 1)) + ","
-                        elif columns[i] == '1' and columns[j] == '1':
-                            sum_statement = sum_statement + "sum(" + "1" + ") as t" + str(
-                                (i * (self.model.input_size + 1)) + (j + 1)) + ","
-                else:
-                    if j < self.model.input_size:
-                        sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
-                            (i * (self.model.input_size + 1)) + (j + 1)) + ","
-                    else:
-                        sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
-                            (i * (self.model.input_size + 1)) + (j + 1))
-
-            sum_statements.append(sum_statement)
-        sql_statement = self.sql_templates['select_sums'].render(table_input=self.model.input_table, sum_statements=sum_statements)
-        logging.debug("SQL: " + str(sql_statement))
-        return self.db_connection.execute_query(sql_statement)
-
-    def __calculate_equations_efficiently2(self):
-        logging.info("CALCULATING EQUATIONS")
-        columns = ['1']
-        for i in range(len(self.model.x_columns)):
-            columns.append(self.model.x_columns[i])
-        columns.append(self.model.y_column[0])
-
-        x = []
-        for i in range(self.model.input_size):
-            x.append('x' + str(i))
-
-        sum_statements = []
-        for i in range(self.model.input_size):
-            sum_statement = ""
-            t_field = ""
-            for j in range(self.model.input_size + 1):
-                if j>=i:
+                if j >= i:
                     if i < self.model.input_size - 1:
                         if columns[i] != '1' and columns[j] != '1':
                             sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
@@ -552,7 +509,8 @@ class LinearRegression:
                                 (i * (self.model.input_size + 1)) + (j + 1))
 
             sum_statements.append(sum_statement)
-        sql_statement = self.sql_templates['select_sums'].render(table_input=self.model.input_table, sum_statements=sum_statements)
+        sql_statement = self.sql_templates['select_sums'].render(table_input=self.model.input_table,
+                                                                 sum_statements=sum_statements)
         logging.debug("SQL: " + str(sql_statement))
         return self.db_connection.execute_query(sql_statement)
 
@@ -561,7 +519,7 @@ class LinearRegression:
         n = self.model.input_size
 
         # Only query for unique values (everything above the diagonal)
-        sum_values = self.__calculate_equations_efficiently2()[0]
+        sum_values = self.__calculate_equations_efficiently()[0]
         partial_equations = []
         for x in sum_values:
             partial_equations.append(float(x))
@@ -573,7 +531,7 @@ class LinearRegression:
         xtx_partial = []
         xty_experimental = []
         for i in range(n):
-            for x in partial_equations[x_value_position:x_value_position+n-i]:
+            for x in partial_equations[x_value_position:x_value_position + n - i]:
                 xtx_partial.append(x)
             x_value_position = x_value_position + n + 1 - i
 
@@ -587,10 +545,10 @@ class LinearRegression:
                 for x in fill_in_positions:
                     current_row.append(xtx_partial[x])
 
-                fill_in_positions = [x+1 for x in fill_in_positions]
-                fill_in_positions.append(fill_in_positions[-1]+value_distance)
+                fill_in_positions = [x + 1 for x in fill_in_positions]
+                fill_in_positions.append(fill_in_positions[-1] + value_distance)
 
-            for x in xtx_partial[value_start:value_start+value_distance]:
+            for x in xtx_partial[value_start:value_start + value_distance]:
                 current_row.append(x)
             value_start = value_start + value_distance
             value_distance = value_distance - 1
@@ -601,27 +559,9 @@ class LinearRegression:
         for i in range(n):
             xty_experimental.append(partial_equations[y_value_position])
             y_value_position = y_value_position + n - i
-        # XTX
+
         xtx = np.asarray(xtx_experimental)
-
-        # XTY
         xty = np.asarray(xty_experimental)
-
-        # sums = self.__calculate_equations_efficiently()[0]
-        # equations = []
-        # for i in range(n):
-        #     values = []
-        #     for j in range(n+1):
-        #         values.append(float('{:.9f}'.format(sums[j+i*(n+1)])))
-        #     equations.append(values)
-        #
-        # equations = np.asarray(equations)
-        #
-        # xtx = equations[:, 0:self.model.input_size]
-        # print(xtx)
-        # xty = equations[:, self.model.input_size]
-        # print(xty)
-
         theta = np.linalg.lstsq(xtx, xty, rcond=None)[0]
 
         for x in theta:
