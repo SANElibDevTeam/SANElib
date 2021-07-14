@@ -562,11 +562,32 @@ class LinearRegression:
 
         # TODO Further increase efficiency - experiment
         sums_experimental = self.__calculate_equations_efficiently2()[0]
-        print(sums_experimental)
         partial_equations = []
+        full_equations = []
         for x in sums_experimental:
-            partial_equations.append(x)
-        print(partial_equations)
+            partial_equations.append(float(x))
+
+        value_counter_start = 0
+        value_counter_end = n + 1
+        value_counter_difference = n
+        number_of_values_to_fill = 0
+        fill_in_positions = [1]
+
+        for i in range(n):
+            current_row = []
+            print(fill_in_positions)
+            if i > 0:
+                for k in fill_in_positions:
+                    current_row.append(partial_equations[k])
+                fill_in_positions = [x+1 for x in fill_in_positions]
+                fill_in_positions.append(fill_in_positions[-1]+(n))
+            for x in partial_equations[value_counter_start:value_counter_end]:
+                current_row.append(x)
+            print(current_row)
+            value_counter_start = value_counter_end
+            value_counter_end = value_counter_end + value_counter_difference
+            value_counter_difference = value_counter_difference - 1
+            number_of_values_to_fill = number_of_values_to_fill + 1
 
 
         sums = self.__calculate_equations_efficiently()[0]
