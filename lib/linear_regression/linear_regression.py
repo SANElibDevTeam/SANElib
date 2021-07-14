@@ -155,10 +155,9 @@ class LinearRegression:
         return self
 
     def estimate_slow(self):
-        self.__calculate_equations()
-
         self.__init_calculation_table()
         self.__init_result_table()
+        self.__calculate_equations()
 
         equations = self.__get_equations()
         xtx = equations[:, 1:self.model.input_size + 1]
@@ -467,7 +466,7 @@ class LinearRegression:
             self.db_connection.execute(sql_statement)
 
     def __calculate_equations(self):
-        logging.info("CALCULATING EQUATIONS")
+        logging.info("CALCULATING EQUATIONS SLOW")
         columns = ['1']
         for i in range(len(self.model.x_columns)):
             columns.append(self.model.x_columns[i])
