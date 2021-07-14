@@ -528,39 +528,48 @@ class LinearRegression:
             sum_statement = ""
             t_field = ""
             for j in range(self.model.input_size + 1):
-                if i < self.model.input_size - 1:
-                    if columns[i] != '1' and columns[j] != '1':
-                        sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
-                            (i * (self.model.input_size + 1)) + (j + 1)) + ","
+                if j>=i:
+                    if i < self.model.input_size - 1:
+                        if columns[i] != '1' and columns[j] != '1':
+                            sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
+                                (i * (self.model.input_size + 1)) + (j + 1)) + ","
+                        else:
+                            if columns[i] == '1':
+                                sum_statement = sum_statement + "sum(" + columns[j] + ") as t" + str(
+                                    (i * (self.model.input_size + 1)) + (j + 1)) + ","
+                            elif columns[j] == '1':
+                                sum_statement = sum_statement + "sum(" + columns[i] + ") as t" + str(
+                                    (i * (self.model.input_size + 1)) + (j + 1)) + ","
+                            elif columns[i] == '1' and columns[j] == '1':
+                                sum_statement = sum_statement + "sum(" + "1" + ") as t" + str(
+                                    (i * (self.model.input_size + 1)) + (j + 1)) + ","
                     else:
-                        if columns[i] == '1':
-                            sum_statement = sum_statement + "sum(" + columns[j] + ") as t" + str(
+                        if j < self.model.input_size:
+                            sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
                                 (i * (self.model.input_size + 1)) + (j + 1)) + ","
-                        elif columns[j] == '1':
-                            sum_statement = sum_statement + "sum(" + columns[i] + ") as t" + str(
-                                (i * (self.model.input_size + 1)) + (j + 1)) + ","
-                        elif columns[i] == '1' and columns[j] == '1':
-                            sum_statement = sum_statement + "sum(" + "1" + ") as t" + str(
-                                (i * (self.model.input_size + 1)) + (j + 1)) + ","
-                else:
-                    if j < self.model.input_size:
-                        sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
-                            (i * (self.model.input_size + 1)) + (j + 1)) + ","
-                    else:
-                        sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
-                            (i * (self.model.input_size + 1)) + (j + 1))
+                        else:
+                            sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
+                                (i * (self.model.input_size + 1)) + (j + 1))
 
             sum_statements.append(sum_statement)
-        print(sum_statements)
         sql_statement = self.sql_templates['select_sums'].render(table_input=self.model.input_table, sum_statements=sum_statements)
         logging.debug("SQL: " + str(sql_statement))
         return self.db_connection.execute_query(sql_statement)
 
     def estimate_fast(self):
         self.__init_result_table()
-        self.__calculate_equations_efficiently2()
-        sums = self.__calculate_equations_efficiently()[0]
         n = self.model.input_size
+
+        # TODO Further increase efficiency - experiment
+        sums_experimental = self.__calculate_equations_efficiently2()[0]
+        print(sums_experimental)
+        partial_equations = []
+        for x in sums_experimental:
+            partial_equations.append(x)
+        print(partial_equations)
+
+
+        sums = self.__calculate_equations_efficiently()[0]
         equations = []
         for i in range(n):
             values = []
