@@ -483,8 +483,19 @@ class LinearRegression:
             t_field = ""
             for j in range(self.model.input_size + 1):
                 if i < self.model.input_size - 1:
-                    sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
-                        (i*(self.model.input_size + 1)) + (j + 1)) + ","
+                    if columns[i] != '1' and columns[j] != '1':
+                        sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
+                            (i*(self.model.input_size + 1)) + (j + 1)) + ","
+                    else:
+                        if columns[i] == '1':
+                            sum_statement = sum_statement + "sum(" + columns[j] + ") as t" + str(
+                                (i * (self.model.input_size + 1)) + (j + 1)) + ","
+                        elif columns[j] == '1':
+                            sum_statement = sum_statement + "sum(" + columns[i] + ") as t" + str(
+                                (i * (self.model.input_size + 1)) + (j + 1)) + ","
+                        elif columns[i] == '1' and columns[j] == '1':
+                            sum_statement = sum_statement + "sum(" + "1" + ") as t" + str(
+                                (i * (self.model.input_size + 1)) + (j + 1)) + ","
                 else:
                     if j < self.model.input_size:
                         sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
