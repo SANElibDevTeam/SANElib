@@ -152,6 +152,7 @@ class LinearRegression:
             self.__calculate_equations()
         equations = self.__get_equations()
         xtx = equations[:, 1:self.model.input_size + 1]
+
         xty = equations[:, self.model.input_size + 1]
         theta = np.linalg.lstsq(xtx, xty, rcond=None)[0]
 
@@ -178,35 +179,27 @@ class LinearRegression:
         if ohe_handling:
             self.__manage_one_hot_encoding()
 
-        # self.__add_ones_column()
         self.__init_result_table()
         sums = self.__calculate_equations_efficiently2()[0]
-        n = 9
+        n = self.model.input_size
         equations = []
         for i in range(n):
             values = []
             for j in range(n+1):
-                values.append('{:.9f}'.format(sums[j+i*(n+1)]))
+                values.append(float('{:.9f}'.format(sums[j+i*(n+1)])))
             equations.append(values)
 
-        print(equations)
+        equations = np.asarray(equations)
 
+        xtx = equations[:, 0:self.model.input_size]
+        xty = equations[:, self.model.input_size]
+        theta = np.linalg.lstsq(xtx, xty, rcond=None)[0]
 
-
-
-
-
-
-
-        # xtx = equations[:, 1:self.model.input_size + 1]
-        # xty = equations[:, self.model.input_size + 1]
-        # theta = np.linalg.lstsq(xtx, xty, rcond=None)[0]
-        #
-        # for x in theta:
-        #     sql_statement = self.sql_templates['save_theta'].render(table="linreg_" + self.model.id + "_result",
-        #                                                             value=x)
-        #     logging.debug("SQL: " + str(sql_statement))
-        #     self.db_connection.execute(sql_statement)
+        for x in theta:
+            sql_statement = self.sql_templates['save_theta'].render(table="linreg_" + self.model.id + "_result",
+                                                                    value=x)
+            logging.debug("SQL: " + str(sql_statement))
+            self.db_connection.execute(sql_statement)
 
         if self.model.state < 1:
             self.model.state = 1
