@@ -141,15 +141,25 @@ class LinearRegression:
         if ohe_handling:
             self.__manage_one_hot_encoding()
 
-        # self.__add_ones_column()
-        self.__init_calculation_table()
-        self.__init_result_table()
         if len(self.model.x_columns) <= 34:
             # More efficient for large datasets, but only applicable for small number of columns.
-            self.__calculate_equations_efficiently()
+            self.estimate_fast()
         else:
             # Less efficient, but applicable for large numbers of columns.
-            self.__calculate_equations()
+            self.estimate_slow()
+
+        if self.model.state < 1:
+            self.model.state = 1
+            self.__save_model()
+        logging.info("\nESTIMATING FINISHED\n-----")
+        return self
+
+    def estimate_slow(self):
+        self.__calculate_equations()
+
+        self.__init_calculation_table()
+        self.__init_result_table()
+
         equations = self.__get_equations()
         xtx = equations[:, 1:self.model.input_size + 1]
 
@@ -162,23 +172,7 @@ class LinearRegression:
             logging.debug("SQL: " + str(sql_statement))
             self.db_connection.execute(sql_statement)
 
-        if self.model.state < 1:
-            self.model.state = 1
-            self.__save_model()
-        logging.info("\nESTIMATING FINISHED\n-----")
-        return self
-
-    def estimate2(self, table=None, x_columns=None, y_column=None, ohe_handling=False):
-        logging.info("\n-----\nESTIMATING")
-        if table is not None or x_columns is not None or y_column is not None:
-            self.model = Model(table, x_columns, y_column)
-        elif self.model is None:
-            raise Exception(
-                'No model parameters available! Please load/create a model or provide table, x_columns and y_column as parameters to this function!')
-
-        if ohe_handling:
-            self.__manage_one_hot_encoding()
-
+    def estimate_fast(self):
         self.__init_result_table()
         sums = self.__calculate_equations_efficiently2()[0]
         n = self.model.input_size
@@ -200,12 +194,6 @@ class LinearRegression:
                                                                     value=x)
             logging.debug("SQL: " + str(sql_statement))
             self.db_connection.execute(sql_statement)
-
-        if self.model.state < 1:
-            self.model.state = 1
-            self.__save_model()
-        logging.info("\nESTIMATING FINISHED\n-----")
-        return self
 
     def predict(self, table=None, x_columns=None):
         logging.info("\n-----\nPREDICTING")
