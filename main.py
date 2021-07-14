@@ -21,7 +21,6 @@ y_column = ["y"]
 # lr.estimate("example_bmi", ["Age", "Height_Inches"], ["BMI"])
 # lr.estimate("linreg_100000x16", x_columns, y_column)
 lr.estimate("linreg_100000x2", ["x1", "x2"], ["y"])
-print(lr.get_coefficients())
 
 # x_columns = ['Height_Inches', 'Weight_Pounds', 'Age']
 # y_column = ['BMI']

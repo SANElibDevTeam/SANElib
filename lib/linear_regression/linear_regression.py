@@ -143,33 +143,16 @@ class LinearRegression:
 
         if len(self.model.x_columns) <= 34:
             # More efficient for large datasets, but only applicable for small number of columns.
-            self.estimate_fast()
+            self.__estimate_fast()
         else:
             # Less efficient, but applicable for large numbers of columns.
-            self.estimate_slow()
+            self.__estimate_slow()
 
         if self.model.state < 1:
             self.model.state = 1
             self.__save_model()
         logging.info("\nESTIMATING FINISHED\n-----")
         return self
-
-    def estimate_slow(self):
-        self.__init_calculation_table()
-        self.__init_result_table()
-        self.__calculate_equations()
-
-        equations = self.__get_equations()
-        xtx = equations[:, 1:self.model.input_size + 1]
-
-        xty = equations[:, self.model.input_size + 1]
-        theta = np.linalg.lstsq(xtx, xty, rcond=None)[0]
-
-        for x in theta:
-            sql_statement = self.sql_templates['save_theta'].render(table="linreg_" + self.model.id + "_result",
-                                                                    value=x)
-            logging.debug("SQL: " + str(sql_statement))
-            self.db_connection.execute(sql_statement)
 
     def predict(self, table=None, x_columns=None):
         logging.info("\n-----\nPREDICTING")
@@ -514,7 +497,7 @@ class LinearRegression:
         logging.debug("SQL: " + str(sql_statement))
         return self.db_connection.execute_query(sql_statement)
 
-    def estimate_fast(self):
+    def __estimate_fast(self):
         self.__init_result_table()
         n = self.model.input_size
 
@@ -562,6 +545,23 @@ class LinearRegression:
 
         xtx = np.asarray(xtx_experimental)
         xty = np.asarray(xty_experimental)
+        theta = np.linalg.lstsq(xtx, xty, rcond=None)[0]
+
+        for x in theta:
+            sql_statement = self.sql_templates['save_theta'].render(table="linreg_" + self.model.id + "_result",
+                                                                    value=x)
+            logging.debug("SQL: " + str(sql_statement))
+            self.db_connection.execute(sql_statement)
+
+    def __estimate_slow(self):
+        self.__init_calculation_table()
+        self.__init_result_table()
+        self.__calculate_equations()
+
+        equations = self.__get_equations()
+        xtx = equations[:, 1:self.model.input_size + 1]
+
+        xty = equations[:, self.model.input_size + 1]
         theta = np.linalg.lstsq(xtx, xty, rcond=None)[0]
 
         for x in theta:
