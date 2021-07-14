@@ -167,6 +167,53 @@ class LinearRegression:
         logging.info("\nESTIMATING FINISHED\n-----")
         return self
 
+    def estimate2(self, table=None, x_columns=None, y_column=None, ohe_handling=False):
+        logging.info("\n-----\nESTIMATING")
+        if table is not None or x_columns is not None or y_column is not None:
+            self.model = Model(table, x_columns, y_column)
+        elif self.model is None:
+            raise Exception(
+                'No model parameters available! Please load/create a model or provide table, x_columns and y_column as parameters to this function!')
+
+        if ohe_handling:
+            self.__manage_one_hot_encoding()
+
+        # self.__add_ones_column()
+        self.__init_result_table()
+        sums = self.__calculate_equations_efficiently2()[0]
+        n = 9
+        equations = []
+        for i in range(n):
+            values = []
+            for j in range(n+1):
+                values.append('{:.9f}'.format(sums[j+i*(n+1)]))
+            equations.append(values)
+
+        print(equations)
+
+
+
+
+
+
+
+
+        # xtx = equations[:, 1:self.model.input_size + 1]
+        # xty = equations[:, self.model.input_size + 1]
+        # theta = np.linalg.lstsq(xtx, xty, rcond=None)[0]
+        #
+        # for x in theta:
+        #     sql_statement = self.sql_templates['save_theta'].render(table="linreg_" + self.model.id + "_result",
+        #                                                             value=x)
+        #     logging.debug("SQL: " + str(sql_statement))
+        #     self.db_connection.execute(sql_statement)
+
+        if self.model.state < 1:
+            self.model.state = 1
+            self.__save_model()
+        logging.info("\nESTIMATING FINISHED\n-----")
+        return self
+
     def predict(self, table=None, x_columns=None):
         logging.info("\n-----\nPREDICTING")
         if self.model is None:
@@ -465,6 +512,55 @@ class LinearRegression:
             logging.debug("SQL: " + str(sql_statement))
             self.db_connection.execute(sql_statement)
 
+    def __calculate_equations_efficiently2(self):
+        logging.info("CALCULATING EQUATIONS")
+        columns = ['1']
+        for i in range(len(self.model.x_columns)):
+            columns.append(self.model.x_columns[i])
+        columns.append(self.model.y_column[0])
+
+        x = []
+        for i in range(self.model.input_size):
+            x.append('x' + str(i))
+
+        sum_statements = []
+        t_fields = []
+        for i in range(self.model.input_size):
+            sum_statement = ""
+            t_field = ""
+            for j in range(self.model.input_size + 1):
+                if i < self.model.input_size - 1:
+                    if columns[i] != '1' and columns[j] != '1':
+                        sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
+                            (i * (self.model.input_size + 1)) + (j + 1)) + ","
+                    else:
+                        if columns[i] == '1':
+                            sum_statement = sum_statement + "sum(" + columns[j] + ") as t" + str(
+                                (i * (self.model.input_size + 1)) + (j + 1)) + ","
+                        elif columns[j] == '1':
+                            sum_statement = sum_statement + "sum(" + columns[i] + ") as t" + str(
+                                (i * (self.model.input_size + 1)) + (j + 1)) + ","
+                        elif columns[i] == '1' and columns[j] == '1':
+                            sum_statement = sum_statement + "sum(" + "1" + ") as t" + str(
+                                (i * (self.model.input_size + 1)) + (j + 1)) + ","
+                else:
+                    if j < self.model.input_size:
+                        sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
+                            (i * (self.model.input_size + 1)) + (j + 1)) + ","
+                    else:
+                        sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
+                            (i * (self.model.input_size + 1)) + (j + 1))
+                if j < self.model.input_size:
+                    t_field = t_field + "t" + str((i * (self.model.input_size + 1)) + (j + 1)) + ", "
+                else:
+                    t_field = t_field + "t" + str((i * (self.model.input_size + 1)) + (j + 1))
+
+            t_fields.append(t_field)
+            sum_statements.append(sum_statement)
+        sql_statement = self.sql_templates['select_sums'].render(table_input=self.model.input_table, sum_statements=sum_statements)
+        logging.debug("SQL: " + str(sql_statement))
+        return self.db_connection.execute_query(sql_statement)
+
     def __calculate_equations_efficiently(self):
         logging.info("CALCULATING EQUATIONS")
         columns = ['1']
@@ -485,7 +581,7 @@ class LinearRegression:
                 if i < self.model.input_size - 1:
                     if columns[i] != '1' and columns[j] != '1':
                         sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
-                            (i*(self.model.input_size + 1)) + (j + 1)) + ","
+                            (i * (self.model.input_size + 1)) + (j + 1)) + ","
                     else:
                         if columns[i] == '1':
                             sum_statement = sum_statement + "sum(" + columns[j] + ") as t" + str(
@@ -499,12 +595,12 @@ class LinearRegression:
                 else:
                     if j < self.model.input_size:
                         sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
-                            (i*(self.model.input_size + 1)) + (j + 1)) + ","
+                            (i * (self.model.input_size + 1)) + (j + 1)) + ","
                     else:
                         sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
-                            (i*(self.model.input_size + 1)) + (j + 1))
+                            (i * (self.model.input_size + 1)) + (j + 1))
                 if j < self.model.input_size:
-                    t_field = t_field + "t" + str((i*(self.model.input_size + 1)) + (j + 1)) + ", "
+                    t_field = t_field + "t" + str((i * (self.model.input_size + 1)) + (j + 1)) + ", "
                 else:
                     t_field = t_field + "t" + str((i * (self.model.input_size + 1)) + (j + 1))
 
@@ -521,5 +617,3 @@ class LinearRegression:
             t_fields=t_fields[:-1], last_t_field=t_fields[-1], x_columns=x)
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
-
-
