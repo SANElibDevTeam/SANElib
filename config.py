@@ -7,5 +7,5 @@ DB_PATH = "C:\\SQLite\\dbs\\test.db"
 DB_HOST = "localhost"
 DB_USER = "root"
 DB_PW = "root"
-DB_NAME = "ver2"
+DB_NAME = "test_4"
 DB_PORT = 3306
