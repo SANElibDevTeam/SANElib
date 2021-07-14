@@ -8,9 +8,9 @@ from util.database_functions.mysql import multiply_matrices
 # run(sanelib.mdh)
 
 # Run LinearRegression example
-# run_bmi_example()
+run_bmi_example()
 
-lr = sanelib.linear_regression
+# lr = sanelib.linear_regression
 # lr.set_log_level("DEBUG")
 
 # timer.start()
@@ -22,8 +22,8 @@ lr = sanelib.linear_regression
 # lr.estimate("linreg_100000x16", x_columns, y_column)
 # lr.estimate2("linreg_100000x2", ["x1", "x2"], ["y"])
 
-x_columns = ['Height_Inches', 'Weight_Pounds']
-y_column = ['BMI']
-lr.estimate("example_bmi", x_columns, y_column)
+# x_columns = ['Height_Inches', 'Weight_Pounds']
+# y_column = ['BMI']
+# lr.estimate("example_bmi", x_columns, y_column)
 
 # timer.end()

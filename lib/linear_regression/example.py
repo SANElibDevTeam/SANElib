@@ -3,7 +3,7 @@ import sanelib
 
 def run_bmi_example(table_name="example_bmi", prediction_table_name="prediction_bmi"):
     lr = sanelib.linear_regression
-    lr.set_log_level("DEBUG")
+    # lr.set_log_level("DEBUG")
 
     # Simple linear regression
     print("SIMPLE LINEAR REGRESSION")
@@ -26,7 +26,7 @@ def run_bmi_example(table_name="example_bmi", prediction_table_name="prediction_
     print(lr.get_score())
 
     # Model creation and handling
-    print("\nMODEL CREATION &HANDLING")
+    print("\nMODEL CREATION & HANDLING")
     x_columns = ['Sex', 'Age', 'Height_Inches', 'Weight_Pounds']
     y_column = ['BMI']
     lr.create_model(table_name, x_columns, y_column, "example_model")
