@@ -141,7 +141,7 @@ class LinearRegression:
         if ohe_handling:
             self.__manage_one_hot_encoding()
 
-        if len(self.model.x_columns) <= 34:
+        if len(self.model.x_columns) <= 64:
             # More efficient for large datasets, but only applicable for small number of columns.
             self.__estimate_fast()
         else:
@@ -416,14 +416,6 @@ class LinearRegression:
         sql_statement = self.sql_templates['init_score_table'].render(database=self.database, table=table)
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
-
-    def __add_ones_column(self):
-        logging.info("ADDING ONES COLUMN")
-        if 'linreg_ones' not in self.__get_column_names(self.model.input_table):
-            sql_statement = self.sql_templates['add_ones_column'].render(table=self.model.input_table,
-                                                                         column='linreg_ones')
-            logging.debug("SQL: " + str(sql_statement))
-            self.db_connection.execute(sql_statement)
 
     def __calculate_equations(self):
         logging.info("CALCULATING EQUATIONS SLOW")
