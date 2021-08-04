@@ -14,7 +14,7 @@ def visualize1D(self, feature1, target):
                 minimum = 'mn{}'.format(i)
                 maximum = 'mx_{}'.format(i)
 
-        num = self.db.executeQuery('Discretization 1d Numerical Histogram', '''
+        num = self.db.executeQuery('''
                     select distinct {} as xq, {} as mn, {} as mx, 
                     ({}+{})/2 as x_,
                     concat({}, ': ]', {}, ',', {}, ']') as bin, 
@@ -28,7 +28,7 @@ def visualize1D(self, feature1, target):
                                                              target,
                                                              bins,
                                                              self.model_id,
-                                                             bins))
+                                                             bins), 'Discretization 1d Numerical Histogram')
 
         hist_df = pd.DataFrame(num)
         columns = ['xq', 'mn', 'mx', 'x_', 'bin', 'p']
@@ -59,14 +59,15 @@ def visualize1D(self, feature1, target):
                 bins = 'xq{}'.format(i)
 
         # Categorical
-        cat = self.db.executeQuery('Discretization 1d Categorical Histogram', '''
+        cat = self.db.executeQuery('''
                     select distinct {} as xc, 
                     cast(y_ as char) as {},
                     sum(nxy)over(partition by {}, y_)*1.0/
                     sum(nxy) over()  as p 
                     from {}_m 
                     order by {}, cast(y_ as char);'''.format(feature1, target, bins,
-                                                             self.model_id, feature1))
+                                                             self.model_id, feature1),
+                                   'Discretization 1d Categorical Histogram')
 
         res_df = pd.DataFrame(cat)
         columns = ['xc', 'p']
@@ -99,7 +100,7 @@ def visualize2D(self, numFeat, catFeat, target):
                 minimum = 'mn{}'.format(i)
                 maximum = 'mx_{}'.format(i)
 
-        multi = self.db.executeQuery('2d Discretization Histogram Estimation', '''
+        multi = self.db.executeQuery('''
                     select distinct {} as xq, {} as mn, {} as mx, 
                     ({}+{})/2 as x_,
                     concat({}, ': ]', {}, ',', {}, ']') as bin,
@@ -109,13 +110,13 @@ def visualize2D(self, numFeat, catFeat, target):
                     sum(nxy) over()  as p 
                     from {}_m 
                     order by {}, xc, cast(y_ as char);'''.format(bins, minimum, maximum,
-                                                                  maximum, minimum,
-                                                                  bins, minimum, maximum,
-                                                                  feature1,
-                                                                  target,
-                                                                  feature1, bins,
-                                                                  self.model_id,
-                                                                  bins))
+                                                                 maximum, minimum,
+                                                                 bins, minimum, maximum,
+                                                                 feature1,
+                                                                 target,
+                                                                 feature1, bins,
+                                                                 self.model_id,
+                                                                 bins), '2d Discretization Histogram Estimation')
 
         dim2 = pd.DataFrame(multi)
         columns = ['xq', 'mn', 'mx', 'x_', 'bin', 'xc', 'p']

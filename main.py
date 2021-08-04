@@ -3,7 +3,8 @@
 # (c) 2021        Michael Kaufmann, Gabriel Stechschulte, Anna Huber, HSLU
 
 # coding: utf-8
-import MDH
+from SaneLib import SaneLib
+from DataBase import MetaData
 import constants as cns
 import time
 import matplotlib.pyplot as plt
@@ -11,46 +12,75 @@ import matplotlib.pyplot as plt
 # starting time
 start = time.time()
 
-db = {
-        'drivername': 'mysql+mysqlconnector',
-        'host': cns.DB_HOST,
-        'port': cns.DB_PORT,
-        'username': cns.DB_USER,
-        'password': cns.DB_PW,
-        'database': cns.DB_NAME,
-        'query': {'charset': 'utf8'}
-    }
+sl = SaneLib({
+    'drivername': 'mysql+mysqlconnector',
+    'host': 'localhost',
+    'port': 3306,
+    'username': 'root',
+    'password': 'ahjsdnva8s79d',
+    'database': 'dbml',
+    'query': {'charset': 'utf8'}
+})
 
-classifier = MDH.SaneProbabilityEstimator(db, 'iris', 'class', bins=4)
+model_id='covtyp'
 
-classifier.rank()
+sl.db.createView('covtyp_rand', 'select rand() as r, c.* from dbml.covtypall c', materialized=False)
+sl.db.createView('covtyp_train', 'select * from covtyp_rand where r < 0.75', materialized=True)
+sl.db.createView('covtyp_eval', 'select * from covtyp_rand where r >= 0.75', materialized=True)
 
-print(f"Runtime of the program is { time.time() - start} seconds")
+table_train='covtyp_train'
+table_eval='covtyp_eval'
 
-#TODO automate attribute selection based on threshold
+cat_cols = [
+    'Wilderness_Area',
+    'Soil_Type',
+]
 
-#TODO subsample
-classifier.train_test_split(1, 0.8)
+num_cols = [
+        'Elevation',
+        'Aspect',
+        'Slope',
+        'Horizontal_Distance_To_Hydrology',
+        'Vertical_Distance_To_Hydrology',
+        'Horizontal_Distance_To_Roadways',
+        'Hillshade_9am',
+        'Hillshade_Noon',
+        'Hillshade_3pm',
+        'Horizontal_Distance_To_Fire_Points',
+]
+
+bins = 39
+
+target = 'Cover_Type'
+
+mdh = sl.mdh(model_id)
+
+mdh.descriptive_statistics(table_train, cat_cols,num_cols, bins)
+
+mdh.contingency_table_1d(table_train, cat_cols,num_cols, bins, target)
+
+ranked_columns = mdh.rank_columns_1d()
+
+print(f"-- Runtime of the program is {time.time() - start} seconds")
 
 # Training phase: _qt is trained on 0.8 of table ; _qmt based off of _qt ; _m based off of _qt
-classifier.train(catFeatures=[], numFeatures = ['petalwidth', 'petallength', 'sepallength'])
-print(f"Runtime of the program is {time.time() - start} seconds")
 
-# Visualization methods
-#classifier.visualize1D('Wilderness_Area', 'Covertype')
-#classifier.visualize2D('Elevation', 'Wilderness_Area', 'CoverType')
+mdh.train(
+    table_train=table_train,
+    catFeatures=['Soil_Type', 'Wilderness_Area'],
+    numFeatures=['Elevation','Horizontal_Distance_To_Roadways', 'Horizontal_Distance_To_Fire_Points'],
+    target=target,
+    bins=bins
+)
 
-# Predicting on test set: _qe tested on 0.2 of table ; _qe_ix based off of _qe ; _p ; _p_update
-classifier.predict()
-print(f"Runtime of the program is {time.time() - start} seconds")
+print(f"-- Runtime of the program is {time.time() - start} seconds")
 
-classifier.accuracy()
+mdh.predict(table_eval='table_eval')
+print(f"-- Runtime of the program is {time.time() - start} seconds")
 
+mdh.accuracy()
 
-# end time
-end = time.time()
+mdh.update_bayes()
+print(f"-- Runtime of the program is {time.time() - start} seconds")
 
-# total time taken
-print(f"Runtime of the program is {time.time() - start} seconds")
-
-# print('Training accuracy = ', classifier.trainingAccuracy())
+mdh.accuracy()
