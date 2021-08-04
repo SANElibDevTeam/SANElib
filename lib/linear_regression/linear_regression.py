@@ -502,9 +502,9 @@ class LinearRegression:
         # Split xtx and xty and fill in mirrored values in xtx
         y_value_position = n
         x_value_position = 0
-        xtx_experimental = []
+        xtx_temp = []
         xtx_partial = []
-        xty_experimental = []
+        xty_temp = []
         for i in range(n):
             for x in partial_equations[x_value_position:x_value_position + n - i]:
                 xtx_partial.append(x)
@@ -529,14 +529,14 @@ class LinearRegression:
             value_distance = value_distance - 1
 
             start_filling = True
-            xtx_experimental.append(current_row)
+            xtx_temp.append(current_row)
 
         for i in range(n):
-            xty_experimental.append(partial_equations[y_value_position])
+            xty_temp.append(partial_equations[y_value_position])
             y_value_position = y_value_position + n - i
 
-        xtx = np.asarray(xtx_experimental)
-        xty = np.asarray(xty_experimental)
+        xtx = np.asarray(xtx_temp)
+        xty = np.asarray(xty_temp)
         theta = np.linalg.lstsq(xtx, xty, rcond=None)[0]
 
         for x in theta:
