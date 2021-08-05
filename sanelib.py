@@ -1,6 +1,6 @@
 # SANElib Prototype
 # Standard-SQL Analytics for Numerical Estimation – SANE
-# (c) 2020  Michael Kaufmann, Gabriel Stechschulte, Anna Huber, HSLU
+# (c) 2020  Giesser Patrick, Michael Kaufmann, Gabriel Stechschulte, Anna Huber, HSLU
 
 import config as conf
 import lib

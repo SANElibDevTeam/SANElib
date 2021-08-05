@@ -2,7 +2,6 @@ from jinja2 import Template
 from lib.mdh import sql_templates as sql
 from plotnine import ggplot, aes, geom_line, geom_point, geom_col, labs, theme, element_text, theme_bw, facet_wrap
 import pandas as pd
-from util.database import Database
 
 
 class MDH:
