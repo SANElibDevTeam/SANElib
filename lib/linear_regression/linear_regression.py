@@ -141,7 +141,7 @@ class LinearRegression:
         if ohe_handling:
             self.__manage_one_hot_encoding()
 
-        if len(self.model.x_columns) <= 64:
+        if len(self.model.x_columns) <= 512:
             # More efficient for large datasets, but only applicable for small number of columns.
             self.__estimate_fast()
         else:
