@@ -136,6 +136,14 @@ tmpl_mysql['save_theta'] = Template('''
             VALUES ({{ value }});
             ''')
 
+tmpl_mysql['save_theta_fast'] = Template('''
+            INSERT INTO {{ table }} VALUES
+                {% for theta_statement in theta_statements %}
+                    {{ theta_statement }}
+                {% endfor %}
+            ;
+            ''')
+
 tmpl_mysql['calculate_save_score'] = Template('''
             INSERT INTO {{ table_id }}_score (score)
             SELECT 1-((sum(({{ y }}-y_prediction)*({{ y }}-y_prediction)))/(sum(({{ y }}-y_avg)*({{ y }}-y_avg)))) FROM

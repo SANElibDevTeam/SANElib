@@ -11,7 +11,7 @@ number_of_columns = 2
 test_data_path = "/X/linreg_X.csv"
 
 # Used for sanelib verification
-table_name = "linreg_X"
+table_name = "linreg_1000x2"
 
 
 def run_sanelib_verification():
@@ -23,6 +23,7 @@ def run_sanelib_verification():
     y = ['y']
 
     lr = sanelib.linear_regression
+    lr.set_log_level("DEBUG")
     lr.estimate(table_name, X, y)
 
     timer.end()
@@ -46,4 +47,4 @@ def run_sklearn_verification():
 
 if __name__ == "__main__":
     run_sanelib_verification()
-    run_sklearn_verification()
+    # run_sklearn_verification()
