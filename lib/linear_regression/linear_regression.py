@@ -539,12 +539,6 @@ class LinearRegression:
         xty = np.asarray(xty_temp)
         theta = np.linalg.lstsq(xtx, xty, rcond=None)[0]
 
-        for x in theta:
-            sql_statement = self.sql_templates['save_theta'].render(table="linreg_" + self.model.id + "_result",
-                                                                    value=x)
-            logging.debug("SQL: " + str(sql_statement))
-            self.db_connection.execute(sql_statement)
-
         theta_statements = []
         for i in range(len(theta)):
             theta_statement = '(' + str(i + 1) + ', ' + str(theta[i]) + ')'
@@ -553,8 +547,8 @@ class LinearRegression:
             theta_statements.append(theta_statement)
 
         sql_statement = self.sql_templates['save_theta_fast'].render(table="linreg_" + self.model.id + "_result",
-                                                                    theta_statements=theta_statements)
-        print(sql_statement)
+                                                                     theta_statements=theta_statements)
+        self.db_connection.execute(sql_statement)
 
     def __estimate_slow(self):
         self.__init_calculation_table()
