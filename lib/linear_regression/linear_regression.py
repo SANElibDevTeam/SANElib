@@ -548,6 +548,7 @@ class LinearRegression:
 
         sql_statement = self.sql_templates['save_theta_fast'].render(table="linreg_" + self.model.id + "_result",
                                                                      theta_statements=theta_statements)
+        logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
 
     def __estimate_slow(self):
