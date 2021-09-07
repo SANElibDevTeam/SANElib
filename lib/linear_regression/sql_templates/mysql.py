@@ -158,11 +158,3 @@ tmpl_mysql['select_sums_high_dimensional'] = Template('''
                 {% endfor %}
             ;
             ''')
-
-tmpl_mysql['insert_into_union'] = Template('''
-            INSERT INTO {{ table }}({% for x in x_columns %}{{ x }}, {% endfor %}y)
-                {% for t_field in t_fields %}
-                    SELECT {{ t_field }} FROM {{ view }} UNION
-                {% endfor %}
-                    SELECT {{ last_t_field }} FROM {{ view }};
-            ''')

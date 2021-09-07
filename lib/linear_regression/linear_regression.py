@@ -142,11 +142,11 @@ class LinearRegression:
             self.__manage_one_hot_encoding()
 
         if len(self.model.x_columns) <= 100:
-            self.__estimate_fast()
+            self.__estimate_theta()
         elif len(self.model.x_columns) <= 512:
-            self.__estimate_fast(high_dimensional=True)
+            self.__estimate_theta(high_dimensional=True)
         else:
-            raise Exception('Maximum number of input variables is 512!')
+            raise Exception('Maximum number of input variables is 512! Please reduce input dimensionality')
 
         if self.model.state < 1:
             self.model.state = 1
@@ -350,14 +350,6 @@ class LinearRegression:
 
         return self
 
-    def __get_equations(self):
-        logging.info("GETTING EQUATIONS")
-        sql_statement = self.sql_templates['get_all_from'].render(database=self.database,
-                                                                  table="linreg_" + self.model.id + "_calculation")
-        logging.debug("SQL: " + str(sql_statement))
-        data = self.db_connection.execute_query(sql_statement)
-        return np.asarray(data, dtype='double')
-
     def __get_column_names(self, table):
         logging.info("GETTING COLUMN NAMES")
         sql_statement = self.sql_templates['table_columns'].render(database=self.database, table=table)
@@ -402,7 +394,7 @@ class LinearRegression:
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
 
-    def __calculate_equations_efficiently(self):
+    def __calculate_equations(self):
         logging.info("CALCULATING EQUATIONS")
         columns = ['1']
         for i in range(len(self.model.x_columns)):
@@ -414,32 +406,20 @@ class LinearRegression:
             x.append('x' + str(i))
 
         sum_statements = []
+        # i ~ rows
         for i in range(self.model.input_size):
             sum_statement = ""
-            t_field = ""
+            # j ~ columns
             for j in range(self.model.input_size + 1):
+                # If above diagonal of the calculation matrix XTX.
                 if j >= i:
                     if i < self.model.input_size - 1:
-                        if columns[i] != '1' and columns[j] != '1':
-                            sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
-                                (i * (self.model.input_size + 1)) + (j + 1)) + ","
-                        else:
-                            if columns[i] == '1':
-                                sum_statement = sum_statement + "sum(" + columns[j] + ") as t" + str(
-                                    (i * (self.model.input_size + 1)) + (j + 1)) + ","
-                            elif columns[j] == '1':
-                                sum_statement = sum_statement + "sum(" + columns[i] + ") as t" + str(
-                                    (i * (self.model.input_size + 1)) + (j + 1)) + ","
-                            elif columns[i] == '1' and columns[j] == '1':
-                                sum_statement = sum_statement + "sum(" + "1" + ") as t" + str(
-                                    (i * (self.model.input_size + 1)) + (j + 1)) + ","
+                        sum_statement = sum_statement + self.__get_sum_statement(columns, i, j) + ", "
                     else:
                         if j < self.model.input_size:
-                            sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
-                                (i * (self.model.input_size + 1)) + (j + 1)) + ","
+                            sum_statement = sum_statement + self.__get_sum_statement(columns, i, j) + ", "
                         else:
-                            sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
-                                (i * (self.model.input_size + 1)) + (j + 1))
+                            sum_statement = sum_statement + self.__get_sum_statement(columns, i, j)
 
             sum_statements.append(sum_statement)
         sql_statement = self.sql_templates['select_sums'].render(table_input=self.model.input_table,
@@ -471,7 +451,7 @@ class LinearRegression:
                             sum_statement = sum_statement + self.__get_sum_statement(columns, i, j) + ", "
                         else:
                             sum_statement = sum_statement + self.__get_sum_statement(columns, i,
-                                                                                   j) + " FROM " + self.model.input_table
+                                                                                     j) + " FROM " + self.model.input_table
                 else:
                     sum_statement = sum_statement + "NULL, "
 
@@ -509,13 +489,13 @@ class LinearRegression:
 
         return sum_statement
 
-    def __estimate_fast(self, high_dimensional=False):
+    def __estimate_theta(self, high_dimensional=False):
         self.__init_result_table()
         n = self.model.input_size
 
         # Only query for unique values (everything above the diagonal)
         if not high_dimensional:
-            sum_values = self.__calculate_equations_efficiently()[0]
+            sum_values = self.__calculate_equations()[0]
         else:
             sum_values = self.__calculate_equations_high_dimensional()
         partial_equations = []
@@ -570,6 +550,6 @@ class LinearRegression:
             theta_statements.append(theta_statement)
 
         sql_statement = self.sql_templates['save_theta'].render(table="linreg_" + self.model.id + "_result",
-                                                                     theta_statements=theta_statements)
+                                                                theta_statements=theta_statements)
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
