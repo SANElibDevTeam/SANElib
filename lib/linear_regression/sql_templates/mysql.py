@@ -17,17 +17,18 @@ tmpl_mysql['get_all_from_where_id'] = Template('''
 tmpl_mysql['delete_from_table_where_id'] = Template('''
             DELETE FROM {{ table }} WHERE id='{{ where_statement }}';
             ''')
+
 tmpl_mysql['set_safe_updates'] = Template('''
             SET SQL_SAFE_UPDATES = {{ value }};
             ''')
 
 tmpl_mysql['table_columns'] = Template('''
-            SELECT column_name FROM INFORMATION_SCHEMA.COLUMNS 
+            SELECT column_name FROM INFORMATION_SCHEMA.COLUMNS
             WHERE TABLE_SCHEMA='{{ database }}' AND TABLE_NAME='{{ table }}';
             ''')
 
 tmpl_mysql['column_type'] = Template('''
-            SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS 
+            SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS
             WHERE table_name = '{{ table }}' and column_name='{{ column }}';
             ''')
 
@@ -82,17 +83,6 @@ tmpl_mysql['init_model_table'] = Template('''
             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
             ''')
 
-tmpl_mysql['init_calculation_table'] = Template('''
-            CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
-                id INT NOT NULL AUTO_INCREMENT,
-                {% for x in x_columns %}
-                    {{ x }} DOUBLE NULL,
-                {% endfor %}
-                y DOUBLE NULL,
-            PRIMARY KEY (id),
-            UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
-            ''')
-
 tmpl_mysql['init_result_table'] = Template('''
             CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
                 id INT NOT NULL AUTO_INCREMENT,
@@ -118,7 +108,7 @@ tmpl_mysql['init_score_table'] = Template('''
             ''')
 
 tmpl_mysql['calculate_equations'] = Template('''
-            INSERT INTO {{ table }}({% for x in x_columns %}{{ x }}, {% endfor %}y) 
+            INSERT INTO {{ table }}({% for x in x_columns %}{{ x }}, {% endfor %}y)
             VALUES(
                 {% for sum_statement in sum_statements %}
                     (SELECT {{ sum_statement }}
@@ -127,16 +117,11 @@ tmpl_mysql['calculate_equations'] = Template('''
             ''')
 
 tmpl_mysql['predict'] = Template('''
-            INSERT INTO {{ table }} (y_prediction) 
+            INSERT INTO {{ table }} (y_prediction)
             SELECT {{ prediction_statement }} FROM {{ input_table }};;
             ''')
 
 tmpl_mysql['save_theta'] = Template('''
-            INSERT INTO {{ table }} (theta)
-            VALUES ({{ value }});
-            ''')
-
-tmpl_mysql['save_theta_fast'] = Template('''
             INSERT INTO {{ table }} VALUES
                 {% for theta_statement in theta_statements %}
                     {{ theta_statement }}
@@ -155,30 +140,24 @@ tmpl_mysql['calculate_save_score'] = Template('''
             (SELECT avg({{ y }}) as y_avg FROM {{ input_table }}) as subquery2;
             ''')
 
-tmpl_mysql['create_sum_view'] = Template('''
-            CREATE OR REPLACE VIEW
-            {{ table }} AS SELECT 
-                {% for sum_statement in sum_statements %}
-                    {{ sum_statement }}
-                {% endfor %}
-            FROM {{ table_input }};
-            ''')
-
 tmpl_mysql['select_sums'] = Template('''
-            SELECT 
+            SELECT
                 {% for sum_statement in sum_statements %}
                     {{ sum_statement }}
+                    {% if not loop.last %}
+                    UNION SELECT
+                    {% endif %}
                 {% endfor %}
             FROM {{ table_input }};
             ''')
 
 tmpl_mysql['select_sums_high_dimensional'] = Template('''
-            SELECT 
+            SELECT
                 {% for sum_statement in sum_statements %}
                     {{ sum_statement }}
                     {% if not loop.last %}
                     UNION SELECT
-                    {% endif %} 
+                    {% endif %}
                 {% endfor %}
             ;
             ''')
@@ -187,6 +166,6 @@ tmpl_mysql['insert_into_union'] = Template('''
             INSERT INTO {{ table }}({% for x in x_columns %}{{ x }}, {% endfor %}y)
                 {% for t_field in t_fields %}
                     SELECT {{ t_field }} FROM {{ view }} UNION
-                {% endfor %} 
+                {% endfor %}
                     SELECT {{ last_t_field }} FROM {{ view }};
             ''')

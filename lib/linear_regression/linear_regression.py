@@ -130,7 +130,7 @@ class LinearRegression:
         return "Model " + self.model.id + "\n" + "Name: " + self.model.name + "\n" + "Input table: " + self.model.input_table + "\n" + "X columns: " + str(
             self.model.x_columns) + "\n" + "Y column: " + str(self.model.y_column)
 
-    def estimate(self, table=None, x_columns=None, y_column=None, ohe_handling=False):
+    def estimate(self, table=None, x_columns=None, y_column=None, one_hot_encoding_handling=False):
         logging.info("\n-----\nESTIMATING")
         if table is not None or x_columns is not None or y_column is not None:
             self.model = Model(table, x_columns, y_column)
@@ -138,7 +138,7 @@ class LinearRegression:
             raise Exception(
                 'No model parameters available! Please load/create a model or provide table, x_columns and y_column as parameters to this function!')
 
-        if ohe_handling:
+        if one_hot_encoding_handling:
             self.__manage_one_hot_encoding()
 
         if len(self.model.x_columns) <= 100:
@@ -255,16 +255,16 @@ class LinearRegression:
 
     def __manage_one_hot_encoding(self):
         logging.info("MANAGING ONE HOT ENCODING")
-        self.__manage_ohe_columns(self.model.input_table, self.model.x_columns)
+        self.__manage_one_hot_encoding_columns(self.model.input_table, self.model.x_columns)
 
         # Update input_size
         self.model.update_input_size()
 
     def __manage_prediction_one_hot_encoding(self):
         logging.info("MANAGING ONE HOT ENCODING FOR PREDICTION")
-        self.__manage_ohe_columns(self.model.prediction_table, self.model.prediction_columns)
+        self.__manage_one_hot_encoding_columns(self.model.prediction_table, self.model.prediction_columns)
 
-    def __manage_ohe_columns(self, table, columns):
+    def __manage_one_hot_encoding_columns(self, table, columns):
         # Check all columns
         for x in columns:
             sql_statement = self.sql_templates['column_type'].render(table=table, column=x)
@@ -414,37 +414,34 @@ class LinearRegression:
             x.append('x' + str(i))
 
         sum_statements = []
+        # i ~ rows
         for i in range(self.model.input_size):
             sum_statement = ""
+            # j ~ columns
             for j in range(self.model.input_size + 1):
+                # If above diagonal of the calculation matrix XTX.
                 if j >= i:
-                    if i < self.model.input_size - 1:
-                        if columns[i] != '1' and columns[j] != '1':
-                            sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
-                                (i * (self.model.input_size + 1)) + (j + 1)) + ","
+                    if i < self.model.input_size - 0:
+                        if (j + 1 - i) < (self.model.input_size + 1 - i):
+                            sum_statement = sum_statement + self.get_sum_statement(columns, i, j) + ", "
                         else:
-                            if columns[i] == '1':
-                                sum_statement = sum_statement + "sum(" + columns[j] + ") as t" + str(
-                                    (i * (self.model.input_size + 1)) + (j + 1)) + ","
-                            elif columns[j] == '1':
-                                sum_statement = sum_statement + "sum(" + columns[i] + ") as t" + str(
-                                    (i * (self.model.input_size + 1)) + (j + 1)) + ","
-                            elif columns[i] == '1' and columns[j] == '1':
-                                sum_statement = sum_statement + "sum(" + "1" + ") as t" + str(
-                                    (i * (self.model.input_size + 1)) + (j + 1)) + ","
-                    else:
-                        if j < self.model.input_size:
-                            sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
-                                (i * (self.model.input_size + 1)) + (j + 1)) + ","
-                        else:
-                            sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
-                                (i * (self.model.input_size + 1)) + (j + 1))
+                            sum_statement = sum_statement + self.get_sum_statement(columns, i, j) + " FROM " + self.model.input_table
+                else:
+                    sum_statement = sum_statement + "NULL, "
 
             sum_statements.append(sum_statement)
-        sql_statement = self.sql_templates['select_sums'].render(table_input=self.model.input_table,
-                                                                 sum_statements=sum_statements)
+
+        sql_statement = self.sql_templates['select_sums'].render(sum_statements=sum_statements)
         logging.debug("SQL: " + str(sql_statement))
-        return self.db_connection.execute_query(sql_statement)
+        result = self.db_connection.execute_query(sql_statement)
+
+        sum_values = []
+        for x in result:
+            for y in x:
+                if y is not None:
+                    sum_values.append(y)
+
+        return sum_values
 
     def __calculate_equations_high_dimensional(self):
         logging.info("CALCULATING EQUATIONS")
@@ -568,7 +565,7 @@ class LinearRegression:
                 theta_statement = theta_statement + ','
             theta_statements.append(theta_statement)
 
-        sql_statement = self.sql_templates['save_theta_fast'].render(table="linreg_" + self.model.id + "_result",
+        sql_statement = self.sql_templates['save_theta'].render(table="linreg_" + self.model.id + "_result",
                                                                      theta_statements=theta_statements)
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
