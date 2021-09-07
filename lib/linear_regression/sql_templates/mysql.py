@@ -107,15 +107,6 @@ tmpl_mysql['init_score_table'] = Template('''
             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
             ''')
 
-tmpl_mysql['calculate_equations'] = Template('''
-            INSERT INTO {{ table }}({% for x in x_columns %}{{ x }}, {% endfor %}y)
-            VALUES(
-                {% for sum_statement in sum_statements %}
-                    (SELECT {{ sum_statement }}
-                {% endfor %}
-            );
-            ''')
-
 tmpl_mysql['predict'] = Template('''
             INSERT INTO {{ table }} (y_prediction)
             SELECT {{ prediction_statement }} FROM {{ input_table }};;
