@@ -363,21 +363,6 @@ class LinearRegression:
         data = self.db_connection.execute_query(sql_statement)
         return np.asarray(data)
 
-    def __init_calculation_table(self):
-        logging.info("INITIALIZING CALCULATION TABLE")
-        sql_statement = self.sql_templates['drop_table'].render(table='linreg_' + self.model.id + '_calculation')
-        logging.debug("SQL: " + str(sql_statement))
-        self.db_connection.execute(sql_statement)
-
-        x = []
-        for i in range(self.model.input_size):
-            x.append('x' + str(i))
-        sql_statement = self.sql_templates['init_calculation_table'].render(database=self.database,
-                                                                            table='linreg_' + self.model.id + '_calculation',
-                                                                            x_columns=x)
-        logging.debug("SQL: " + str(sql_statement))
-        self.db_connection.execute(sql_statement)
-
     def __init_model_table(self, table):
         logging.info("INITIALIZING MODEL TABLE")
         sql_statement = self.sql_templates['init_model_table'].render(database=self.database, table=table)
@@ -532,7 +517,7 @@ class LinearRegression:
                 theta_statement = theta_statement + ','
             theta_statements.append(theta_statement)
 
-        sql_statement = self.sql_templates['save_theta_fast'].render(table="linreg_" + self.model.id + "_result",
+        sql_statement = self.sql_templates['save_theta'].render(table="linreg_" + self.model.id + "_result",
                                                                      theta_statements=theta_statements)
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
