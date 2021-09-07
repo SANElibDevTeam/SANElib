@@ -411,7 +411,7 @@ class LinearRegression:
             sum_statement = ""
             # j ~ columns
             for j in range(self.model.input_size + 1):
-                # If above diagonal of the calculation matrix XTX.
+                # If above the diagonal of the calculation matrix XTX.
                 if j >= i:
                     if i < self.model.input_size - 1:
                         sum_statement = sum_statement + self.__get_sum_statement(columns, i, j) + ", "
@@ -444,7 +444,7 @@ class LinearRegression:
             sum_statement = ""
             # j ~ columns
             for j in range(self.model.input_size + 1):
-                # If above diagonal of the calculation matrix XTX.
+                # If above the diagonal of the calculation matrix XTX.
                 if j >= i:
                     if i < self.model.input_size - 0:
                         if (j + 1 - i) < (self.model.input_size + 1 - i):
