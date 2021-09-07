@@ -23,10 +23,9 @@ def run_sanelib_verification():
     y = ['y']
 
     lr = sanelib.linear_regression
-    # lr.set_log_level("DEBUG")
     lr.estimate(table_name, X, y)
 
-    # timer.end()
+    timer.end()
 
 
 def run_sklearn_verification():
