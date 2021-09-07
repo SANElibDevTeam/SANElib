@@ -141,12 +141,9 @@ tmpl_mysql['calculate_save_score'] = Template('''
             ''')
 
 tmpl_mysql['select_sums'] = Template('''
-            SELECT
+            SELECT 
                 {% for sum_statement in sum_statements %}
                     {{ sum_statement }}
-                    {% if not loop.last %}
-                    UNION SELECT
-                    {% endif %}
                 {% endfor %}
             FROM {{ table_input }};
             ''')
