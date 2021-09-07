@@ -430,8 +430,9 @@ class LinearRegression:
             sum_statements.append(sum_statement)
 
         sql_statement = self.sql_templates['select_sums'].render(sum_statements=sum_statements)
-
+        logging.debug("SQL: " + str(sql_statement))
         result = self.db_connection.execute_query(sql_statement)
+
         sum_values = []
         for x in result:
             for y in x:
