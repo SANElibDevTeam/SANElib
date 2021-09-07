@@ -462,10 +462,10 @@ class LinearRegression:
         result = self.db_connection.execute_query(sql_statement)
 
         sum_values = []
-        for x in result:
-            for y in x:
-                if y is not None:
-                    sum_values.append(y)
+        for row in result:
+            for value in row:
+                if value is not None:
+                    sum_values.append(value)
 
         return sum_values
 
@@ -498,6 +498,7 @@ class LinearRegression:
             sum_values = self.__calculate_equations()[0]
         else:
             sum_values = self.__calculate_equations_high_dimensional()
+
         partial_equations = []
         for x in sum_values:
             partial_equations.append(float(x))
