@@ -8,5 +8,5 @@ from util.database_functions.mysql import multiply_matrices
 # run(sanelib.mdh)
 
 # Run LinearRegression example
-run_bmi_example()
+# run_bmi_example()
 
