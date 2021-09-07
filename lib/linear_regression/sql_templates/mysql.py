@@ -176,6 +176,9 @@ tmpl_mysql['select_sums_experimental'] = Template('''
             SELECT 
                 {% for sum_statement in sum_statements %}
                     {{ sum_statement }}
+                    {% if not loop.last %}
+                    UNION SELECT
+                    {% endif %} 
                 {% endfor %}
             ;
             ''')

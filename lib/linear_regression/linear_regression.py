@@ -489,29 +489,13 @@ class LinearRegression:
             sum_statement = ""
             for j in range(self.model.input_size + 1):
                 if j >= i:
-                    print("i: " + str(self.model.input_size + 1 - i))
-                    print("j: " + str(j + 1 - i))
-                    if i < self.model.input_size - 1:
-                        if columns[i] != '1' and columns[j] != '1':
-                            sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
-                                (i * (self.model.input_size + 1)) + (j + 1)) + ","
+                    if i < self.model.input_size - 0:
+                        if (j + 1 - i) < (self.model.input_size + 1 - i):
+                            sum_statement = sum_statement + self.get_sum_statement(columns, i, j) + ", "
                         else:
-                            if columns[i] == '1':
-                                sum_statement = sum_statement + "sum(" + columns[j] + ") as t" + str(
-                                    (i * (self.model.input_size + 1)) + (j + 1)) + ","
-                            elif columns[j] == '1':
-                                sum_statement = sum_statement + "sum(" + columns[i] + ") as t" + str(
-                                    (i * (self.model.input_size + 1)) + (j + 1)) + ","
-                            elif columns[i] == '1' and columns[j] == '1':
-                                sum_statement = sum_statement + "sum(" + "1" + ") as t" + str(
-                                    (i * (self.model.input_size + 1)) + (j + 1)) + ","
-                    else:
-                        if j < self.model.input_size:
-                            sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
-                                (i * (self.model.input_size + 1)) + (j + 1)) + ","
-                        else:
-                            sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
-                                (i * (self.model.input_size + 1)) + (j + 1))
+                            sum_statement = sum_statement + self.get_sum_statement(columns, i, j) + " FROM " + self.model.input_table
+                else:
+                    sum_statement = sum_statement + "NULL, "
 
             sum_statements_experimental.append(sum_statement)
 
@@ -525,6 +509,24 @@ class LinearRegression:
         result_temp = self.db_connection.execute_query(sql_statement)
         # print(result_temp)
         return result_temp
+
+    def get_sum_statement(self, columns, i, j):
+        sum_statement = ""
+        if columns[i] != '1' and columns[j] != '1':
+            sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
+                (i * (self.model.input_size + 1)) + (j + 1))
+        else:
+            if columns[i] == '1':
+                sum_statement = sum_statement + "sum(" + columns[j] + ") as t" + str(
+                    (i * (self.model.input_size + 1)) + (j + 1))
+            elif columns[j] == '1':
+                sum_statement = sum_statement + "sum(" + columns[i] + ") as t" + str(
+                    (i * (self.model.input_size + 1)) + (j + 1))
+            elif columns[i] == '1' and columns[j] == '1':
+                sum_statement = sum_statement + "sum(" + "1" + ") as t" + str(
+                    (i * (self.model.input_size + 1)) + (j + 1))
+
+        return sum_statement
 
     def __estimate_fast(self):
         self.__init_result_table()
