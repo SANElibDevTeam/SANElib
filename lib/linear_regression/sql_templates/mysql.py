@@ -172,6 +172,14 @@ tmpl_mysql['select_sums'] = Template('''
             FROM {{ table_input }};
             ''')
 
+tmpl_mysql['select_sums_experimental'] = Template('''
+            SELECT 
+                {% for sum_statement in sum_statements %}
+                    {{ sum_statement }}
+                {% endfor %}
+            ;
+            ''')
+
 tmpl_mysql['insert_into_union'] = Template('''
             INSERT INTO {{ table }}({% for x in x_columns %}{{ x }}, {% endfor %}y)
                 {% for t_field in t_fields %}

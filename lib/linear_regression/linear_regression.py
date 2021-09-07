@@ -458,7 +458,6 @@ class LinearRegression:
         sum_statements = []
         for i in range(self.model.input_size):
             sum_statement = ""
-            t_field = ""
             for j in range(self.model.input_size + 1):
                 if j >= i:
                     if i < self.model.input_size - 1:
@@ -484,10 +483,48 @@ class LinearRegression:
                                 (i * (self.model.input_size + 1)) + (j + 1))
 
             sum_statements.append(sum_statement)
+
+        sum_statements_experimental = []
+        for i in range(self.model.input_size):
+            sum_statement = ""
+            for j in range(self.model.input_size + 1):
+                if j >= i:
+                    print("i: " + str(self.model.input_size + 1 - i))
+                    print("j: " + str(j + 1 - i))
+                    if i < self.model.input_size - 1:
+                        if columns[i] != '1' and columns[j] != '1':
+                            sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
+                                (i * (self.model.input_size + 1)) + (j + 1)) + ","
+                        else:
+                            if columns[i] == '1':
+                                sum_statement = sum_statement + "sum(" + columns[j] + ") as t" + str(
+                                    (i * (self.model.input_size + 1)) + (j + 1)) + ","
+                            elif columns[j] == '1':
+                                sum_statement = sum_statement + "sum(" + columns[i] + ") as t" + str(
+                                    (i * (self.model.input_size + 1)) + (j + 1)) + ","
+                            elif columns[i] == '1' and columns[j] == '1':
+                                sum_statement = sum_statement + "sum(" + "1" + ") as t" + str(
+                                    (i * (self.model.input_size + 1)) + (j + 1)) + ","
+                    else:
+                        if j < self.model.input_size:
+                            sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
+                                (i * (self.model.input_size + 1)) + (j + 1)) + ","
+                        else:
+                            sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
+                                (i * (self.model.input_size + 1)) + (j + 1))
+
+            sum_statements_experimental.append(sum_statement)
+
+        sql_statement_experimental = self.sql_templates['select_sums_experimental'].render(sum_statements=sum_statements_experimental)
+        print(sql_statement_experimental)
+
         sql_statement = self.sql_templates['select_sums'].render(table_input=self.model.input_table,
                                                                  sum_statements=sum_statements)
+        print(sql_statement)
         logging.debug("SQL: " + str(sql_statement))
-        return self.db_connection.execute_query(sql_statement)
+        result_temp = self.db_connection.execute_query(sql_statement)
+        # print(result_temp)
+        return result_temp
 
     def __estimate_fast(self):
         self.__init_result_table()
