@@ -141,12 +141,12 @@ class LinearRegression:
         if ohe_handling:
             self.__manage_one_hot_encoding()
 
-        if len(self.model.x_columns) <= 512:
-            # More efficient for large datasets, but only applicable for small number of columns.
+        if len(self.model.x_columns) <= 100:
             self.__estimate_fast()
+        elif len(self.model.x_columns) <= 512:
+            self.__estimate_fast(high_dimensional=True)
         else:
-            # Less efficient, but applicable for large numbers of columns.
-            self.__estimate_slow()
+            raise Exception('Maximum number of input variables is 512!')
 
         if self.model.state < 1:
             self.model.state = 1
@@ -365,21 +365,6 @@ class LinearRegression:
         data = self.db_connection.execute_query(sql_statement)
         return np.asarray(data)
 
-    def __init_calculation_table(self):
-        logging.info("INITIALIZING CALCULATION TABLE")
-        sql_statement = self.sql_templates['drop_table'].render(table='linreg_' + self.model.id + '_calculation')
-        logging.debug("SQL: " + str(sql_statement))
-        self.db_connection.execute(sql_statement)
-
-        x = []
-        for i in range(self.model.input_size):
-            x.append('x' + str(i))
-        sql_statement = self.sql_templates['init_calculation_table'].render(database=self.database,
-                                                                            table='linreg_' + self.model.id + '_calculation',
-                                                                            x_columns=x)
-        logging.debug("SQL: " + str(sql_statement))
-        self.db_connection.execute(sql_statement)
-
     def __init_model_table(self, table):
         logging.info("INITIALIZING MODEL TABLE")
         sql_statement = self.sql_templates['init_model_table'].render(database=self.database, table=table)
@@ -417,33 +402,6 @@ class LinearRegression:
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
 
-    def __calculate_equations(self):
-        logging.info("CALCULATING EQUATIONS SLOW")
-        columns = ['1']
-        for i in range(len(self.model.x_columns)):
-            columns.append(self.model.x_columns[i])
-        columns.append(self.model.y_column[0])
-
-        x = []
-        for i in range(self.model.input_size):
-            x.append('x' + str(i))
-
-        for i in range(self.model.input_size):
-            sum_statements = []
-            for j in range(self.model.input_size + 1):
-                if j < self.model.input_size:
-                    sum_statements.append(
-                        "sum(" + columns[i] + "*" + columns[j] + ") FROM " + self.model.input_table + "),")
-                else:
-                    sum_statements.append(
-                        "sum(" + columns[i] + "*" + columns[j] + ") FROM " + self.model.input_table + ")")
-
-            sql_statement = self.sql_templates['calculate_equations'].render(
-                table='linreg_' + self.model.id + '_calculation', table_input=self.model.input_table,
-                sum_statements=sum_statements, x_columns=x)
-            logging.debug("SQL: " + str(sql_statement))
-            self.db_connection.execute(sql_statement)
-
     def __calculate_equations_efficiently(self):
         logging.info("CALCULATING EQUATIONS")
         columns = ['1']
@@ -458,7 +416,6 @@ class LinearRegression:
         sum_statements = []
         for i in range(self.model.input_size):
             sum_statement = ""
-            t_field = ""
             for j in range(self.model.input_size + 1):
                 if j >= i:
                     if i < self.model.input_size - 1:
@@ -489,12 +446,77 @@ class LinearRegression:
         logging.debug("SQL: " + str(sql_statement))
         return self.db_connection.execute_query(sql_statement)
 
-    def __estimate_fast(self):
+    def __calculate_equations_high_dimensional(self):
+        logging.info("CALCULATING EQUATIONS")
+        columns = ['1']
+        for i in range(len(self.model.x_columns)):
+            columns.append(self.model.x_columns[i])
+        columns.append(self.model.y_column[0])
+
+        x = []
+        for i in range(self.model.input_size):
+            x.append('x' + str(i))
+
+        sum_statements = []
+        # i ~ rows
+        for i in range(self.model.input_size):
+            sum_statement = ""
+            # j ~ columns
+            for j in range(self.model.input_size + 1):
+                # If above diagonal of the calculation matrix XTX.
+                if j >= i:
+                    if i < self.model.input_size - 0:
+                        if (j + 1 - i) < (self.model.input_size + 1 - i):
+                            sum_statement = sum_statement + self.__get_sum_statement(columns, i, j) + ", "
+                        else:
+                            sum_statement = sum_statement + self.__get_sum_statement(columns, i,
+                                                                                   j) + " FROM " + self.model.input_table
+                else:
+                    sum_statement = sum_statement + "NULL, "
+
+            sum_statements.append(sum_statement)
+
+        sql_statement = self.sql_templates['select_sums_high_dimensional'].render(sum_statements=sum_statements)
+        logging.debug("SQL: " + str(sql_statement))
+        result = self.db_connection.execute_query(sql_statement)
+
+        sum_values = []
+        for x in result:
+            for y in x:
+                if y is not None:
+                    sum_values.append(y)
+
+        return sum_values
+
+    def __get_sum_statement(self, columns, i, j):
+        sum_statement = ""
+
+        # Check if multiplication can be simplified.
+        if columns[i] != '1' and columns[j] != '1':
+            sum_statement = sum_statement + "sum(" + columns[i] + "*" + columns[j] + ") as t" + str(
+                (i * (self.model.input_size + 1)) + (j + 1))
+        else:
+            if columns[i] == '1':
+                sum_statement = sum_statement + "sum(" + columns[j] + ") as t" + str(
+                    (i * (self.model.input_size + 1)) + (j + 1))
+            elif columns[j] == '1':
+                sum_statement = sum_statement + "sum(" + columns[i] + ") as t" + str(
+                    (i * (self.model.input_size + 1)) + (j + 1))
+            elif columns[i] == '1' and columns[j] == '1':
+                sum_statement = sum_statement + "sum(" + "1" + ") as t" + str(
+                    (i * (self.model.input_size + 1)) + (j + 1))
+
+        return sum_statement
+
+    def __estimate_fast(self, high_dimensional=False):
         self.__init_result_table()
         n = self.model.input_size
 
         # Only query for unique values (everything above the diagonal)
-        sum_values = self.__calculate_equations_efficiently()[0]
+        if not high_dimensional:
+            sum_values = self.__calculate_equations_efficiently()[0]
+        else:
+            sum_values = self.__calculate_equations_high_dimensional()
         partial_equations = []
         for x in sum_values:
             partial_equations.append(float(x))
@@ -550,20 +572,3 @@ class LinearRegression:
                                                                      theta_statements=theta_statements)
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
-
-    def __estimate_slow(self):
-        self.__init_calculation_table()
-        self.__init_result_table()
-        self.__calculate_equations()
-
-        equations = self.__get_equations()
-        xtx = equations[:, 1:self.model.input_size + 1]
-
-        xty = equations[:, self.model.input_size + 1]
-        theta = np.linalg.lstsq(xtx, xty, rcond=None)[0]
-
-        for x in theta:
-            sql_statement = self.sql_templates['save_theta'].render(table="linreg_" + self.model.id + "_result",
-                                                                    value=x)
-            logging.debug("SQL: " + str(sql_statement))
-            self.db_connection.execute(sql_statement)
