@@ -130,7 +130,8 @@ class LinearRegression:
         return "Model " + self.model.id + "\n" + "Name: " + self.model.name + "\n" + "Input table: " + self.model.input_table + "\n" + "X columns: " + str(
             self.model.x_columns) + "\n" + "Y column: " + str(self.model.y_column)
 
-    def estimate(self, table=None, x_columns=None, y_column=None, one_hot_encoding_handling=False):
+    def estimate(self, table=None, x_columns=None, y_column=None, one_hot_encoding_handling=False,
+                 force_high_dimensional_calculation=False):
         logging.info("\n-----\nESTIMATING")
         if table is not None or x_columns is not None or y_column is not None:
             self.model = Model(table, x_columns, y_column)
@@ -141,7 +142,7 @@ class LinearRegression:
         if one_hot_encoding_handling:
             self.__manage_one_hot_encoding()
 
-        if len(self.model.x_columns) <= 100:
+        if len(self.model.x_columns) <= 100 and not force_high_dimensional_calculation:
             self.__estimate_theta()
         elif len(self.model.x_columns) <= 512:
             self.__estimate_theta(high_dimensional=True)

@@ -13,6 +13,12 @@ test_data_path = "/X/linreg_X.csv"
 # Used for sanelib verification
 table_name = "linreg_X"
 
+# Used to force SANElib to use the calculation method optimized for large numbers of columns
+force_high_dimensional_calculation = False
+
+# Used to display debugging messages including all used SQL statements
+use_debugging_messages = False
+
 
 def run_sanelib_verification():
     timer.start()
@@ -23,7 +29,9 @@ def run_sanelib_verification():
     y = ['y']
 
     lr = sanelib.linear_regression
-    lr.estimate(table_name, X, y)
+    if use_debugging_messages:
+        lr.set_log_level("DEBUG")
+    lr.estimate(table_name, X, y, force_high_dimensional_calculation=force_high_dimensional_calculation)
 
     timer.end()
 
@@ -46,4 +54,4 @@ def run_sklearn_verification():
 
 if __name__ == "__main__":
     run_sanelib_verification()
-    run_sklearn_verification()
+    # run_sklearn_verification()
