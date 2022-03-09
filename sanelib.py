@@ -40,5 +40,6 @@ if conf.DB_TYPE != "MSSQL":
     mdh = lib.mdh.MDH(db)
     linear_regression = lib.linear_regression.LinearRegression(db)
     dtc = lib.DecisionTreeClassifier.DecisionTreeClassifier(db)
+    gc = lib.gaussian_classifier.GaussianClassifier(db)
 else:
     dtc = lib.DecisionTreeClassifier.DecisionTreeClassifier(db)
