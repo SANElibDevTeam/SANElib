@@ -141,6 +141,7 @@ class GaussianClassifier:
 
         self.__init_calculation_table()
         self.__init_result_table()
+        self.__calculate_equations()
         equations = self.__get_equations()
         xtx = equations[:, 1:self.model.input_size + 1]
         xty = equations[:, self.model.input_size + 1]
@@ -377,7 +378,8 @@ class GaussianClassifier:
 
         x = []
         for i in range(self.model.input_size):
-            x.append('x' + str(i))
+            x.append("mean_" + self.model.x_columns[i])
+            x.append("std_" + self.model.x_columns[i])
         sql_statement = self.sql_templates['init_calculation_table'].render(database=self.database,
                                                                             table='gaussian_' + self.model.id + '_calculation',
                                                                             x_columns=x)
