@@ -127,11 +127,11 @@ tmpl_mysql['calculate_means'] = Template('''
             VALUES
                 {% for class in y_classes%}
                     
-                    {% for x in x_columns %}
-                        ((SELECT AVG({{ x }}) FROM {{ input_table }} WHERE {{ target }} = {{ class }}),{% endfor %}{{class}}),
+                    ({% for x in x_columns %}
+                        (SELECT AVG({{ x }}) FROM {{ input_table }} WHERE {{ target }} = {{ class }}),{% endfor %}{{class}}),
                     
                 {% endfor %}
-                (999,999);
+                ({% for x in x_columns_means %}999,{% endfor %}999);
             ''')
 
 tmpl_mysql['calculate_stds'] =  Template('''
@@ -139,11 +139,11 @@ tmpl_mysql['calculate_stds'] =  Template('''
             VALUES
                 {% for class in y_classes%}
                     
-                    {% for x in x_columns %}
-                        ((SELECT STD({{ x }}) FROM {{ input_table }} WHERE {{ target }} = {{ class }}),{% endfor %}{{class}}),
+                    ({% for x in x_columns %}
+                        (SELECT STD({{ x }}) FROM {{ input_table }} WHERE {{ target }} = {{ class }}),{% endfor %}{{class}}),
                     
                 {% endfor %}
-                (999,999);
+                ({% for x in x_columns_stds %}999,{% endfor %}999);
             ''')
 
 tmpl_mysql['drop_row'] = Template('''
