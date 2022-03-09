@@ -9,7 +9,7 @@ class Model:
         self.x_columns = x_columns
         self.y_column = y_column
         self.prediction_columns = self.x_columns
-        self.input_size = len(x_columns) + 1
+        self.input_size = len(x_columns)
         self.ohe_columns = []
         self.ohe_options = {}
 
