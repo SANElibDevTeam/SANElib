@@ -136,9 +136,9 @@ class GaussianClassifier:
                 'No model parameters available! Please load/create a model or provide table, x_columns and y_column as parameters to this function!')
 
         self.__init_mean_table()
-        self.__init_std_table()
+        self.__init_variance_table()
         self.__calculate_means()
-        self.__calculate_stds()
+        self.__calculate_variances()
 
         if self.model.state < 1:
             self.model.state = 1
@@ -252,9 +252,9 @@ class GaussianClassifier:
         # Update input_size
         self.model.update_input_size()
 
-    def __manage_prediction_one_hot_encoding(self):
-        logging.info("MANAGING ONE HOT ENCODING FOR PREDICTION")
-        self.__manage_ohe_columns(self.model.prediction_table, self.model.prediction_columns)
+    # def __manage_prediction_one_hot_encoding(self):
+    #     logging.info("MANAGING ONE HOT ENCODING FOR PREDICTION")
+    #     self.__manage_ohe_columns(self.model.prediction_table, self.model.prediction_columns)
 
     def __manage_ohe_columns(self, table, columns):
         # Check all columns
@@ -372,17 +372,17 @@ class GaussianClassifier:
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
 
-    def __init_std_table(self):
+    def __init_variance_table(self):
         logging.info("INITIALIZING CALCULATION TABLE")
-        sql_statement = self.sql_templates['drop_table'].render(table='gaussian_' + self.model.id + '_std')
+        sql_statement = self.sql_templates['drop_table'].render(table='gaussian_' + self.model.id + '_variance')
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
 
         x = []
         for i in range(self.model.input_size):
-            x.append(self.model.x_columns[i] + "_std")
+            x.append(self.model.x_columns[i] + "_variance")
         sql_statement = self.sql_templates['init_calculation_table'].render(database=self.database,
-                                                                            table='gaussian_' + self.model.id + '_std',
+                                                                            table='gaussian_' + self.model.id + '_variance',
                                                                             x_columns=x)
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
@@ -449,19 +449,19 @@ class GaussianClassifier:
         self.db_connection.execute(sql_statement)
         self.__remove_help_row('gaussian_' + self.model.id + '_mean')
 
-    def __calculate_stds(self):
+    def __calculate_variances(self):
         logging.info("CALCULATING STDS")
         y_classes = self.__get_targets()
         x = []
         for i in range(self.model.input_size):
-            x.append(self.model.x_columns[i] + "_std")
+            x.append(self.model.x_columns[i] + "_variance")
 
-        sql_statement = self.sql_templates['calculate_stds'].render(
-            table='gaussian_' + self.model.id + '_std', input_table=self.model.input_table,
-            y_classes=y_classes, x_columns_stds=x, x_columns=self.model.x_columns, target=self.model.y_column[0])
+        sql_statement = self.sql_templates['calculate_variances'].render(
+            table='gaussian_' + self.model.id + '_variance', input_table=self.model.input_table,
+            y_classes=y_classes, x_columns_variances=x, x_columns=self.model.x_columns, target=self.model.y_column[0])
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
-        self.__remove_help_row('gaussian_' + self.model.id + '_std')
+        self.__remove_help_row('gaussian_' + self.model.id + '_variance')
 
 
     def __remove_help_row(self,table):

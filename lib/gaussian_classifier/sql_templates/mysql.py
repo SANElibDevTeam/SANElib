@@ -134,16 +134,16 @@ tmpl_mysql['calculate_means'] = Template('''
                 ({% for x in x_columns_means %}999,{% endfor %}999);
             ''')
 
-tmpl_mysql['calculate_stds'] =  Template('''
-            INSERT INTO {{ table }}({% for x in x_columns_stds %}{{ x }}, {% endfor %}y) 
+tmpl_mysql['calculate_variances'] =  Template('''
+            INSERT INTO {{ table }}({% for x in x_columns_variances %}{{ x }}, {% endfor %}y) 
             VALUES
                 {% for class in y_classes%}
                     
                     ({% for x in x_columns %}
-                        (SELECT STD({{ x }}) FROM {{ input_table }} WHERE {{ target }} = {{ class }}),{% endfor %}{{class}}),
+                        (SELECT VARIANCE({{ x }}) FROM {{ input_table }} WHERE {{ target }} = {{ class }}),{% endfor %}{{class}}),
                     
                 {% endfor %}
-                ({% for x in x_columns_stds %}999,{% endfor %}999);
+                ({% for x in x_columns_variances %}999,{% endfor %}999);
             ''')
 
 tmpl_mysql['drop_row'] = Template('''
