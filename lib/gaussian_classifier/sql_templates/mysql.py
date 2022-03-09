@@ -48,8 +48,13 @@ tmpl_mysql['set_ohe_column'] = Template('''
             SET {{ ohe_column }} = IF({{ input_column }}='{{ value }}', 1, 0);
             ''')
 
+tmpl_mysql['get_targets'] = Template('''
+            SELECT DISTINCT({{ y }}) FROM {{ table }} order by {{ y }} ASC;
+            
+            ''')
+
 tmpl_mysql['save_model'] = Template('''
-            REPLACE INTO linreg_model
+            REPLACE INTO gaussian_model
                 SET id = '{{ id }}',
                 name = '{{ name }}',
                 state = {{ state }},
@@ -93,56 +98,75 @@ tmpl_mysql['init_calculation_table'] = Template('''
             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
             ''')
 
-tmpl_mysql['init_result_table'] = Template('''
-            CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
-                id INT NOT NULL AUTO_INCREMENT,
-                theta DOUBLE NULL,
-            PRIMARY KEY (id),
-            UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
-            ''')
+# tmpl_mysql['init_result_table'] = Template('''
+#             CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
+#                 id INT NOT NULL AUTO_INCREMENT,
+#                 theta DOUBLE NULL,
+#             PRIMARY KEY (id),
+#             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
+#             ''')
 
-tmpl_mysql['init_prediction_table'] = Template('''
-            CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
-                id INT NOT NULL AUTO_INCREMENT,
-                y_prediction DOUBLE NULL,
-            PRIMARY KEY (id),
-            UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
-            ''')
+# tmpl_mysql['init_prediction_table'] = Template('''
+#             CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
+#                 id INT NOT NULL AUTO_INCREMENT,
+#                 y_prediction DOUBLE NULL,
+#             PRIMARY KEY (id),
+#             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
+#             ''')
 
-tmpl_mysql['init_score_table'] = Template('''
-            CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
-                id INT NOT NULL AUTO_INCREMENT,
-                score DOUBLE NULL,
-            PRIMARY KEY (id),
-            UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
-            ''')
+# tmpl_mysql['init_score_table'] = Template('''
+#             CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
+#                 id INT NOT NULL AUTO_INCREMENT,
+#                 score DOUBLE NULL,
+#             PRIMARY KEY (id),
+#             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
+#             ''')
 
-tmpl_mysql['calculate_equations'] = Template('''
-            INSERT INTO {{ table }}({% for x in x_columns %}{{ x }}, {% endfor %}y) 
-            VALUES(
-                {% for sum_statement in sum_statements %}
-                    (SELECT {{ sum_statement }}
+tmpl_mysql['calculate_means'] = Template('''
+            INSERT INTO {{ table }}({% for x in x_columns_means %}{{ x }}, {% endfor %}y) 
+            VALUES
+                {% for class in y_classes%}
+                    
+                    {% for x in x_columns %}
+                        ((SELECT AVG({{ x }}) FROM {{ input_table }} WHERE {{ target }} = {{ class }}),{% endfor %}{{class}}),
+                    
                 {% endfor %}
-            );
+                (999,999);
             ''')
 
-tmpl_mysql['predict'] = Template('''
-            INSERT INTO {{ table }} (y_prediction) 
-            SELECT {{ prediction_statement }} FROM {{ input_table }};;
+tmpl_mysql['calculate_stds'] =  Template('''
+            INSERT INTO {{ table }}({% for x in x_columns_stds %}{{ x }}, {% endfor %}y) 
+            VALUES
+                {% for class in y_classes%}
+                    
+                    {% for x in x_columns %}
+                        ((SELECT STD({{ x }}) FROM {{ input_table }} WHERE {{ target }} = {{ class }}),{% endfor %}{{class}}),
+                    
+                {% endfor %}
+                (999,999);
             ''')
 
-tmpl_mysql['save_theta'] = Template('''
-            INSERT INTO {{ table }} (theta)
-            VALUES ({{ value }});
+tmpl_mysql['drop_row'] = Template('''
+            DELETE FROM {{table}} WHERE y = 999;
             ''')
-
-tmpl_mysql['calculate_save_score'] = Template('''
-            INSERT INTO {{ table_id }}_score (score)
-            SELECT 1-((sum(({{ y }}-y_prediction)*({{ y }}-y_prediction)))/(sum(({{ y }}-y_avg)*({{ y }}-y_avg)))) FROM
-            (SELECT {{ y }}, y_prediction FROM {{ input_table }}
-            LEFT JOIN {{ table_id }}_prediction
-            ON {{ table_id }}_prediction.id = {{ input_table }}.id
-            ) AS subquery1
-            CROSS JOIN
-            (SELECT avg({{ y }}) as y_avg FROM {{ input_table }}) as subquery2;
-            ''')
+#
+# tmpl_mysql['predict'] = Template('''
+#             INSERT INTO {{ table }} (y_prediction)
+#             SELECT {{ prediction_statement }} FROM {{ input_table }};;
+#             ''')
+#
+# tmpl_mysql['save_theta'] = Template('''
+#             INSERT INTO {{ table }} (theta)
+#             VALUES ({{ value }});
+#             ''')
+#
+# tmpl_mysql['calculate_save_score'] = Template('''
+#             INSERT INTO {{ table_id }}_score (score)
+#             SELECT 1-((sum(({{ y }}-y_prediction)*({{ y }}-y_prediction)))/(sum(({{ y }}-y_avg)*({{ y }}-y_avg)))) FROM
+#             (SELECT {{ y }}, y_prediction FROM {{ input_table }}
+#             LEFT JOIN {{ table_id }}_prediction
+#             ON {{ table_id }}_prediction.id = {{ input_table }}.id
+#             ) AS subquery1
+#             CROSS JOIN
+#             (SELECT avg({{ y }}) as y_avg FROM {{ input_table }}) as subquery2;
+#             ''')
