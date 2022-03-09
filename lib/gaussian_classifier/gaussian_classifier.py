@@ -1,4 +1,4 @@
-from lib.linear_regression.model import Model
+from lib.gaussian_classifier.model import Model
 import numpy as np
 import logging
 
@@ -9,7 +9,7 @@ class GaussianClassifier:
         self.database = db.database_name
         self.model = None
         if db.driver_name == 'mysql+mysqlconnector':
-            from lib.linear_regression.sql_templates.mysql import tmpl_mysql
+            from lib.gaussian_classifier.sql_templates.mysql import tmpl_mysql
             self.sql_templates = tmpl_mysql
 
     def set_log_level(self, level):
@@ -127,7 +127,7 @@ class GaussianClassifier:
         return "Model " + self.model.id + "\n" + "Name: " + self.model.name + "\n" + "Input table: " + self.model.input_table + "\n" + "X columns: " + str(
             self.model.x_columns) + "\n" + "Y column: " + str(self.model.y_column)
 
-    def estimate(self, table=None, x_columns=None, y_column=None, ohe_handling=False):
+    def estimate(self, table=None, x_columns=None, y_column=None):
         logging.info("\n-----\nESTIMATING")
         if table is not None or x_columns is not None or y_column is not None:
             self.model = Model(table, x_columns, y_column)
@@ -135,23 +135,10 @@ class GaussianClassifier:
             raise Exception(
                 'No model parameters available! Please load/create a model or provide table, x_columns and y_column as parameters to this function!')
 
-        if ohe_handling:
-            self.__manage_one_hot_encoding()
-
-
-        self.__init_calculation_table()
-        self.__init_result_table()
-        self.__calculate_equations()
-        equations = self.__get_equations()
-        xtx = equations[:, 1:self.model.input_size + 1]
-        xty = equations[:, self.model.input_size + 1]
-        theta = np.linalg.lstsq(xtx, xty, rcond=None)[0]
-
-        for x in theta:
-            sql_statement = self.sql_templates['save_theta'].render(table="gaussian_" + self.model.id + "_result",
-                                                                    value=x)
-            logging.debug("SQL: " + str(sql_statement))
-            self.db_connection.execute(sql_statement)
+        self.__init_mean_table()
+        self.__init_std_table()
+        self.__calculate_means()
+        self.__calculate_stds()
 
         if self.model.state < 1:
             self.model.state = 1
@@ -167,30 +154,30 @@ class GaussianClassifier:
             raise Exception('Model not trained! Please use estimate method first!')
         self.__init_prediction_table("gaussian_" + self.model.id + "_prediction")
 
-        if table is not None and x_columns is not None:
-            self.model.prediction_table = table
-            self.model.prediction_columns = x_columns
-            self.__manage_prediction_one_hot_encoding()
-            if self.model.input_size - 1 != len(self.model.prediction_columns):
-                raise Exception(
-                    'Please ensure the number of columns to be predicted matches the columns used in estimate!')
-            self.__save_model()
-        input_table = self.model.prediction_table
-        coefficients = self.get_coefficients()
-        prediction_statement = str(coefficients[0][0])
-
-        for i in range(self.model.input_size - 1):
-            prediction_statement = prediction_statement + " + " + self.model.prediction_columns[i] + "*" + \
-                                   str(coefficients[i + 1][0])
-        sql_statement = self.sql_templates['predict'].render(table="gaussian_" + self.model.id + "_prediction",
-                                                             input_table=input_table,
-                                                             prediction_statement=prediction_statement)
-        logging.debug("SQL: " + str(sql_statement))
-        self.db_connection.execute(sql_statement)
-
-        if self.model.state < 2:
-            self.model.state = 2
-            self.__save_model()
+        # if table is not None and x_columns is not None:
+        #     self.model.prediction_table = table
+        #     self.model.prediction_columns = x_columns
+        #     self.__manage_prediction_one_hot_encoding()
+        #     if self.model.input_size - 1 != len(self.model.prediction_columns):
+        #         raise Exception(
+        #             'Please ensure the number of columns to be predicted matches the columns used in estimate!')
+        #     self.__save_model()
+        # input_table = self.model.prediction_table
+        # coefficients = self.get_coefficients()
+        # prediction_statement = str(coefficients[0][0])
+        #
+        # for i in range(self.model.input_size - 1):
+        #     prediction_statement = prediction_statement + " + " + self.model.prediction_columns[i] + "*" + \
+        #                            str(coefficients[i + 1][0])
+        # sql_statement = self.sql_templates['predict'].render(table="gaussian_" + self.model.id + "_prediction",
+        #                                                      input_table=input_table,
+        #                                                      prediction_statement=prediction_statement)
+        # logging.debug("SQL: " + str(sql_statement))
+        # self.db_connection.execute(sql_statement)
+        #
+        # if self.model.state < 2:
+        #     self.model.state = 2
+        #     self.__save_model()
 
         logging.info("\nPREDICTING FINISHED\n-----")
         return self
@@ -370,18 +357,32 @@ class GaussianClassifier:
         data = self.db_connection.execute_query(sql_statement)
         return np.asarray(data)
 
-    def __init_calculation_table(self):
+    def __init_mean_table(self):
         logging.info("INITIALIZING CALCULATION TABLE")
-        sql_statement = self.sql_templates['drop_table'].render(table='gaussian_' + self.model.id + '_calculation')
+        sql_statement = self.sql_templates['drop_table'].render(table='gaussian_' + self.model.id + '_mean')
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
 
         x = []
         for i in range(self.model.input_size):
-            x.append("mean_" + self.model.x_columns[i])
-            x.append("std_" + self.model.x_columns[i])
+            x.append(self.model.x_columns[i] + "_mean")
         sql_statement = self.sql_templates['init_calculation_table'].render(database=self.database,
-                                                                            table='gaussian_' + self.model.id + '_calculation',
+                                                                            table='gaussian_' + self.model.id + '_mean',
+                                                                            x_columns=x)
+        logging.debug("SQL: " + str(sql_statement))
+        self.db_connection.execute(sql_statement)
+
+    def __init_std_table(self):
+        logging.info("INITIALIZING CALCULATION TABLE")
+        sql_statement = self.sql_templates['drop_table'].render(table='gaussian_' + self.model.id + '_std')
+        logging.debug("SQL: " + str(sql_statement))
+        self.db_connection.execute(sql_statement)
+
+        x = []
+        for i in range(self.model.input_size):
+            x.append(self.model.x_columns[i] + "_std")
+        sql_statement = self.sql_templates['init_calculation_table'].render(database=self.database,
+                                                                            table='gaussian_' + self.model.id + '_std',
                                                                             x_columns=x)
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
@@ -424,6 +425,48 @@ class GaussianClassifier:
         self.db_connection.execute(sql_statement)
     def __add_ones_column(self):
         return self
+    def __get_targets(self):
+        logging.info("GETTING TARGET CLASSES")
+        sql_statement = self.sql_templates['get_targets'].render(table=self.model.input_table,y=self.model.y_column[0])
+        logging.debug("SQL: " + str(sql_statement))
+        query_return = self.db_connection.execute_query(sql_statement)
+        data = []
+        for element in query_return:
+            data.append(element[0])
+        return np.asarray(data)
 
-    def __calculate_equations(self):
-        return self
+    def __calculate_means(self):
+        logging.info("CALCULATING MEANS")
+        y_classes = self.__get_targets()
+        x = []
+        for i in range(self.model.input_size):
+            x.append(self.model.x_columns[i] + "_mean")
+
+        sql_statement = self.sql_templates['calculate_means'].render(
+            table='gaussian_' + self.model.id + '_mean', input_table=self.model.input_table,
+            y_classes=y_classes, x_columns_means=x, x_columns=self.model.x_columns, target=self.model.y_column[0])
+        logging.debug("SQL: " + str(sql_statement))
+        self.db_connection.execute(sql_statement)
+        self.__remove_help_row('gaussian_' + self.model.id + '_mean')
+
+    def __calculate_stds(self):
+        logging.info("CALCULATING STDS")
+        y_classes = self.__get_targets()
+        x = []
+        for i in range(self.model.input_size):
+            x.append(self.model.x_columns[i] + "_std")
+
+        sql_statement = self.sql_templates['calculate_stds'].render(
+            table='gaussian_' + self.model.id + '_std', input_table=self.model.input_table,
+            y_classes=y_classes, x_columns_stds=x, x_columns=self.model.x_columns, target=self.model.y_column[0])
+        logging.debug("SQL: " + str(sql_statement))
+        self.db_connection.execute(sql_statement)
+        self.__remove_help_row('gaussian_' + self.model.id + '_std')
+
+
+    def __remove_help_row(self,table):
+        sql_statement = self.sql_templates['drop_row'].render(table=table)
+        logging.debug("SQL: " + str(sql_statement))
+        self.db_connection.execute(sql_statement)
+
+
