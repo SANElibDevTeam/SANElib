@@ -137,6 +137,7 @@ class GaussianClassifier:
 
         self.__init_mean_table()
         self.__init_variance_table()
+        self.__init_result_table()
         self.__calculate_means()
         self.__calculate_variances()
 
@@ -152,32 +153,33 @@ class GaussianClassifier:
             raise Exception('No model parameters available! Please load/create a model!')
         elif self.model.state < 1:
             raise Exception('Model not trained! Please use estimate method first!')
+
         self.__init_prediction_table("gaussian_" + self.model.id + "_prediction")
 
-        # if table is not None and x_columns is not None:
-        #     self.model.prediction_table = table
-        #     self.model.prediction_columns = x_columns
-        #     self.__manage_prediction_one_hot_encoding()
-        #     if self.model.input_size - 1 != len(self.model.prediction_columns):
-        #         raise Exception(
-        #             'Please ensure the number of columns to be predicted matches the columns used in estimate!')
-        #     self.__save_model()
-        # input_table = self.model.prediction_table
-        # coefficients = self.get_coefficients()
-        # prediction_statement = str(coefficients[0][0])
-        #
-        # for i in range(self.model.input_size - 1):
-        #     prediction_statement = prediction_statement + " + " + self.model.prediction_columns[i] + "*" + \
-        #                            str(coefficients[i + 1][0])
-        # sql_statement = self.sql_templates['predict'].render(table="gaussian_" + self.model.id + "_prediction",
-        #                                                      input_table=input_table,
-        #                                                      prediction_statement=prediction_statement)
-        # logging.debug("SQL: " + str(sql_statement))
-        # self.db_connection.execute(sql_statement)
-        #
-        # if self.model.state < 2:
-        #     self.model.state = 2
-        #     self.__save_model()
+        if table is not None and x_columns is not None:
+             self.model.prediction_table = table
+             self.model.prediction_columns = x_columns
+
+             if self.model.input_size - 1 != len(self.model.prediction_columns):
+                 raise Exception(
+                     'Please ensure the number of columns to be predicted matches the columns used in estimate!')
+             self.__save_model()
+        input_table = self.model.prediction_table
+        coefficients = self.get_coefficients()
+        prediction_statement = str(coefficients[0][0])
+
+        for i in range(self.model.input_size - 1):
+            prediction_statement = prediction_statement + " + " + self.model.prediction_columns[i] + "*" + \
+                                   str(coefficients[i + 1][0])
+        sql_statement = self.sql_templates['predict'].render(table="gaussian_" + self.model.id + "_prediction",
+                                                             input_table=input_table,
+                                                             prediction_statement=prediction_statement)
+        logging.debug("SQL: " + str(sql_statement))
+        self.db_connection.execute(sql_statement)
+
+        if self.model.state < 2:
+            self.model.state = 2
+            self.__save_model()
 
         logging.info("\nPREDICTING FINISHED\n-----")
         return self
@@ -435,6 +437,12 @@ class GaussianClassifier:
             data.append(element[0])
         return np.asarray(data)
 
+
+    def __remove_help_row(self,table):
+        sql_statement = self.sql_templates['drop_row'].render(table=table)
+        logging.debug("SQL: " + str(sql_statement))
+        self.db_connection.execute(sql_statement)
+
     def __calculate_means(self):
         logging.info("CALCULATING MEANS")
         y_classes = self.__get_targets()
@@ -450,7 +458,7 @@ class GaussianClassifier:
         self.__remove_help_row('gaussian_' + self.model.id + '_mean')
 
     def __calculate_variances(self):
-        logging.info("CALCULATING STDS")
+        logging.info("CALCULATING VARIANCES")
         y_classes = self.__get_targets()
         x = []
         for i in range(self.model.input_size):
@@ -463,10 +471,24 @@ class GaussianClassifier:
         self.db_connection.execute(sql_statement)
         self.__remove_help_row('gaussian_' + self.model.id + '_variance')
 
+    def __calculate_gaussian_probabilities_univariate(self):
+        logging.info("CALCULATING GAUSSIAN PROBABILITIES")
+        y_classes = self.__get_targets()
+        x = []
+        for i in range(self.model.input_size):
+            x.append(self.model.x_columns[i] + "_gauss_prob")
 
-    def __remove_help_row(self,table):
-        sql_statement = self.sql_templates['drop_row'].render(table=table)
+        sql_statement = self.sql_templates['calculate_gauss_prob_univariate'].render(
+            table='gaussian_' + self.model.id + '_result', input_table=self.model.input_table,
+            y_classes=y_classes, x_columns_gauss_prob=x, x_columns=self.model.x_columns, target=self.model.y_column[0])
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
+        self.__remove_help_row('gaussian_' + self.model.id + '_result')
+
+
+
+
+
+
 
 

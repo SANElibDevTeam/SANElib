@@ -98,13 +98,16 @@ tmpl_mysql['init_calculation_table'] = Template('''
             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
             ''')
 
-# tmpl_mysql['init_result_table'] = Template('''
-#             CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
-#                 id INT NOT NULL AUTO_INCREMENT,
-#                 theta DOUBLE NULL,
-#             PRIMARY KEY (id),
-#             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
-#             ''')
+tmpl_mysql['init_result_table'] = Template('''
+            CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
+                id INT NOT NULL AUTO_INCREMENT,
+                {% for x in x_columns %}
+                    {{ x }} DOUBLE NULL,
+                {% endfor %}
+                y DOUBLE NULL,
+            PRIMARY KEY (id),
+            UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
+            ''')
 
 # tmpl_mysql['init_prediction_table'] = Template('''
 #             CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
@@ -149,6 +152,8 @@ tmpl_mysql['calculate_variances'] =  Template('''
 tmpl_mysql['drop_row'] = Template('''
             DELETE FROM {{table}} WHERE y = 999;
             ''')
+
+
 #
 # tmpl_mysql['predict'] = Template('''
 #             INSERT INTO {{ table }} (y_prediction)
