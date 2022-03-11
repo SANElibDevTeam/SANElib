@@ -140,6 +140,7 @@ class GaussianClassifier:
         self.__init_result_table()
         self.__calculate_means()
         self.__calculate_variances()
+        self.__calculate_gaussian_probabilities_univariate()
 
         if self.model.state < 1:
             self.model.state = 1
@@ -480,7 +481,7 @@ class GaussianClassifier:
 
         sql_statement = self.sql_templates['calculate_gauss_prob_univariate'].render(
             table='gaussian_' + self.model.id + '_result', input_table=self.model.input_table,
-            y_classes=y_classes, x_columns_gauss_prob=x, x_columns=self.model.x_columns, target=self.model.y_column[0])
+            y_classes=y_classes, x_columns_gauss_prob=x, x_columns=self.model.x_columns, target=self.model.y_column[0],variance_table = 'gaussian_' + self.model.id + '_variance',mean_table = 'gaussian_' + self.model.id + '_mean')
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
         self.__remove_help_row('gaussian_' + self.model.id + '_result')
