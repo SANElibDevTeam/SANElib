@@ -404,7 +404,7 @@ class GaussianClassifier:
 
         x = []
         for i in range(self.model.input_size):
-            x.append(self.model.x_columns[i] + "_gaussian_probability")
+            x.append(self.model.x_columns[i] + "_gauss_prob")
 
         sql_statement = self.sql_templates['init_result_table'].render(database=self.database,
                                                                        table='gaussian_' + self.model.id + '_result', x_columns= x)

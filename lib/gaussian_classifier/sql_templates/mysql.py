@@ -159,10 +159,7 @@ tmpl_mysql['calculate_gauss_prob_univariate'] = Template('''
                 ({% for class in y_classes%}
 
                     {% for x in x_columns %}
-                        SELECT @variance := {{ x }}_variance from {{ variance_table }} where y = {{class}};
-                        SELECT @mean := {{ x }}_mean from {{ mean_table }} where y = {{class}};
-                        SELECT @actual_value := {{ x }} from {{ input_table }};
-                        (SELECT (1 / SQRT(2*PI()*@variance)*EXP(-POW(@actual_value-@mean,2)/(2*@variance)))  FROM {{variance_table}} where y= {{ class }}),{{class}}),{% endfor %}
+                        (SELECT (1 / SQRT(2*PI()*(SELECT {{ x }}_variance from {{ variance_table }} where y = {{class}}))*EXP(-POW((SELECT {{ x }} from {{ input_table }})-(SELECT {{ x }}_mean from {{ mean_table }} where y = {{class}}),2)/(2*(SELECT {{ x }}_variance from {{ variance_table }} where y = {{class}})))),{{class}}),{% endfor %}
                     {% endfor %}
                 ({% for x in x_columns_gauss_prob %}999,{% endfor %}999);
             
