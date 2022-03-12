@@ -156,17 +156,16 @@ tmpl_mysql['drop_row'] = Template('''
 tmpl_mysql['calculate_gauss_prob_univariate'] = Template('''
             INSERT INTO {{ table }}({% for x in x_columns_gauss_prob %}{{ x }}, {% endfor %}y) 
             VALUES
-                {% for class in y_classes%}
+                ({% for class in y_classes%}
 
-                    ({% for x in x_columns %}
+                    {% for x in x_columns %}
                         SELECT @variance := {{ x }}_variance from {{ variance_table }} where y = {{class}};
                         SELECT @mean := {{ x }}_mean from {{ mean_table }} where y = {{class}};
                         SELECT @actual_value := {{ x }} from {{ input_table }};
-                        (SELECT (1 / SQRT(2*PI()*@variance)*EXP(-POW(@actual_value-@mean,2)/(2*@variance)))  FROM {{variance_table}} where y= {{ class }}),
-                        
+                        (SELECT (1 / SQRT(2*PI()*@variance)*EXP(-POW(@actual_value-@mean,2)/(2*@variance)))  FROM {{variance_table}} where y= {{ class }}),{{class}}),{% endfor %}
                     {% endfor %}
                 ({% for x in x_columns_gauss_prob %}999,{% endfor %}999);
-                {% endfor %}
+            
             ''')
 #
 # tmpl_mysql['predict'] = Template('''
