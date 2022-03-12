@@ -361,7 +361,7 @@ class GaussianClassifier:
         return np.asarray(data)
 
     def __init_mean_table(self):
-        logging.info("INITIALIZING CALCULATION TABLE")
+        logging.info("INITIALIZING MEAN TABLE")
         sql_statement = self.sql_templates['drop_table'].render(table='gaussian_' + self.model.id + '_mean')
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
@@ -402,8 +402,12 @@ class GaussianClassifier:
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
 
+        x = []
+        for i in range(self.model.input_size):
+            x.append(self.model.x_columns[i] + "_gaussian_probability")
+
         sql_statement = self.sql_templates['init_result_table'].render(database=self.database,
-                                                                       table='gaussian_' + self.model.id + '_result')
+                                                                       table='gaussian_' + self.model.id + '_result', x_columns= x)
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
 
