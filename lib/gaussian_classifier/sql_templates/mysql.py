@@ -164,6 +164,22 @@ tmpl_mysql['calculate_gauss_prob_univariate'] = Template('''
                 ({% for x in x_columns_gauss_prob %}999,{% endfor %}999);
             
             ''')
+
+tmpl_mysql['calculate_covariance'] = Template('''
+SELECT SUM(({{ feature_1 }}
+    -(SELECT{{ feature_1 }}_mean 
+    from {{ mean_table }}
+    where y={{ class }})) 
+    * 
+    ({{ feature2 }}
+    -(SELECT {{ feature_2 }}_mean 
+    from {{ mean_table }}
+    where y={{ class }})))
+     / (select count(*)
+     from {{ input_table }}
+     where {{ y_column }} = {{ class }}) as Covariance
+from {{ input_table }} where {{ y_column }} = {{ class }};
+''')
 #
 # tmpl_mysql['predict'] = Template('''
 #             INSERT INTO {{ table }} (y_prediction)
