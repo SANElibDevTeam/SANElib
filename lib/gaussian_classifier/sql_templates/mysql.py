@@ -98,7 +98,7 @@ tmpl_mysql['init_calculation_table'] = Template('''
             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
             ''')
 
-tmpl_mysql['init_result_table'] = Template('''
+tmpl_mysql['init_uni_gauss_prob_table'] = Template('''
             CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
                 id INT NOT NULL AUTO_INCREMENT,
                 {% for x in x_columns %}
@@ -157,22 +157,27 @@ tmpl_mysql['calculate_gauss_prob_univariate'] = Template('''
             INSERT INTO {{ table }}({% for x in x_columns_gauss_prob %}{{ x }}, {% endfor %}y) 
             VALUES
                 ({% for class in y_classes%}
-
+                    {% for n in no_of_rows %}
                     {% for x in x_columns %}
-                        (SELECT (1 / SQRT(2*PI()*(SELECT {{ x }}_variance from {{ variance_table }} where y = {{class}}))*EXP(-POW((SELECT {{ x }} from {{ input_table }})-(SELECT {{ x }}_mean from {{ mean_table }} where y = {{class}}),2)/(2*(SELECT {{ x }}_variance from {{ variance_table }} where y = {{class}})))),{{class}}),{% endfor %}
+                        (SELECT (1 / SQRT(2*PI()*(SELECT {{ x }} from {{ variance_table }} where y = {{class}}))*EXP(-POW((SELECT {{ x }} from {{ input_table }} LIMIT {{ n }},1)-(SELECT {{ x }} from {{ mean_table }} where y = {{class}}),2)/(2*(SELECT {{ x }} from {{ variance_table }} where y = {{class}})))),{{class}}),{% endfor %}
+                    {% endfor %}
                     {% endfor %}
                 ({% for x in x_columns_gauss_prob %}999,{% endfor %}999);
             
             ''')
 
+tmpl_mysql['get_no_of_rows'] = Template('''
+SELECT COUNT(*) FROM {{ table }};
+''')
+
 tmpl_mysql['calculate_covariance'] = Template('''
 SELECT SUM(({{ feature_1 }}
-    -(SELECT{{ feature_1 }}_mean 
+    -(SELECT{{ feature_1 }}
     from {{ mean_table }}
     where y={{ class }})) 
     * 
     ({{ feature2 }}
-    -(SELECT {{ feature_2 }}_mean 
+    -(SELECT {{ feature_2 }}
     from {{ mean_table }}
     where y={{ class }})))
      / (select count(*)
