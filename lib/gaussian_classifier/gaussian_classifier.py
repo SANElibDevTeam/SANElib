@@ -481,11 +481,22 @@ class GaussianClassifier:
         rows = self.__get_no_of_rows()
         no_of_rows = list(range(0,rows[0]))
 
+        gauss_statements = []
+        for n in no_of_rows:
+            for y in y_classes:
+                gauss_prob = []
+                for x in self.model.x_columns:
 
+                    gauss_prob.append(
+                        f"(SELECT (1 / SQRT(2*PI()*(SELECT { x } from gaussian_{self.model.id}_variance where y = {y}))*EXP(-POW((SELECT { x } from {self.model.input_table} LIMIT {n},1)-(SELECT { x } from  gaussian_{self.model.id}_mean where y = {y}),2)/(2*(SELECT {x} from gaussian_{self.model.id}_variance where y = {y}))))),"
+               )
+                str_gauss_prob = ''.join(str(e) for e in gauss_prob)
+                gauss_statements.append(f"({n},"+ str_gauss_prob+f"{y}),"
+
+               )
 
         sql_statement = self.sql_templates['calculate_gauss_prob_univariate'].render(
-            table='gaussian_' + self.model.id + '_uni_gauss_prob', input_table=self.model.input_table,
-            y_classes=y_classes, x_columns_gauss_prob=self.model.x_columns, x_columns=self.model.x_columns, target=self.model.y_column[0],variance_table = 'gaussian_' + self.model.id + '_variance',mean_table = 'gaussian_' + self.model.id + '_mean', no_of_rows= no_of_rows)
+            table='gaussian_' + self.model.id + '_uni_gauss_prob',x_columns=self.model.x_columns,gauss_statements=gauss_statements)
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
         self.__remove_help_row('gaussian_' + self.model.id + '_uni_gauss_prob')

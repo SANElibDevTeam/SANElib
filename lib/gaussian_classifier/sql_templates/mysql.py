@@ -101,6 +101,7 @@ tmpl_mysql['init_calculation_table'] = Template('''
 tmpl_mysql['init_uni_gauss_prob_table'] = Template('''
             CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
                 id INT NOT NULL AUTO_INCREMENT,
+                row_no INT NULL,
                 {% for x in x_columns %}
                     {{ x }} DOUBLE NULL,
                 {% endfor %}
@@ -154,15 +155,12 @@ tmpl_mysql['drop_row'] = Template('''
             ''')
 
 tmpl_mysql['calculate_gauss_prob_univariate'] = Template('''
-            INSERT INTO {{ table }}({% for x in x_columns_gauss_prob %}{{ x }}, {% endfor %}y) 
+            INSERT INTO {{ table }}(row_no,{% for x in x_columns %}{{ x }},{% endfor %}y) 
             VALUES
-                ({% for class in y_classes%}
-                    {% for n in no_of_rows %}
-                    {% for x in x_columns %}
-                        (SELECT (1 / SQRT(2*PI()*(SELECT {{ x }} from {{ variance_table }} where y = {{class}}))*EXP(-POW((SELECT {{ x }} from {{ input_table }} LIMIT {{ n }},1)-(SELECT {{ x }} from {{ mean_table }} where y = {{class}}),2)/(2*(SELECT {{ x }} from {{ variance_table }} where y = {{class}})))),{{class}}),{% endfor %}
-                    {% endfor %}
-                    {% endfor %}
-                ({% for x in x_columns_gauss_prob %}999,{% endfor %}999);
+                {% for gauss_statement in gauss_statements %}
+                    {{ gauss_statement }}
+                {% endfor %}
+                ({% for x in x_columns %}999,{% endfor %}999,999);    
             
             ''')
 
