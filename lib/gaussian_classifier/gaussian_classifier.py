@@ -481,8 +481,8 @@ class GaussianClassifier:
         rows = self.__get_no_of_rows()
         no_of_rows = list(range(0,rows[0]))
 
-        gauss_statements = []
         for n in no_of_rows:
+            gauss_statements = []
             for y in y_classes:
                 gauss_prob = []
                 for x in self.model.x_columns:
@@ -495,11 +495,11 @@ class GaussianClassifier:
 
                )
 
-        sql_statement = self.sql_templates['calculate_gauss_prob_univariate'].render(
+            sql_statement = self.sql_templates['calculate_gauss_prob_univariate'].render(
             table='gaussian_' + self.model.id + '_uni_gauss_prob',x_columns=self.model.x_columns,gauss_statements=gauss_statements)
-        logging.debug("SQL: " + str(sql_statement))
-        self.db_connection.execute(sql_statement)
-        self.__remove_help_row('gaussian_' + self.model.id + '_uni_gauss_prob')
+            logging.debug("SQL: " + str(sql_statement))
+            self.db_connection.execute(sql_statement)
+            self.__remove_help_row('gaussian_' + self.model.id + '_uni_gauss_prob')
 
 
 
