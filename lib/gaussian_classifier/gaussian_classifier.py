@@ -1,3 +1,5 @@
+import itertools
+
 from lib.gaussian_classifier.model import Model
 import numpy as np
 import logging
@@ -135,12 +137,13 @@ class GaussianClassifier:
             raise Exception(
                 'No model parameters available! Please load/create a model or provide table, x_columns and y_column as parameters to this function!')
 
-        self.__init_mean_table()
-        self.__init_variance_table()
-        self.__init_uni_gauss_prob_table()
-        self.__calculate_means()
-        self.__calculate_variances()
-        self.__calculate_gaussian_probabilities_univariate()
+        # self.__init_mean_table()
+        # self.__init_variance_table()
+        # self.__init_uni_gauss_prob_table()
+        # self.__calculate_means()
+        # self.__calculate_variances()
+        # self.__calculate_gaussian_probabilities_univariate()
+        self.__calculate_gaussian_probabilities_mulitvariate()
 
         if self.model.state < 1:
             self.model.state = 1
@@ -503,8 +506,18 @@ class GaussianClassifier:
 
 
 
-
-
+    def __calculate_gaussian_probabilities_mulitvariate(self):
+        #matrix = list(itertools.combinations_with_replacement(self.model.x_columns,2))
+        matrix = []
+        for i in range (len(self.model.x_columns)):
+            row = []
+            for j in range(len(self.model.x_columns)):
+                column = []
+                column.append(self.model.x_columns[i])
+                column.append(self.model.x_columns[j])
+                row.append(column)
+            matrix.append(row)
+        print(matrix)
 
 
 
