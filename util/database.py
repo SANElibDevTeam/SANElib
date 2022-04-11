@@ -11,7 +11,8 @@ class Database:
 
         if db_connection is not None:
             if db_connection["drivername"] == "mysql+mysqlconnector":
-                self.engine = create_engine(URL(**db_connection), pool_pre_ping=True)
+                self.engine = create_engine(URL(**db_connection), pool_pre_ping=True,
+                                            connect_args={'auth_plugin': 'mysql_native_password'})
             elif db_connection['drivername'] == 'mssql+pyodbc':
                 self.engine = create_engine(
                     'mssql+pyodbc://' + db_connection['host'] + '/' + db_connection['database'] +
