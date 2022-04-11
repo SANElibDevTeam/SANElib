@@ -223,11 +223,13 @@ UPDATE {{ table }} SET {{column}} = ({{ column }} / (select count(*)
     ) 
 ''')
 
-# tmpl_mysql['fill_covariance_matrix_2'] = Template('''
-# INSERT INTO {{ table }} ({{ feature_2 }}) SELECT {{ covariance }} FROM {{ input_table }} WHERE id= {{ feature_1 }};
-# ''')
 tmpl_mysql['fill_covariance_matrix'] = Template('''
 UPDATE {{ table }} SET {{ feature_2 }} = (SELECT {{ covariance }} FROM {{ input_table }} LIMIT {{ n }},1) WHERE id= {{ feature_1 }};
+''')
+
+tmpl_mysql['determinante']= Template('''
+SELECT ({{ m00 }}) * ({{ m11 }}) - ({{ m01 }}) * ({{ m00 }}) as determinante
+     from {{ covariance_matrix }}  
 ''')
 # tmpl_mysql['predict'] = Template('''
 #             INSERT INTO {{ table }} (y_prediction)

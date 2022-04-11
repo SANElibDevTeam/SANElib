@@ -144,6 +144,7 @@ class GaussianClassifier:
         # self.__calculate_variances()
         # self.__calculate_gaussian_probabilities_univariate()
         self.__calculate_gaussian_probabilities_mulitvariate()
+        #self.__getMatrixDeternminant()
         # self.__get_diff_from_mean()
         # self.__multiply_columns()
 
@@ -519,14 +520,15 @@ class GaussianClassifier:
                 column.append(self.model.x_columns[j])
                 row.append(column)
             matrix.append(row)
-        self.__get_diff_from_mean()
-        self.__multiply_columns(matrix)
-        rows = self.__get_no_of_rows()
-        no_of_rows = list(range(0, rows[0]))
-        no_of_rows = list(range(0, 4))
-        for no in no_of_rows:
-            self.__init_covariance_matrix_table(no,y_classes)
-            self.__fill_covariance_matrix(matrix,y_classes,no)
+        self.__getMatrixDeternminant(matrix,"gaussian_m0_covariance_matrix_0_1")
+        # self.__get_diff_from_mean()
+        # self.__multiply_columns(matrix)
+        # rows = self.__get_no_of_rows()
+        # no_of_rows = list(range(0, rows[0]))
+        # no_of_rows = list(range(0, 4))
+        # for no in no_of_rows:
+        #     self.__init_covariance_matrix_table(no,y_classes)
+        #     self.__fill_covariance_matrix(matrix,y_classes,no)
 
 
 
@@ -622,4 +624,21 @@ class GaussianClassifier:
                     logging.debug("SQL: " + str(sql_statement))
                     self.db_connection.execute(sql_statement)
 
-
+    def __getMatrixDeternminant(self,m,covariance_table):
+        # base case for 2x2 matrix
+        if self.model.input_size == 2:
+            m00= f'SELECT "{m[0][0][1]}" from {covariance_table} WHERE id= "{m[0][0][0]}"'
+            m01 = f'SELECT "{m[0][1][1]}" from {covariance_table} WHERE id= "{m[0][1][0]}"'
+            m10 = f'SELECT "{m[1][0][1]}" from {covariance_table} WHERE id= "{m[1][0][0]}"'
+            m11 = f'SELECT "{m[1][1][1]}" from {covariance_table} WHERE id= "{m[1][1][0]}"'
+            sql_statement = self.sql_templates['determinante'].render(
+                covariance_matrix=covariance_table,
+                m00=m00,
+                m01=m01,
+                m10=m10,
+                m11=m11)
+            logging.debug("SQL: " + str(sql_statement))
+            data = list(self.db_connection.execute_query(sql_statement)[0])
+            if data[0] == 0.0:
+                data[0] = 0.0001
+            return data
