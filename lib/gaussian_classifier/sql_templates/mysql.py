@@ -110,6 +110,16 @@ tmpl_mysql['init_uni_gauss_prob_table'] = Template('''
             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
             ''')
 
+tmpl_mysql['init_covariance_table'] = Template('''
+            CREATE TABLE IF NOT EXISTS {{ table }} (
+                id varchar(255) NOT NULL,
+                {% for x in x_columns %}
+                    {{ x }} DOUBLE NULL,
+                {% endfor %}
+                
+            PRIMARY KEY (id),
+            UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
+            ''')
 # tmpl_mysql['init_prediction_table'] = Template('''
 #             CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
 #                 id INT NOT NULL AUTO_INCREMENT,
@@ -183,7 +193,42 @@ SELECT SUM(({{ feature_1 }}
      where {{ y_column }} = {{ class }}) as Covariance
 from {{ input_table }} where {{ y_column }} = {{ class }};
 ''')
-#
+
+tmpl_mysql['create_table_like'] = Template('''
+CREATE TABLE {{new_table}} LIKE {{original_table}};
+''')
+tmpl_mysql['copy_table'] = Template('''
+INSERT INTO {{new_table}} SELECT * FROM {{original_table}};
+''')
+
+tmpl_mysql['diff_mean']= Template('''
+UPDATE {{ table }} SET {{column}} = ({{ feature_1 }}
+    -(SELECT {{ feature_1 }}
+    from {{ mean_table }}
+    where y={{ y_class }})) 
+''')
+
+tmpl_mysql["insert_id"]= Template('''
+INSERT INTO {{ table }} (id) VALUES({{ id }})''')
+
+tmpl_mysql['multiply_columns']= Template('''
+UPDATE {{ table }} SET {{column}} = ({{ feature_1 }} * {{ feature_2 }}
+    ) 
+''')
+
+tmpl_mysql['divide_by_total']= Template('''
+UPDATE {{ table }} SET {{column}} = ({{ column }} / (select count(*)
+     from {{ input_table }}
+     where {{ y_column }} = {{ y_class }}) 
+    ) 
+''')
+
+# tmpl_mysql['fill_covariance_matrix_2'] = Template('''
+# INSERT INTO {{ table }} ({{ feature_2 }}) SELECT {{ covariance }} FROM {{ input_table }} WHERE id= {{ feature_1 }};
+# ''')
+tmpl_mysql['fill_covariance_matrix'] = Template('''
+UPDATE {{ table }} SET {{ feature_2 }} = (SELECT {{ covariance }} FROM {{ input_table }} LIMIT {{ n }},1) WHERE id= {{ feature_1 }};
+''')
 # tmpl_mysql['predict'] = Template('''
 #             INSERT INTO {{ table }} (y_prediction)
 #             SELECT {{ prediction_statement }} FROM {{ input_table }};;
