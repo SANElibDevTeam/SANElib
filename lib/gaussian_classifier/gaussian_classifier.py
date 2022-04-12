@@ -521,7 +521,7 @@ class GaussianClassifier:
         # for y_class in y_classes:
         #     determinante[y_class] = self.__get_matrix_determinante(matrix, f"gaussian_m0_covariance_matrix_{y_class}")
         # print(determinante)
-
+        self.__init_transpose_covariance_matrix_table(y_classes)
         self.__transpose_matrix_mysql("gaussian_m0_covariance_matrix_1")
 
     def __create_matrix(self):
@@ -553,6 +553,24 @@ class GaussianClassifier:
                     table='gaussian_' + self.model.id + '_covariance_matrix_' +str(y_class), id=column)
                 logging.debug("SQL: " + str(sql_statement))
                 self.db_connection.execute(sql_statement)
+
+    def __init_transpose_covariance_matrix_table(self,y_classes):
+        logging.info("INITALIZING COVARIANCE MATRIX TABLE")
+        for y_class in y_classes:
+            sql_statement = self.sql_templates['drop_table'].render(table='gaussian_' + self.model.id + '_covariance_matrix_' +str(y_class)+"_transpose")
+            logging.debug("SQL: " + str(sql_statement))
+            self.db_connection.execute(sql_statement)
+
+            sql_statement = self.sql_templates['init_covariance_table'].render(
+                table='gaussian_' + self.model.id + '_covariance_matrix_' + str(y_class)+"_transpose", x_columns=self.model.x_columns)
+            logging.debug("SQL: " + str(sql_statement))
+            self.db_connection.execute(sql_statement)
+            # for column in self.model.x_columns:
+            #     column= '"'+column+'"'
+            #     sql_statement = self.sql_templates['insert_id'].render(
+            #         table='gaussian_' + self.model.id + '_covariance_matrix_' +str(y_class)+"_transpose", id=column)
+            #     logging.debug("SQL: " + str(sql_statement))
+            #     self.db_connection.execute(sql_statement)
 
     def __get_diff_from_mean(self):
         logging.info("CALCULATING feature - avg(feature")
@@ -655,10 +673,12 @@ class GaussianClassifier:
     def __transpose_matrix_mysql(self, covariance_table):
         sql_statement = self.sql_templates['transpose_matrix'].render(
             covariance_matrix=covariance_table,
-            features=self.model.x_columns)
+            features=self.model.x_columns,
+            inverse_matrix= covariance_table + "_transpose")
         logging.debug("SQL: " + str(sql_statement))
-        transposed_matrix = list(self.db_connection.execute_query(sql_statement)[0])
-        print(transposed_matrix)
+        self.db_connection.execute(sql_statement)
+
+
 
     def __get_matrix_inverse(self,m,covariance_table):
         determinant = self.__get_matrix_determinante(m,covariance_table)
