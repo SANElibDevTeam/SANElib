@@ -224,7 +224,8 @@ UPDATE {{ table }} SET {{column}} = ({{ column }} / (select count(*)
 ''')
 
 tmpl_mysql['fill_covariance_matrix'] = Template('''
-UPDATE {{ table }} SET {{ feature_2 }} = (SELECT {{ covariance }} FROM {{ input_table }} LIMIT {{ n }},1) WHERE id= {{ feature_1 }};
+UPDATE {{ table }} SET {{ feature_2 }} = ((SELECT SUM({{ covariance }}) FROM {{ gaussian_input_table }})/(select count(*)
+     from {{ gaussian_input_table }}) ) WHERE id= {{ feature_1 }};
 ''')
 
 tmpl_mysql['determinante']= Template('''
