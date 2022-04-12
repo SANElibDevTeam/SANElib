@@ -137,13 +137,13 @@ class GaussianClassifier:
             raise Exception(
                 'No model parameters available! Please load/create a model or provide table, x_columns and y_column as parameters to this function!')
 
-        # self.__init_mean_table()
+        #self.__init_mean_table()
         # self.__init_variance_table()
         # self.__init_uni_gauss_prob_table()
-        # self.__calculate_means()
+        #self.__calculate_means()
         # self.__calculate_variances()
         # self.__calculate_gaussian_probabilities_univariate()
-        self.__calculate_gaussian_probabilities_mulitvariate()
+        self.__calculate_gaussian_probabilities_multivariate()
         #self.__getMatrixDeternminant()
         # self.__get_diff_from_mean()
         # self.__multiply_columns()
@@ -509,16 +509,18 @@ class GaussianClassifier:
 
 
 
-    def __calculate_gaussian_probabilities_mulitvariate(self):
+    def __calculate_gaussian_probabilities_multivariate(self):
         y_classes = self.__get_targets()
         matrix = self.__create_matrix()
 
         #self.__get_diff_from_mean()
         #self.__multiply_columns(matrix)
-        self.__init_covariance_matrix_table(y_classes)
-        self.__fill_covariance_matrix(matrix,y_classes)
+        # self.__init_covariance_matrix_table(y_classes)
+        # self.__fill_covariance_matrix(matrix,y_classes)
+        determinante = {}
         for y_class in y_classes:
-            self.__get_matrix_determinante(matrix, f"gaussian_m0_covariance_matrix_{y_class}")
+            determinante[y_class] = self.__get_matrix_determinante(matrix, f"gaussian_m0_covariance_matrix_{y_class}")
+        print(determinante)
 
     def __create_matrix(self):
         matrix = []
@@ -626,21 +628,37 @@ class GaussianClassifier:
                     logging.debug("SQL: " + str(sql_statement))
                     self.db_connection.execute(sql_statement)
 
-    def __getMatrixDeternminant(self,m,covariance_table):
+    def __get_matrix_determinante(self,m,covariance_table):
         # base case for 2x2 matrix
-        if self.model.input_size == 2:
-            m00= f'SELECT "{m[0][0][1]}" from {covariance_table} WHERE id= "{m[0][0][0]}"'
-            m01 = f'SELECT "{m[0][1][1]}" from {covariance_table} WHERE id= "{m[0][1][0]}"'
-            m10 = f'SELECT "{m[1][0][1]}" from {covariance_table} WHERE id= "{m[1][0][0]}"'
-            m11 = f'SELECT "{m[1][1][1]}" from {covariance_table} WHERE id= "{m[1][1][0]}"'
-            sql_statement = self.sql_templates['determinante'].render(
-                covariance_matrix=covariance_table,
-                m00=m00,
-                m01=m01,
-                m10=m10,
-                m11=m11)
-            logging.debug("SQL: " + str(sql_statement))
-            data = list(self.db_connection.execute_query(sql_statement)[0])
+        if len(m) == 2:
+            m01 = f'SELECT {m[0][1][1]} from {covariance_table} WHERE id= "{m[0][1][0]}"'
+            m10 = f'SELECT {m[1][0][1]} * ({m01}) from {covariance_table} WHERE id= "{m[1][0][0]}"'
+            m11 = f'SELECT {m[1][1][1]} from {covariance_table} WHERE id= "{m[1][1][0]}"'
+            m00 = f'SELECT {m[0][0][1]} * ({m11}) - ({m10}) from {covariance_table} WHERE id= "{m[0][0][0]}"'
+            # sql_statement = self.sql_templates['determinante'].render(
+            #     covariance_matrix=covariance_table,
+            #     m00=m00,
+            #     m01=m01,
+            #     m10=m10,
+            #     m11=m11)
+            # logging.debug("SQL: " + str(sql_statement))
+            # data = list(self.db_connection.execute_query(sql_statement)[0])
+            logging.debug("SQL: " + str(m00))
+            data = list(self.db_connection.execute_query(m00)[0])
             if data[0] == 0.0:
                 data[0] = 0.0001
-            return data
+            return data[0]
+
+        determinant = 0
+        for c in range(len(m)):
+            sql_statement = self.sql_templates['m0c'].render(
+                covariance_matrix= covariance_table,
+                m0c0='"'+m[0][c][0]+'"',
+                m0c1=m[0][c][1])
+            logging.debug("SQL: " + str(sql_statement))
+            m0c = list(self.db_connection.execute_query(sql_statement)[0])
+            determinant += ((-1) ** c) * m0c[0] * self.__get_matrix_determinante(self.__get_matrix_minor(m, 0, c),covariance_table)
+        return determinant
+
+    def __get_matrix_minor(self,m,i,j):
+        return [row[:j] + row[j+1:] for row in (m[:i]+m[i+1:])]

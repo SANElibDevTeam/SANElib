@@ -229,9 +229,12 @@ UPDATE {{ table }} SET {{ feature_2 }} = ((SELECT SUM({{ covariance }}) FROM {{ 
 ''')
 
 tmpl_mysql['determinante']= Template('''
-SELECT ({{ m00 }}) * ({{ m11 }}) - ({{ m01 }}) * ({{ m00 }}) as determinante
-     from {{ covariance_matrix }}  
+SELECT ({{ m00 }}) * ({{ m11 }}) - ({{ m10 }}) * ({{ m01 }}) as determinante
+     from {{ covariance_matrix }} 
 ''')
+
+tmpl_mysql['m0c'] = Template(''' SELECT {{ m0c1 }} from {{ covariance_matrix }} WHERE id= {{ m0c0 }};  ''')
+
 # tmpl_mysql['predict'] = Template('''
 #             INSERT INTO {{ table }} (y_prediction)
 #             SELECT {{ prediction_statement }} FROM {{ input_table }};;
