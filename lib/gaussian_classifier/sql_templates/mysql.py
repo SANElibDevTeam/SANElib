@@ -235,6 +235,21 @@ SELECT ({{ m00 }}) * ({{ m11 }}) - ({{ m10 }}) * ({{ m01 }}) as determinante
 
 tmpl_mysql['m0c'] = Template(''' SELECT {{ m0c1 }} from {{ covariance_matrix }} WHERE id= {{ m0c0 }};  ''')
 
+tmpl_mysql['transpose_matrix'] = Template('''
+select id_t, {% for feature in features %}
+    {% if loop.index > 1 %}, {% endif %}
+    max(IF(id = {{"'"}}{{ feature }}{{"'"}}, amount, null)) AS {{ feature }}
+    {% endfor %}
+    from (
+    {% for feature in features %}
+    {% if loop.index > 1 %}union {% endif %}
+        select id, {{"'"}}{{ feature }}{{"'"}} id_t, {{ feature }} as amount from {{ covariance_matrix }}
+        
+    {% endfor %}
+  ) t
+  group by id_t;
+''')
+
 # tmpl_mysql['predict'] = Template('''
 #             INSERT INTO {{ table }} (y_prediction)
 #             SELECT {{ prediction_statement }} FROM {{ input_table }};;

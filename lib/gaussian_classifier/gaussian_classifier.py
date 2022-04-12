@@ -517,10 +517,12 @@ class GaussianClassifier:
         #self.__multiply_columns(matrix)
         # self.__init_covariance_matrix_table(y_classes)
         # self.__fill_covariance_matrix(matrix,y_classes)
-        determinante = {}
-        for y_class in y_classes:
-            determinante[y_class] = self.__get_matrix_determinante(matrix, f"gaussian_m0_covariance_matrix_{y_class}")
-        print(determinante)
+        # determinante = {}
+        # for y_class in y_classes:
+        #     determinante[y_class] = self.__get_matrix_determinante(matrix, f"gaussian_m0_covariance_matrix_{y_class}")
+        # print(determinante)
+
+        self.__transpose_matrix_mysql("gaussian_m0_covariance_matrix_1")
 
     def __create_matrix(self):
         matrix = []
@@ -601,15 +603,6 @@ class GaussianClassifier:
                     logging.debug("SQL: " + str(sql_statement))
                     self.db_connection.execute(sql_statement)
 
-                    # sql_statement = self.sql_templates['divide_by_total'].render(
-                    #     table='gaussian_' + self.model.id + '_covariance_input',
-                    #     column=permutation[0][-4:] + '_x_' + permutation[1] + "_" + str(y_class),
-                    #     input_table=self.model.input_table,
-                    #     y_column=self.model.y_column[0],
-                    #     y_class=y_class)
-                    # logging.debug("SQL: " + str(sql_statement))
-                    # self.db_connection.execute(sql_statement)
-
 
     def __fill_covariance_matrix(self,matrix,y_classes):
         for y_class in y_classes:
@@ -635,14 +628,6 @@ class GaussianClassifier:
             m10 = f'SELECT {m[1][0][1]} * ({m01}) from {covariance_table} WHERE id= "{m[1][0][0]}"'
             m11 = f'SELECT {m[1][1][1]} from {covariance_table} WHERE id= "{m[1][1][0]}"'
             m00 = f'SELECT {m[0][0][1]} * ({m11}) - ({m10}) from {covariance_table} WHERE id= "{m[0][0][0]}"'
-            # sql_statement = self.sql_templates['determinante'].render(
-            #     covariance_matrix=covariance_table,
-            #     m00=m00,
-            #     m01=m01,
-            #     m10=m10,
-            #     m11=m11)
-            # logging.debug("SQL: " + str(sql_statement))
-            # data = list(self.db_connection.execute_query(sql_statement)[0])
             logging.debug("SQL: " + str(m00))
             data = list(self.db_connection.execute_query(m00)[0])
             if data[0] == 0.0:
@@ -662,3 +647,37 @@ class GaussianClassifier:
 
     def __get_matrix_minor(self,m,i,j):
         return [row[:j] + row[j+1:] for row in (m[:i]+m[i+1:])]
+
+    def __transpose_matrix(self,m):
+        #TODO: Do it in mysql
+        return list(map(list, zip(*m)))
+
+    def __transpose_matrix_mysql(self, covariance_table):
+        sql_statement = self.sql_templates['transpose_matrix'].render(
+            covariance_matrix=covariance_table,
+            features=self.model.x_columns)
+        logging.debug("SQL: " + str(sql_statement))
+        transposed_matrix = list(self.db_connection.execute_query(sql_statement)[0])
+        print(transposed_matrix)
+
+    def __get_matrix_inverse(self,m,covariance_table):
+        determinant = self.__get_matrix_determinante(m,covariance_table)
+        # special case for 2x2 matrix:
+        #TODO: transform to mysql
+        if len(m) == 2:
+            return [[m[1][1] / determinant, -1 * m[0][1] / determinant],
+                    [-1 * m[1][0] / determinant, m[0][0] / determinant]]
+
+        # find matrix of cofactors
+        cofactors = []
+        for r in range(len(m)):
+            cofactorRow = []
+            for c in range(len(m)):
+                minor = self.__get_matrix_minor(m, r, c)
+                cofactorRow.append(((-1) ** (r + c)) * self.__get_matrix_determinante(minor,covariance_table))
+            cofactors.append(cofactorRow)
+        cofactors = self.__transpose_matrix(cofactors)
+        for r in range(len(cofactors)):
+            for c in range(len(cofactors)):
+                cofactors[r][c] = cofactors[r][c] / determinant
+        return cofactors
