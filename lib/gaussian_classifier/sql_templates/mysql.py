@@ -250,10 +250,21 @@ select id_t, {% for feature in features %}
   ) t
   group by id_t;
 ''')
-tmpl_mysql['insert_inverse'] = Template('''
+tmpl_mysql['insert_inverse_2_2'] = Template('''
 INSERT INTO {{ inverse_matrix }} (id,{% for feature in features %} {% if loop.index > 1 %}, {% endif %} {{feature}} {%endfor%} )
 VALUES ("1",({{ m11 }}), ({{ m01 }})),
         ("2",({{ m10 }}), ({{ m00 }}))
+''')
+
+tmpl_mysql['insert_inverse_n_n'] = Template('''
+INSERT INTO {{ inverse_matrix }} (id,{% for feature in features %} {% if loop.index > 1 %}, {% endif %} {{feature}} {%endfor%} )
+VALUES 
+    {% for row in cofactor_matrix %}
+    {% if loop.index > 1 %}, {% endif %}
+    ({{"'"}}{{loop.index}}{{"'"}},{% for element in row %} {% if loop.index > 1 %}, {% endif %} {{element}} {%endfor%} )
+    {%endfor%}
+    
+
 ''')
 
 
