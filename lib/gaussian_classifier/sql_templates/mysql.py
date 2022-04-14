@@ -250,6 +250,13 @@ select id_t, {% for feature in features %}
   ) t
   group by id_t;
 ''')
+tmpl_mysql['insert_inverse'] = Template('''
+INSERT INTO {{ inverse_matrix }} (id,{% for feature in features %} {% if loop.index > 1 %}, {% endif %} {{feature}} {%endfor%} )
+VALUES ("1",({{ m11 }}), ({{ m01 }})),
+        ("2",({{ m10 }}), ({{ m00 }}))
+''')
+
+
 
 # tmpl_mysql['predict'] = Template('''
 #             INSERT INTO {{ table }} (y_prediction)

@@ -522,7 +522,7 @@ class GaussianClassifier:
         #     determinante[y_class] = self.__get_matrix_determinante(matrix, f"gaussian_m0_covariance_matrix_{y_class}")
         # print(determinante)
         self.__init_transpose_covariance_matrix_table(y_classes)
-        self.__transpose_matrix_mysql("gaussian_m0_covariance_matrix_1")
+        self.__get_matrix_inverse(matrix,"gaussian_m0_covariance_matrix_1")
 
     def __create_matrix(self):
         matrix = []
@@ -666,11 +666,8 @@ class GaussianClassifier:
     def __get_matrix_minor(self,m,i,j):
         return [row[:j] + row[j+1:] for row in (m[:i]+m[i+1:])]
 
-    def __transpose_matrix(self,m):
-        #TODO: Do it in mysql
-        return list(map(list, zip(*m)))
 
-    def __transpose_matrix_mysql(self, covariance_table):
+    def __transpose_matrix(self, covariance_table):
         sql_statement = self.sql_templates['transpose_matrix'].render(
             covariance_matrix=covariance_table,
             features=self.model.x_columns,
@@ -683,10 +680,23 @@ class GaussianClassifier:
     def __get_matrix_inverse(self,m,covariance_table):
         determinant = self.__get_matrix_determinante(m,covariance_table)
         # special case for 2x2 matrix:
-        #TODO: transform to mysql
         if len(m) == 2:
-            return [[m[1][1] / determinant, -1 * m[0][1] / determinant],
-                    [-1 * m[1][0] / determinant, m[0][0] / determinant]]
+            m00 = f'SELECT {m[0][0][1]} / {determinant} from {covariance_table} WHERE id= "{m[0][0][0]}"'
+            m01 = f'SELECT {m[0][1][1]}*(-1) / {determinant} from {covariance_table} WHERE id= "{m[0][1][0]}"'
+            m10 = f'SELECT {m[1][0][1]}*(-1) / {determinant} from {covariance_table} WHERE id= "{m[1][0][0]}"'
+            m11 = f'SELECT {m[1][1][1]} / {determinant} from {covariance_table} WHERE id= "{m[1][1][0]}"'
+            sql_statement = self.sql_templates['insert_inverse'].render(
+                m00=m00,
+                m01=m01,
+                m10=m10,
+                m11=m11,
+                features=self.model.x_columns,
+                inverse_matrix=covariance_table + "_transpose"
+            )
+            logging.debug("SQL: " + str(sql_statement))
+            self.db_connection.execute(sql_statement)
+            # return [[m[1][1] / determinant, -1 * m[0][1] / determinant],
+            #         [-1 * m[1][0] / determinant, m[0][0] / determinant]]
 
         # find matrix of cofactors
         cofactors = []
