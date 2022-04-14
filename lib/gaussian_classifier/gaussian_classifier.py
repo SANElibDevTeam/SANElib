@@ -517,6 +517,7 @@ class GaussianClassifier:
         #self.__multiply_columns(matrix)
         # self.__init_covariance_matrix_table(y_classes)
         # self.__fill_covariance_matrix(matrix,y_classes)
+        self.__init_determinante_table('gaussian_' + self.model.id + "_determinante")
         for y_class in y_classes:
             self.__init_inverse_covariance_matrix_table(y_classes)
             self.__get_matrix_inverse(matrix,f"gaussian_m0_covariance_matrix_{y_class}")
@@ -666,11 +667,20 @@ class GaussianClassifier:
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
 
+    def __init_determinante_table(self,table):
+        sql_statement = self.sql_templates['drop_table'].render(table=table)
+        logging.debug("SQL: " + str(sql_statement))
+        self.db_connection.execute(sql_statement)
 
+        sql_statement = self.sql_templates['init_determinante_table'].render(table=table)
+        logging.debug("SQL: " + str(sql_statement))
+        self.db_connection.execute(sql_statement)
 
     def __get_matrix_inverse(self,m,covariance_table):
         determinant = self.__get_matrix_determinante(m,covariance_table)
-
+        sql_statement = self.sql_templates['insert_determinante'].render(table = "'"+covariance_table+"'",determinante=determinant, determinante_table='gaussian_' + self.model.id + "_determinante")
+        logging.debug("SQL: " + str(sql_statement))
+        self.db_connection.execute(sql_statement)
         # special case for 2x2 matrix:
         if len(m) == 2:
             m00 = f'SELECT {m[0][0][1]} / {determinant} from {covariance_table} WHERE id= "{m[0][0][0]}"'

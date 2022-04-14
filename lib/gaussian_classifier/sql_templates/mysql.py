@@ -120,6 +120,14 @@ tmpl_mysql['init_covariance_table'] = Template('''
             PRIMARY KEY (id),
             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
             ''')
+
+tmpl_mysql['init_determinante_table'] = Template('''
+            CREATE TABLE IF NOT EXISTS {{ table }} (
+                id varchar(255) NOT NULL,
+                determinante DOUBLE NULL,
+            PRIMARY KEY (id),
+            UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
+            ''')
 # tmpl_mysql['init_prediction_table'] = Template('''
 #             CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
 #                 id INT NOT NULL AUTO_INCREMENT,
@@ -267,7 +275,10 @@ VALUES
 
 ''')
 
-
+tmpl_mysql['insert_determinante'] = Template('''
+INSERT INTO {{ determinante_table }} (id,determinante)
+VALUES ({{ table }}, {{ determinante }})
+''')
 
 # tmpl_mysql['predict'] = Template('''
 #             INSERT INTO {{ table }} (y_prediction)
