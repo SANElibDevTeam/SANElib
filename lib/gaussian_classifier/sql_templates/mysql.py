@@ -236,7 +236,7 @@ SELECT ({{ m00 }}) * ({{ m11 }}) - ({{ m10 }}) * ({{ m01 }}) as determinante
 tmpl_mysql['m0c'] = Template(''' SELECT {{ m0c1 }} from {{ covariance_matrix }} WHERE id= {{ m0c0 }};  ''')
 
 tmpl_mysql['transpose_matrix'] = Template('''
-INSERT INTO {{ inverse_matrix }} (id,{% for feature in features %} {% if loop.index > 1 %}, {% endif %} {{feature}} {%endfor%} )
+REPLACE INTO {{ inverse_matrix }} (id,{% for feature in features %} {% if loop.index > 1 %}, {% endif %} {{feature}} {%endfor%} )
 select id_t, {% for feature in features %}
     {% if loop.index > 1 %}, {% endif %}
     max(IF(id = {{"'"}}{{ feature }}{{"'"}}, amount, null)) AS {{ feature }}
@@ -261,7 +261,7 @@ INSERT INTO {{ inverse_matrix }} (id,{% for feature in features %} {% if loop.in
 VALUES 
     {% for row in cofactor_matrix %}
     {% if loop.index > 1 %}, {% endif %}
-    ({{"'"}}{{loop.index}}{{"'"}},{% for element in row %} {% if loop.index > 1 %}, {% endif %} {{element}} {%endfor%} )
+    ({{"'"}}{{features[loop.index-1]}}{{"'"}},{% for element in row %} {% if loop.index > 1 %}, {% endif %} {{element}} {%endfor%} )
     {%endfor%}
     
 
