@@ -518,9 +518,10 @@ class GaussianClassifier:
         # self.__init_covariance_matrix_table(y_classes)
         # self.__fill_covariance_matrix(matrix,y_classes)
         self.__init_determinante_table('gaussian_' + self.model.id + "_determinante")
+        self.__init_inverse_covariance_matrix_table(y_classes)
         for y_class in y_classes:
-            self.__init_inverse_covariance_matrix_table(y_classes)
             self.__get_matrix_inverse(matrix,f"gaussian_m0_covariance_matrix_{y_class}")
+
 
     def __create_matrix(self):
         matrix = []
@@ -663,9 +664,10 @@ class GaussianClassifier:
         sql_statement = self.sql_templates['transpose_matrix'].render(
             covariance_matrix=covariance_table,
             features=self.model.x_columns,
-            inverse_matrix= covariance_table )
+            inverse_matrix= covariance_table)
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
+
 
     def __init_determinante_table(self,table):
         sql_statement = self.sql_templates['drop_table'].render(table=table)
@@ -715,7 +717,7 @@ class GaussianClassifier:
         )
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
-        self.__transpose_matrix(covariance_table + "_inverse")
+        self.__transpose_matrix(covariance_table+ "_inverse")
 
 
 
