@@ -513,10 +513,10 @@ class GaussianClassifier:
         y_classes = self.__get_targets()
         matrix = self.__create_matrix()
 
-        #self.__get_diff_from_mean()
-        #self.__multiply_columns(matrix)
-        # self.__init_covariance_matrix_table(y_classes)
-        # self.__fill_covariance_matrix(matrix,y_classes)
+        self.__get_diff_from_mean()
+        self.__multiply_columns(matrix)
+        self.__init_covariance_matrix_table(y_classes)
+        self.__fill_covariance_matrix(matrix,y_classes)
         self.__init_determinante_table('gaussian_' + self.model.id + "_determinante")
         self.__init_inverse_covariance_matrix_table(y_classes)
         for y_class in y_classes:
