@@ -604,13 +604,13 @@ class GaussianClassifier:
                 for permutation in row:
                     sql_statement = self.sql_templates['add_column'].render(
                         table='gaussian_' + self.model.id + '_covariance_input',
-                        column=permutation[0][-4:] + '_x_' + permutation[1]+ "_" + str(y_class), type="DOUBLE NULL")
+                        column=str(self.model.x_map[permutation[0]]) + '_x_' + str(self.model.x_map[permutation[1]])+ "_" + str(y_class), type="DOUBLE NULL")
                     logging.debug("SQL: " + str(sql_statement))
                     self.db_connection.execute(sql_statement)
 
                     sql_statement = self.sql_templates['multiply_columns'].render(
                         table='gaussian_' + self.model.id + '_covariance_input',
-                        column=permutation[0][-4:] + '_x_' + permutation[1] + "_" + str(y_class), feature_1=permutation[0] + '_diff_mean_' + str(y_class), feature_2=permutation[1] + '_diff_mean_' + str(y_class))
+                        column=str(self.model.x_map[permutation[0]]) + '_x_' + str(self.model.x_map[permutation[1]])+ "_" + str(y_class), feature_1=permutation[0] + '_diff_mean_' + str(y_class), feature_2=permutation[1] + '_diff_mean_' + str(y_class))
                     logging.debug("SQL: " + str(sql_statement))
                     self.db_connection.execute(sql_statement)
 
@@ -619,7 +619,7 @@ class GaussianClassifier:
         for y_class in y_classes:
             for row in matrix:
                 for permutation in row:
-                    covariance= permutation[0][-4:] + '_x_' + permutation[1] + "_" + str(y_class)
+                    covariance= str(self.model.x_map[permutation[0]]) + '_x_' + str(self.model.x_map[permutation[1]])+"_"+ str(y_class)
                     sql_statement = self.sql_templates['fill_covariance_matrix'].render(
                         table='gaussian_' + self.model.id + '_covariance_matrix_' +str(y_class),
                         gaussian_input_table='gaussian_' + self.model.id + '_covariance_input',
@@ -654,6 +654,8 @@ class GaussianClassifier:
             logging.debug("SQL: " + str(sql_statement))
             m0c = list(self.db_connection.execute_query(sql_statement)[0])
             determinant += ((-1) ** c) * m0c[0] * self.__get_matrix_determinante(self.__get_matrix_minor(m, 0, c),covariance_table)
+        if determinant == 0:
+            determinant = 0.0001
         return determinant
 
     def __get_matrix_minor(self,m,i,j):

@@ -224,6 +224,10 @@ UPDATE {{ table }} SET {{column}} = ({{ feature_1 }} * {{ feature_2 }}
     ) 
 ''')
 
+tmpl_mysql['rename_column']= Template('''
+ALTER TABLE {{ table }} RENAME {{ column }} TO {{ new_column }};
+''')
+
 tmpl_mysql['divide_by_total']= Template('''
 UPDATE {{ table }} SET {{column}} = ({{ column }} / (select count(*)
      from {{ input_table }}
