@@ -513,10 +513,10 @@ class GaussianClassifier:
         y_classes = self.__get_targets()
         matrix = self.__create_matrix()
 
-        self.__get_diff_from_mean()
-        self.__multiply_columns(matrix)
-        self.__init_covariance_matrix_table(y_classes)
-        self.__fill_covariance_matrix(matrix,y_classes)
+        # self.__get_diff_from_mean()
+        # self.__multiply_columns(matrix)
+        # self.__init_covariance_matrix_table(y_classes)
+        # self.__fill_covariance_matrix(matrix,y_classes)
         self.__init_determinante_table('gaussian_' + self.model.id + "_determinante")
         self.__init_inverse_covariance_matrix_table(y_classes)
         for y_class in y_classes:
@@ -553,17 +553,31 @@ class GaussianClassifier:
                 logging.debug("SQL: " + str(sql_statement))
                 self.db_connection.execute(sql_statement)
 
+
+
     def __init_inverse_covariance_matrix_table(self,y_classes):
         logging.info("INITALIZING COVARIANCE MATRIX TABLE")
         for y_class in y_classes:
-            sql_statement = self.sql_templates['drop_table'].render(table='gaussian_' + self.model.id + '_covariance_matrix_' +str(y_class)+"_inverse")
+            sql_statement = self.sql_templates['drop_table'].render(table='gaussian_' + self.model.id + '_covariance_matrix_' +str(y_class)+"_inverse_matrix")
             logging.debug("SQL: " + str(sql_statement))
             self.db_connection.execute(sql_statement)
 
             sql_statement = self.sql_templates['init_covariance_table'].render(
-                table='gaussian_' + self.model.id + '_covariance_matrix_' + str(y_class)+"_inverse", x_columns=self.model.x_columns)
+                table='gaussian_' + self.model.id + '_covariance_matrix_' + str(y_class)+"_inverse_matrix", x_columns=self.model.x_columns)
             logging.debug("SQL: " + str(sql_statement))
             self.db_connection.execute(sql_statement)
+
+            sql_statement = self.sql_templates['drop_table'].render(
+                table='gaussian_' + self.model.id + '_covariance_matrix_' + str(y_class) + "_inverse")
+            logging.debug("SQL: " + str(sql_statement))
+            self.db_connection.execute(sql_statement)
+
+            sql_statement = self.sql_templates['init_inverse_table'].render(
+                table='gaussian_' + self.model.id + '_covariance_matrix_' + str(y_class) + "_inverse",
+                x_columns=self.model.x_columns)
+            logging.debug("SQL: " + str(sql_statement))
+            self.db_connection.execute(sql_statement)
+
 
     def __get_diff_from_mean(self):
         logging.info("CALCULATING feature - avg(feature")
@@ -697,7 +711,7 @@ class GaussianClassifier:
                 m10=m10,
                 m11=m11,
                 features=self.model.x_columns,
-                inverse_matrix=covariance_table + "_inverse"
+                inverse_matrix=covariance_table + "_inverse_matrix"
             )
             logging.debug("SQL: " + str(sql_statement))
             self.db_connection.execute(sql_statement)
@@ -715,11 +729,44 @@ class GaussianClassifier:
         sql_statement = self.sql_templates['insert_inverse_n_n'].render(
             cofactor_matrix=cofactors,
             features=self.model.x_columns,
-            inverse_matrix=covariance_table + "_inverse"
+            inverse_matrix=covariance_table + "_inverse_matrix"
         )
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
-        self.__transpose_matrix(covariance_table+ "_inverse")
+        self.__transpose_matrix(covariance_table+ "_inverse_matrix")
+        self.__rearrange_inverse(covariance_table)
+
+
+
+    def __rearrange_inverse(self,covariance_table):
+        for row in self.model.x_columns:
+            for column in self.model.x_columns:
+                sql_statement = self.sql_templates['select_x_from_where'].render(
+                    x=column,
+                    where_statement=row,
+                    table=covariance_table + "_inverse_matrix"
+                )
+                logging.debug("SQL: " + str(sql_statement))
+                data = list(self.db_connection.execute_query(sql_statement)[0])
+
+                sql_statement = self.sql_templates['insert_inverse'].render(
+                    row=self.model.x_map[row],
+                    column=self.model.x_map[column],
+                    actual_value=data[0],
+                    inverse_table=covariance_table + "_inverse"
+                )
+                logging.debug("SQL: " + str(sql_statement))
+                self.db_connection.execute(sql_statement)
+
+        sql_statement = self.sql_templates['drop_table'].render(
+            table=covariance_table + "_inverse_matrix")
+        logging.debug("SQL: " + str(sql_statement))
+        self.db_connection.execute(sql_statement)
+
+
+
+
+
 
 
 

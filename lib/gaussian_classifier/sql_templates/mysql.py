@@ -6,6 +6,9 @@ tmpl_mysql['select_x_from'] = Template('''
             SELECT {{ x }} FROM {{ database }}.{{ table }};
             ''')
 
+tmpl_mysql['select_x_from_where'] = Template('''
+            SELECT {{ x }} FROM {{ table }} WHERE id = '{{ where_statement }}';
+            ''')
 tmpl_mysql['get_all_from'] = Template('''
             SELECT * FROM {{ database }}.{{ table }};
             ''')
@@ -117,6 +120,18 @@ tmpl_mysql['init_covariance_table'] = Template('''
                     {{ x }} DOUBLE NULL,
                 {% endfor %}
                 
+            PRIMARY KEY (id),
+            UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
+            ''')
+
+tmpl_mysql['init_inverse_table'] = Template('''
+            CREATE TABLE IF NOT EXISTS {{ table }} (
+                id INT NOT NULL AUTO_INCREMENT,
+                row_no DOUBLE NULL,
+                col_no DOUBLE NULL,
+                actual_value DOUBLE NULL,
+                
+
             PRIMARY KEY (id),
             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
             ''')
@@ -282,6 +297,12 @@ VALUES
 tmpl_mysql['insert_determinante'] = Template('''
 INSERT INTO {{ determinante_table }} (id,determinante)
 VALUES ({{ table }}, {{ determinante }})
+''')
+
+
+tmpl_mysql['insert_inverse'] = Template('''
+INSERT INTO {{ inverse_table }} (row_no, col_no, actual_value)
+VALUES ({{ row }}, {{ column }}, {{ actual_value }})
 ''')
 
 # tmpl_mysql['predict'] = Template('''
