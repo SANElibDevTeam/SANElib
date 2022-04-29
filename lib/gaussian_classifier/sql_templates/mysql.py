@@ -279,8 +279,8 @@ select id_t, {% for feature in features %}
 ''')
 tmpl_mysql['insert_inverse_2_2'] = Template('''
 INSERT INTO {{ inverse_matrix }} (id,{% for feature in features %} {% if loop.index > 1 %}, {% endif %} {{feature}} {%endfor%} )
-VALUES ("1",({{ m11 }}), ({{ m01 }})),
-        ("2",({{ m10 }}), ({{ m00 }}))
+VALUES ({{"'"}}{{features[0]}}{{"'"}},({{ m11 }}), ({{ m01 }})),
+        ({{"'"}}{{features[1]}}{{"'"}},({{ m10 }}), ({{ m00 }}))
 ''')
 
 tmpl_mysql['insert_inverse_n_n'] = Template('''
@@ -303,6 +303,15 @@ VALUES ({{ table }}, {{ determinante }})
 tmpl_mysql['insert_inverse'] = Template('''
 INSERT INTO {{ inverse_table }} (row_no, col_no, actual_value)
 VALUES ({{ row }}, {{ column }}, {{ actual_value }})
+''')
+tmpl_mysql['insert_vector'] = Template('''
+INSERT INTO {{ vector_table }} (row_no, col_no, actual_value)
+VALUES
+{% for element in x_columns %}
+{% if loop.index > 1 %}, {% endif %}
+(1, {{ loop.index }},(SELECT {{ element }} FROM {{ input_table }} LIMIT {{ n }},1))
+{% endfor %}
+
 ''')
 
 # tmpl_mysql['predict'] = Template('''

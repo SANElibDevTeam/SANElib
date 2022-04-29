@@ -519,8 +519,10 @@ class GaussianClassifier:
         # self.__fill_covariance_matrix(matrix,y_classes)
         self.__init_determinante_table('gaussian_' + self.model.id + "_determinante")
         self.__init_inverse_covariance_matrix_table(y_classes)
+        self.__init_vector_tables(5)
         for y_class in y_classes:
             self.__get_matrix_inverse(matrix,f"gaussian_m0_covariance_matrix_{y_class}")
+        self.__multiply_vector_matrix()
 
 
     def __create_matrix(self):
@@ -574,6 +576,19 @@ class GaussianClassifier:
 
             sql_statement = self.sql_templates['init_inverse_table'].render(
                 table='gaussian_' + self.model.id + '_covariance_matrix_' + str(y_class) + "_inverse",
+                x_columns=self.model.x_columns)
+            logging.debug("SQL: " + str(sql_statement))
+            self.db_connection.execute(sql_statement)
+
+    def __init_vector_tables(self,no_rows):
+        for row in list(range(no_rows)):
+            sql_statement = self.sql_templates['drop_table'].render(
+                table='gaussian_' + self.model.id + '_vector_' + str(row) )
+            logging.debug("SQL: " + str(sql_statement))
+            self.db_connection.execute(sql_statement)
+
+            sql_statement = self.sql_templates['init_inverse_table'].render(
+                table='gaussian_' + self.model.id + '_vector_' + str(row) ,
                 x_columns=self.model.x_columns)
             logging.debug("SQL: " + str(sql_statement))
             self.db_connection.execute(sql_statement)
@@ -766,6 +781,19 @@ class GaussianClassifier:
 
 
 
+
+
+    def __multiply_vector_matrix(self):
+        rows=5
+        for n in list(range(rows)):
+            sql_statement = self.sql_templates['insert_vector'].render(
+                        vector_table='gaussian_' + self.model.id + '_vector_' + str(n),
+                        x_columns=self.model.x_columns,
+                        n=n,
+                        input_table=self.model.input_table
+                    )
+            logging.debug("SQL: " + str(sql_statement))
+            self.db_connection.execute(sql_statement)
 
 
 
