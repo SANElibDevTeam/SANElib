@@ -305,11 +305,13 @@ INSERT INTO {{ inverse_table }} (row_no, col_no, actual_value)
 VALUES ({{ row }}, {{ column }}, {{ actual_value }})
 ''')
 tmpl_mysql['insert_vector'] = Template('''
-INSERT INTO {{ vector_table }} (row_no, col_no, actual_value)
+{% for n in row_no %}
+INSERT INTO {{ vector_table }}{{ n }} (row_no, col_no, actual_value)
 VALUES
 {% for element in x_columns %}
 {% if loop.index > 1 %}, {% endif %}
 (1, {{ loop.index }},(SELECT {{ element }} FROM {{ input_table }} LIMIT {{ n }},1))
+{% endfor %};
 {% endfor %}
 
 ''')

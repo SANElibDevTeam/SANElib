@@ -3,6 +3,7 @@ import itertools
 from lib.gaussian_classifier.model import Model
 import numpy as np
 import logging
+import sqlparse
 
 
 class GaussianClassifier:
@@ -133,6 +134,7 @@ class GaussianClassifier:
         logging.info("\n-----\nESTIMATING")
         if table is not None or x_columns is not None or y_column is not None:
             self.model = Model(table, x_columns, y_column)
+            self.model.no_of_rows = self.__get_no_of_rows()
         elif self.model is None:
             raise Exception(
                 'No model parameters available! Please load/create a model or provide table, x_columns and y_column as parameters to this function!')
@@ -450,7 +452,7 @@ class GaussianClassifier:
         data = []
         for element in query_return:
             data.append(element[0])
-        return np.asarray(data)
+        return data[0]
 
 
     def __remove_help_row(self,table):
@@ -484,8 +486,8 @@ class GaussianClassifier:
     def __calculate_gaussian_probabilities_univariate(self):
         logging.info("CALCULATING GAUSSIAN PROBABILITIES")
         y_classes = self.__get_targets()
-        rows = self.__get_no_of_rows()
-        no_of_rows = list(range(0,rows[0]))
+        rows = self.model.no_of_rows
+        no_of_rows = list(range(0,rows))
 
         for n in no_of_rows:
             gauss_statements = []
@@ -519,7 +521,7 @@ class GaussianClassifier:
         # self.__fill_covariance_matrix(matrix,y_classes)
         self.__init_determinante_table('gaussian_' + self.model.id + "_determinante")
         self.__init_inverse_covariance_matrix_table(y_classes)
-        self.__init_vector_tables(5)
+        self.__init_vector_tables(self.model.no_of_rows)
         for y_class in y_classes:
             self.__get_matrix_inverse(matrix,f"gaussian_m0_covariance_matrix_{y_class}")
         self.__multiply_vector_matrix()
@@ -784,16 +786,17 @@ class GaussianClassifier:
 
 
     def __multiply_vector_matrix(self):
-        rows=5
-        for n in list(range(rows)):
-            sql_statement = self.sql_templates['insert_vector'].render(
-                        vector_table='gaussian_' + self.model.id + '_vector_' + str(n),
-                        x_columns=self.model.x_columns,
-                        n=n,
-                        input_table=self.model.input_table
-                    )
-            logging.debug("SQL: " + str(sql_statement))
-            self.db_connection.execute(sql_statement)
+        n= list(range(self.model.no_of_rows))
+        sql_statement = self.sql_templates['insert_vector'].render(
+                    vector_table='gaussian_' + self.model.id + '_vector_',
+                    x_columns=self.model.x_columns,
+                    row_no=n,
+                    input_table=self.model.input_table
+                )
+        for statement in sqlparse.split(sql_statement):
+            if statement:
+                logging.debug("SQL: " + str(statement))
+                self.db_connection.execute(statement)
 
 
 
