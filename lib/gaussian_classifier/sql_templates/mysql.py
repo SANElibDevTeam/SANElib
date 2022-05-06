@@ -127,8 +127,8 @@ tmpl_mysql['init_covariance_table'] = Template('''
 tmpl_mysql['init_inverse_table'] = Template('''
             CREATE TABLE IF NOT EXISTS {{ table }} (
                 id INT NOT NULL AUTO_INCREMENT,
-                row_no DOUBLE NULL,
-                col_no DOUBLE NULL,
+                {{ row_name }} DOUBLE NULL,
+                {{ col_name }} DOUBLE NULL,
                 actual_value DOUBLE NULL,
                 
 
@@ -301,12 +301,12 @@ VALUES ({{ table }}, {{ determinante }})
 
 
 tmpl_mysql['insert_inverse'] = Template('''
-INSERT INTO {{ inverse_table }} (row_no, col_no, actual_value)
+INSERT INTO {{ inverse_table }} (k, j, actual_value)
 VALUES ({{ row }}, {{ column }}, {{ actual_value }})
 ''')
 tmpl_mysql['insert_vector'] = Template('''
 {% for n in row_no %}
-INSERT INTO {{ vector_table }}{{ n }} (row_no, col_no, actual_value)
+INSERT INTO {{ vector_table }}{{ n }} (i, k, actual_value)
 VALUES
 {% for element in x_columns %}
 {% if loop.index > 1 %}, {% endif %}
@@ -316,6 +316,37 @@ VALUES
 
 ''')
 
+
+tmpl_mysql['calculate_mahalonobis_distance'] = Template('''
+
+{% for n in row_no %}
+{% for y in y_classes %}
+INSERT INTO {{ estimation_table }} (row_no, y, mahalonobis_distance)
+SELECT  {{ n }} as row_no,  {{ y }} as y, SUM(MatrixD.actual_value * vector_transformed.actual_value) as mahalonobis_distance
+  FROM 
+
+ (SELECT i, j as k, SUM({{ vector_table }}{{ n }}.actual_value * {{ covariance_matrix }}_{{ y }}_inverse.actual_value) as actual_value
+  FROM {{ vector_table }}{{ n }}, {{ covariance_matrix }}_{{ y }}_inverse
+ WHERE {{ vector_table }}{{ n }}.k ={{ covariance_matrix }}_{{ y }}_inverse.k
+ GROUP BY i, j) AS MatrixD,
+ (SELECT k, i as j,actual_value FROM {{ vector_table }}{{ n }}) as vector_transformed
+ 
+ WHERE MatrixD.k = vector_transformed.k
+ GROUP BY i, j ;
+ 
+ {% endfor %}
+{% endfor %}
+''')
+
+tmpl_mysql['init_multi_gauss_prob_table'] = Template('''
+            CREATE TABLE IF NOT EXISTS {{ table }} (
+                id INT NOT NULL AUTO_INCREMENT,
+                row_no INT NULL,
+                mahalonobis_distance DOUBLE NULL,
+                y DOUBLE NULL,
+            PRIMARY KEY (id),
+            UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
+            ''')
 # tmpl_mysql['predict'] = Template('''
 #             INSERT INTO {{ table }} (y_prediction)
 #             SELECT {{ prediction_statement }} FROM {{ input_table }};;
