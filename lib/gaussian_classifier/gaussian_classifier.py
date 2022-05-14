@@ -143,13 +143,11 @@ class GaussianClassifier:
                 'No model parameters available! Please load/create a model or provide table, x_columns and y_column as parameters to this function!')
 
         #self.__init_mean_table()
-        # self.__init_variance_table()
-        # self.__init_uni_gauss_prob_table()
+        self.__init_variance_table()
+        self.__init_uni_gauss_prob_table()
         #self.__calculate_means()
-        # self.__calculate_variances()
-        # self.__calculate_gaussian_probabilities_univariate()
-        # self.__get_diff_from_mean()
-        # self.__multiply_columns()
+        self.__calculate_variances()
+        self.__calculate_gaussian_probabilities_univariate()
         self.__calculate_gaussian_probabilities_multivariate()
 
         if self.model.state < 1:
@@ -514,6 +512,10 @@ class GaussianClassifier:
             self.__get_matrix_inverse(matrix,f"gaussian_{self.model.id }_covariance_matrix_{y_class}")
         self.__get_mahalonibis_distance()
         self.__multivariate_probability()
+        self.__drop_vector_tables(self.model.no_of_rows)
+        self.__drop_determinante_table('gaussian_' + self.model.id + "_determinante")
+        # self.__drop_inverse_covariance_matrix_table(y_classes)
+        # self.__drop_covariance_matrix_table(y_classes)
 
 
     def __create_matrix(self):
@@ -546,10 +548,15 @@ class GaussianClassifier:
                 logging.debug("SQL: " + str(sql_statement))
                 self.db_connection.execute(sql_statement)
 
-
+    def __drop_covariance_matrix_table(self,y_classes):
+        logging.info("DROPPING COVARIANCE MATRIX TABLE")
+        for y_class in y_classes:
+            sql_statement = self.sql_templates['drop_table'].render(table='gaussian_' + self.model.id + '_covariance_matrix_' +str(y_class))
+            logging.debug("SQL: " + str(sql_statement))
+            self.db_connection.execute(sql_statement)
 
     def __init_inverse_covariance_matrix_table(self,y_classes):
-        logging.info("INITALIZING COVARIANCE MATRIX TABLE")
+        logging.info("INITALIZING INVERSE COVARIANCE MATRIX TABLE")
         for y_class in y_classes:
             sql_statement = self.sql_templates['drop_table'].render(table='gaussian_' + self.model.id + '_covariance_matrix_' +str(y_class)+"_inverse_matrix")
             logging.debug("SQL: " + str(sql_statement))
@@ -571,6 +578,14 @@ class GaussianClassifier:
             logging.debug("SQL: " + str(sql_statement))
             self.db_connection.execute(sql_statement)
 
+    def __drop_inverse_covariance_matrix_table(self, y_classes):
+        logging.info("DROPPING INVERSE COVARIANCE MATRIX TABLES")
+        for y_class in y_classes:
+            sql_statement = self.sql_templates['drop_table'].render(
+                table='gaussian_' + self.model.id + '_covariance_matrix_' + str(y_class) + "_inverse_matrix")
+            logging.debug("SQL: " + str(sql_statement))
+            self.db_connection.execute(sql_statement)
+
     def __init_vector_tables(self,no_rows):
         for row in list(range(no_rows)):
             for y in self.model.y_classes:
@@ -583,6 +598,14 @@ class GaussianClassifier:
                 sql_statement = self.sql_templates['init_inverse_table'].render(
                     table='gaussian_' + self.model.id + '_vector_' + str(row) + "_" +str(y) ,
                     row_name="i", col_name= "k")
+                logging.debug("SQL: " + str(sql_statement))
+                self.db_connection.execute(sql_statement)
+
+    def __drop_vector_tables(self, no_rows):
+        for row in list(range(no_rows)):
+            for y in self.model.y_classes:
+                sql_statement = self.sql_templates['drop_table'].render(
+                    table='gaussian_' + self.model.id + '_vector_' + str(row) + "_" + str(y))
                 logging.debug("SQL: " + str(sql_statement))
                 self.db_connection.execute(sql_statement)
 
@@ -699,6 +722,11 @@ class GaussianClassifier:
         self.db_connection.execute(sql_statement)
 
         sql_statement = self.sql_templates['init_determinante_table'].render(table=table)
+        logging.debug("SQL: " + str(sql_statement))
+        self.db_connection.execute(sql_statement)
+
+    def __drop_determinante_table(self,table):
+        sql_statement = self.sql_templates['drop_table'].render(table=table)
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
 
