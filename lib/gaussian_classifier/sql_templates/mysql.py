@@ -311,7 +311,7 @@ INSERT INTO {{ vector_table }}{{ n }}_{{y}} (i, k, actual_value)
 VALUES
 {% for element in x_columns %}
 {% if loop.index > 1 %}, {% endif %}
-(1, {{ loop.index }},(SELECT {{ element }} FROM {{ input_table }} LIMIT {{ n }},1))
+(1, {{ loop.index }},(SELECT {{ element }}_diff_mean_{{ y }} FROM {{ input_table }} LIMIT {{ n }},1))
 {% endfor %};
 {% endfor %}
 {% endfor %}

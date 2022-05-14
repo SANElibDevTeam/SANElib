@@ -796,7 +796,8 @@ class GaussianClassifier:
                     vector_table='gaussian_' + self.model.id + '_vector_',
                     x_columns=self.model.x_columns,
                     row_no=n,
-                    input_table=self.model.input_table
+                    y_classes= self.__get_targets(),
+                    input_table='gaussian_' + self.model.id + '_covariance_input'
                 )
         for statement in sqlparse.split(sql_statement):
             if statement:
