@@ -304,6 +304,8 @@ tmpl_mysql['insert_inverse'] = Template('''
 INSERT INTO {{ inverse_table }} (k, j, actual_value)
 VALUES ({{ row }}, {{ column }}, {{ actual_value }})
 ''')
+
+
 tmpl_mysql['insert_vector'] = Template('''
 {% for n in row_no %}
 {% for y in y_classes%}
@@ -345,10 +347,24 @@ tmpl_mysql['init_multi_gauss_prob_table'] = Template('''
                 id INT NOT NULL AUTO_INCREMENT,
                 row_no INT NULL,
                 mahalonobis_distance DOUBLE NULL,
+                probability DOUBLE NULL,
                 y DOUBLE NULL,
             PRIMARY KEY (id),
             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
             ''')
+
+
+tmpl_mysql['calculate_multivariate_density'] = Template('''
+{% for n in row_no %}
+{% for y in y_classes %}
+UPDATE {{ table }} SET probability =
+(SELECT (1/(power(2*PI(),{{ k }})*(SELECT determinante from {{ determinante_table}} where id = "gaussian_m0_covariance_matrix_{{ y }}")))
+* EXP(0.5 * SELECT mahalonobis_distance from {{ table }} where y = {{ y }} and row_no ={{ n }})))
+WHERE y = {{ y }} and row_no ={{ n }};
+{% endfor %}
+{% endfor %}
+
+''')
 # tmpl_mysql['predict'] = Template('''
 #             INSERT INTO {{ table }} (y_prediction)
 #             SELECT {{ prediction_statement }} FROM {{ input_table }};;

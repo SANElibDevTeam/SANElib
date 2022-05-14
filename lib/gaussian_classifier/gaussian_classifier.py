@@ -528,6 +528,7 @@ class GaussianClassifier:
         for y_class in y_classes:
             self.__get_matrix_inverse(matrix,f"gaussian_{self.model.id }_covariance_matrix_{y_class}")
         self.__get_mahalonibis_distance()
+        self.__multivariate_probability()
 
 
     def __create_matrix(self):
@@ -830,6 +831,22 @@ class GaussianClassifier:
 
 
 
+    def __multivariate_probability(self):
+        n = list(range(self.model.no_of_rows))
+        sql_statement = self.sql_templates['calculate_multivariate_density'].render(
+            table='gaussian_' + self.model.id + '_multivariate_estimation',
+            row_no=n,
+            y_classes=self.__get_targets(),
+            determinante_table='gaussian_' + self.model.id + "_determinante",
+            vector_table='gaussian_' + self.model.id + '_vector_',
+            covariance_matrix=f"gaussian_{self.model.id}_covariance_matrix",
+            k=self.model.input_size
+
+        )
+        for statement in sqlparse.split(sql_statement):
+            if statement:
+                logging.debug("SQL: " + str(statement))
+                self.db_connection.execute(statement)
 
 
 
