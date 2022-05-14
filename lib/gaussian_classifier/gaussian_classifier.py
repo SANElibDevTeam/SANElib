@@ -137,7 +137,7 @@ class GaussianClassifier:
             ##TODO: Revert real number of rows
             # self.model.no_of_rows = self.__get_no_of_rows()
             self.model.no_of_rows = 5
-
+            self.model.y_classes = self.__get_targets()
         elif self.model is None:
             raise Exception(
                 'No model parameters available! Please load/create a model or provide table, x_columns and y_column as parameters to this function!')
@@ -148,10 +148,9 @@ class GaussianClassifier:
         #self.__calculate_means()
         # self.__calculate_variances()
         # self.__calculate_gaussian_probabilities_univariate()
-        self.__calculate_gaussian_probabilities_multivariate()
-        #self.__getMatrixDeternminant()
         # self.__get_diff_from_mean()
         # self.__multiply_columns()
+        self.__calculate_gaussian_probabilities_multivariate()
 
         if self.model.state < 1:
             self.model.state = 1
@@ -465,7 +464,7 @@ class GaussianClassifier:
 
     def __calculate_means(self):
         logging.info("CALCULATING MEANS")
-        y_classes = self.__get_targets()
+        y_classes = self.model.y_classes
 
         sql_statement = self.sql_templates['calculate_means'].render(
             table='gaussian_' + self.model.id + '_mean', input_table=self.model.input_table,
@@ -476,7 +475,7 @@ class GaussianClassifier:
 
     def __calculate_variances(self):
         logging.info("CALCULATING VARIANCES")
-        y_classes = self.__get_targets()
+        y_classes = self.model.y_classes
 
 
         sql_statement = self.sql_templates['calculate_variances'].render(
@@ -488,7 +487,7 @@ class GaussianClassifier:
 
     def __calculate_gaussian_probabilities_univariate(self):
         logging.info("CALCULATING GAUSSIAN PROBABILITIES")
-        y_classes = self.__get_targets()
+        y_classes = self.model.y_classes
         rows = self.model.no_of_rows
         no_of_rows = list(range(0,rows))
 
@@ -515,7 +514,7 @@ class GaussianClassifier:
 
 
     def __calculate_gaussian_probabilities_multivariate(self):
-        y_classes = self.__get_targets()
+        y_classes = self.model.y_classes
         matrix = self.__create_matrix()
 
         # self.__get_diff_from_mean()
@@ -588,7 +587,7 @@ class GaussianClassifier:
 
     def __init_vector_tables(self,no_rows):
         for row in list(range(no_rows)):
-            for y in self.__get_targets():
+            for y in self.model.y_classes:
 
                 sql_statement = self.sql_templates['drop_table'].render(
                     table='gaussian_' + self.model.id + '_vector_' + str(row) + "_" +str(y) )
@@ -618,7 +617,7 @@ class GaussianClassifier:
             new_table='gaussian_' + self.model.id + '_covariance_input', original_table=self.model.input_table)
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
-        y_classes = self.__get_targets()
+        y_classes = self.model.y_classes
         for y_class in y_classes:
             for column in self.model.x_columns:
                 sql_statement = self.sql_templates['add_column'].render(
@@ -635,7 +634,7 @@ class GaussianClassifier:
 
 
     def __multiply_columns(self,matrix):
-        y_classes = self.__get_targets()
+        y_classes = self.model.y_classes
         for row in matrix:
             for y_class in y_classes:
                 for permutation in row:
@@ -797,7 +796,7 @@ class GaussianClassifier:
                     vector_table='gaussian_' + self.model.id + '_vector_',
                     x_columns=self.model.x_columns,
                     row_no=n,
-                    y_classes= self.__get_targets(),
+                    y_classes= self.model.y_classes,
                     input_table='gaussian_' + self.model.id + '_covariance_input'
                 )
         for statement in sqlparse.split(sql_statement):
@@ -819,7 +818,7 @@ class GaussianClassifier:
         sql_statement = self.sql_templates['calculate_mahalonobis_distance'].render(
             estimation_table='gaussian_' + self.model.id + '_multivariate_estimation',
             row_no=n,
-            y_classes= self.__get_targets(),
+            y_classes= self.model.y_classes,
             vector_table='gaussian_' + self.model.id + '_vector_',
             covariance_matrix=f"gaussian_{self.model.id}_covariance_matrix"
 
@@ -836,7 +835,7 @@ class GaussianClassifier:
         sql_statement = self.sql_templates['calculate_multivariate_density'].render(
             table='gaussian_' + self.model.id + '_multivariate_estimation',
             row_no=n,
-            y_classes=self.__get_targets(),
+            y_classes=self.model.y_classes,
             determinante_table='gaussian_' + self.model.id + "_determinante",
             vector_table='gaussian_' + self.model.id + '_vector_',
             covariance_matrix=f"gaussian_{self.model.id}_covariance_matrix",

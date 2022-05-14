@@ -14,6 +14,7 @@ class Model:
         self.ohe_columns = []
         self.ohe_options = {}
         self.no_of_rows = 0
+        self.y_classes = []
 
 
 
