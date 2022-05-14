@@ -158,7 +158,7 @@ class GaussianClassifier:
         logging.info("\nESTIMATING FINISHED\n-----")
         return self
 
-    def predict(self, table=None, x_columns=None):
+    def predict(self):
         logging.info("\n-----\nPREDICTING")
         if self.model is None:
             raise Exception('No model parameters available! Please load/create a model!')
@@ -167,24 +167,10 @@ class GaussianClassifier:
 
         self.__init_prediction_table("gaussian_" + self.model.id + "_prediction")
 
-        if table is not None and x_columns is not None:
-             self.model.prediction_table = table
-             self.model.prediction_columns = x_columns
 
-             if self.model.input_size - 1 != len(self.model.prediction_columns):
-                 raise Exception(
-                     'Please ensure the number of columns to be predicted matches the columns used in estimate!')
-             self.__save_model()
-        input_table = self.model.prediction_table
-        coefficients = self.get_coefficients()
-        prediction_statement = str(coefficients[0][0])
-
-        for i in range(self.model.input_size - 1):
-            prediction_statement = prediction_statement + " + " + self.model.prediction_columns[i] + "*" + \
-                                   str(coefficients[i + 1][0])
         sql_statement = self.sql_templates['predict'].render(table="gaussian_" + self.model.id + "_prediction",
-                                                             input_table=input_table,
-                                                             prediction_statement=prediction_statement)
+                                                             row_no=list(range(self.model.no_of_rows)),
+                                                             estimation_table="gaussian_" + self.model.id + "_estimation")
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
 
@@ -805,18 +791,18 @@ class GaussianClassifier:
                 self.db_connection.execute(statement)
 
         sql_statement = self.sql_templates['drop_table'].render(
-            table='gaussian_' + self.model.id + '_multivariate_estimation')
+            table='gaussian_' + self.model.id + '_estimation')
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
 
         sql_statement = self.sql_templates['init_multi_gauss_prob_table'].render(
-            table='gaussian_' + self.model.id + '_multivariate_estimation'
+            table='gaussian_' + self.model.id + '_estimation'
         )
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
 
         sql_statement = self.sql_templates['calculate_mahalonobis_distance'].render(
-            estimation_table='gaussian_' + self.model.id + '_multivariate_estimation',
+            estimation_table='gaussian_' + self.model.id + '_estimation',
             row_no=n,
             y_classes= self.model.y_classes,
             vector_table='gaussian_' + self.model.id + '_vector_',
@@ -833,7 +819,7 @@ class GaussianClassifier:
     def __multivariate_probability(self):
         n = list(range(self.model.no_of_rows))
         sql_statement = self.sql_templates['calculate_multivariate_density'].render(
-            table='gaussian_' + self.model.id + '_multivariate_estimation',
+            table='gaussian_' + self.model.id + '_estimation',
             row_no=n,
             y_classes=self.model.y_classes,
             determinante_table='gaussian_' + self.model.id + "_determinante",

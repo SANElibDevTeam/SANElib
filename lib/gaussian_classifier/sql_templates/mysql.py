@@ -143,13 +143,14 @@ tmpl_mysql['init_determinante_table'] = Template('''
             PRIMARY KEY (id),
             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
             ''')
-# tmpl_mysql['init_prediction_table'] = Template('''
-#             CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
-#                 id INT NOT NULL AUTO_INCREMENT,
-#                 y_prediction DOUBLE NULL,
-#             PRIMARY KEY (id),
-#             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
-#             ''')
+
+tmpl_mysql['init_prediction_table'] = Template('''
+            CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
+                id INT NOT NULL,
+                y_prediction DOUBLE NULL,
+            PRIMARY KEY (id),
+            UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
+            ''')
 
 # tmpl_mysql['init_score_table'] = Template('''
 #             CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
@@ -365,10 +366,22 @@ WHERE y = {{ y }} and row_no ={{ n }};
 {% endfor %}
 
 ''')
-# tmpl_mysql['predict'] = Template('''
-#             INSERT INTO {{ table }} (y_prediction)
-#             SELECT {{ prediction_statement }} FROM {{ input_table }};;
-#             ''')
+tmpl_mysql['predict'] = Template('''
+INSERT INTO {{ table }} (id,y_prediction)
+VALUES
+{% for n in row_no %}
+{% if loop.index > 1 %}, {% endif %}
+
+({{ n }},(SELECT y
+FROM {{ estimation_table }}
+WHERE (y,probability) in (select y, max(probability)
+                                from {{ estimation_table }}
+                                WHERE row_no = {{ n }}
+                                )))
+
+
+{%endfor %};
+            ''')
 #
 # tmpl_mysql['save_theta'] = Template('''
 #             INSERT INTO {{ table }} (theta)
