@@ -348,7 +348,7 @@ tmpl_mysql['init_multi_gauss_prob_table'] = Template('''
                 id INT NOT NULL AUTO_INCREMENT,
                 row_no INT NULL,
                 mahalonobis_distance DOUBLE NULL,
-                probability DOUBLE NULL,
+                gaussian_distribution DOUBLE NULL,
                 y DOUBLE NULL,
             PRIMARY KEY (id),
             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
@@ -358,7 +358,7 @@ tmpl_mysql['init_multi_gauss_prob_table'] = Template('''
 tmpl_mysql['calculate_multivariate_density'] = Template('''
 {% for n in row_no %}
 {% for y in y_classes %}
-UPDATE {{ table }} SET probability =
+UPDATE {{ table }} SET gaussian_distribution =
 (SELECT (1/(power(2*PI(),{{ k }})*(SELECT determinante from {{ determinante_table}} where id = "gaussian_m0_covariance_matrix_{{ y }}")))
 * EXP(0.5 * (SELECT mahalonobis_distance from (SELECT * from {{ table }}) as tmp_table where y = {{ y }} and row_no ={{ n }})))
 WHERE y = {{ y }} and row_no ={{ n }};
@@ -374,7 +374,7 @@ VALUES
 
 ({{ n }},(SELECT y
 FROM {{ estimation_table }}
-WHERE (y,probability) in (select y, max(probability)
+WHERE (y,gaussian_distribution) in (select y, max(gaussian_distribution)
                                 from {{ estimation_table }}
                                 WHERE row_no = {{ n }}
                                 )))
@@ -382,19 +382,9 @@ WHERE (y,probability) in (select y, max(probability)
 
 {%endfor %};
             ''')
-#
-# tmpl_mysql['save_theta'] = Template('''
-#             INSERT INTO {{ table }} (theta)
-#             VALUES ({{ value }});
-#             ''')
-#
-# tmpl_mysql['calculate_save_score'] = Template('''
-#             INSERT INTO {{ table_id }}_score (score)
-#             SELECT 1-((sum(({{ y }}-y_prediction)*({{ y }}-y_prediction)))/(sum(({{ y }}-y_avg)*({{ y }}-y_avg)))) FROM
-#             (SELECT {{ y }}, y_prediction FROM {{ input_table }}
-#             LEFT JOIN {{ table_id }}_prediction
-#             ON {{ table_id }}_prediction.id = {{ input_table }}.id
-#             ) AS subquery1
-#             CROSS JOIN
-#             (SELECT avg({{ y }}) as y_avg FROM {{ input_table }}) as subquery2;
-#             ''')
+
+
+
+tmpl_mysql['p_y'] = Template('''
+SELECT COUNT(*) FROM {{ table }} WHERE {{ y_column }} = {{ y }}
+''')
