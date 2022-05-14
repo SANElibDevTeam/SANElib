@@ -349,6 +349,8 @@ tmpl_mysql['init_multi_gauss_prob_table'] = Template('''
                 row_no INT NULL,
                 mahalonobis_distance DOUBLE NULL,
                 gaussian_distribution DOUBLE NULL,
+                p_y DOUBLE NULL,
+                probability DOUBLE NULL,
                 y DOUBLE NULL,
             PRIMARY KEY (id),
             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
@@ -374,7 +376,7 @@ VALUES
 
 ({{ n }},(SELECT y
 FROM {{ estimation_table }}
-WHERE (y,gaussian_distribution) in (select y, max(gaussian_distribution)
+WHERE (y,probability) in (select y, max(probability)
                                 from {{ estimation_table }}
                                 WHERE row_no = {{ n }}
                                 )))
@@ -386,5 +388,10 @@ WHERE (y,gaussian_distribution) in (select y, max(gaussian_distribution)
 
 
 tmpl_mysql['p_y'] = Template('''
-SELECT COUNT(*) FROM {{ table }} WHERE {{ y_column }} = {{ y }}
+{%for y in y_classes %}
+UPDATE {{ table }} SET p_y = ((SELECT COUNT(*) FROM {{ input_table }} WHERE {{ y_column }} = {{ y }})/ {{ row_no}})
+WHERE y = {{ y }};
+
+{%endfor%}
 ''')
+

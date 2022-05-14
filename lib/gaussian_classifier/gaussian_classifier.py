@@ -143,11 +143,11 @@ class GaussianClassifier:
                 'No model parameters available! Please load/create a model or provide table, x_columns and y_column as parameters to this function!')
 
         #self.__init_mean_table()
-        self.__init_variance_table()
-        self.__init_uni_gauss_prob_table()
+        # self.__init_variance_table()
+        # self.__init_uni_gauss_prob_table()
         #self.__calculate_means()
-        self.__calculate_variances()
-        self.__calculate_gaussian_probabilities_univariate()
+        # self.__calculate_variances()
+        # self.__calculate_gaussian_probabilities_univariate()
         self.__calculate_gaussian_probabilities_multivariate()
 
         if self.model.state < 1:
@@ -863,6 +863,24 @@ class GaussianClassifier:
                 logging.debug("SQL: " + str(statement))
                 self.db_connection.execute(statement)
 
+        sql_statement = self.sql_templates['p_y'].render(
+            table='gaussian_' + self.model.id + '_estimation',
+            y_column=self.model.y_column[0],
+            y_classes=self.model.y_classes,
+            input_table=self.model.input_table,
+            row_no=self.model.no_of_rows)
 
+        for statement in sqlparse.split(sql_statement):
+            if statement:
+                logging.debug("SQL: " + str(statement))
+                self.db_connection.execute(statement)
 
+        sql_statement = self.sql_templates['multiply_columns'].render(
+            table='gaussian_' + self.model.id + '_estimation',
+            column="probability",
+            feature_1="p_y",
+            feature_2="gaussian_distribution"
+        )
+        logging.debug("SQL: " + str(sql_statement))
+        self.db_connection.execute(sql_statement)
 
