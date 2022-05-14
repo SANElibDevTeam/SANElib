@@ -737,6 +737,7 @@ class GaussianClassifier:
         self.db_connection.execute(sql_statement)
         # special case for 2x2 matrix:
         if len(m) == 2:
+            logging.debug("INSERTING 2x2 INVERSE COVARIANCE MATRIX")
             m00 = f'SELECT {m[0][0][1]} / {determinant} from {covariance_table} WHERE id= "{m[0][0][0]}"'
             m01 = f'SELECT {m[0][1][1]}*(-1) / {determinant} from {covariance_table} WHERE id= "{m[0][1][0]}"'
             m10 = f'SELECT {m[1][0][1]}*(-1) / {determinant} from {covariance_table} WHERE id= "{m[1][0][0]}"'
@@ -752,23 +753,24 @@ class GaussianClassifier:
             logging.debug("SQL: " + str(sql_statement))
             self.db_connection.execute(sql_statement)
 
+        else:
         # find matrix of cofactors
-        cofactors = []
-        for r in range(len(m)):
-            cofactorRow = []
-            for c in range(len(m)):
-                minor = self.__get_matrix_minor(m, r, c)
-                cofactorRow.append(((-1) ** (r + c)) * self.__get_matrix_determinante(minor,covariance_table))
-            cofactors.append(cofactorRow)
-        cofactors[:] = [[x / determinant for x in cofactor] for cofactor in cofactors]
+            cofactors = []
+            for r in range(len(m)):
+                cofactorRow = []
+                for c in range(len(m)):
+                    minor = self.__get_matrix_minor(m, r, c)
+                    cofactorRow.append(((-1) ** (r + c)) * self.__get_matrix_determinante(minor,covariance_table))
+                cofactors.append(cofactorRow)
+            cofactors[:] = [[x / determinant for x in cofactor] for cofactor in cofactors]
 
-        sql_statement = self.sql_templates['insert_inverse_n_n'].render(
-            cofactor_matrix=cofactors,
-            features=self.model.x_columns,
-            inverse_matrix=covariance_table + "_inverse_matrix"
-        )
-        logging.debug("SQL: " + str(sql_statement))
-        self.db_connection.execute(sql_statement)
+            sql_statement = self.sql_templates['insert_inverse_n_n'].render(
+                cofactor_matrix=cofactors,
+                features=self.model.x_columns,
+                inverse_matrix=covariance_table + "_inverse_matrix"
+            )
+            logging.debug("SQL: " + str(sql_statement))
+            self.db_connection.execute(sql_statement)
         self.__transpose_matrix(covariance_table+ "_inverse_matrix")
         self.__rearrange_inverse(covariance_table)
 
