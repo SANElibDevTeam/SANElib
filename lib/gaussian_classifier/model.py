@@ -16,6 +16,7 @@ class Model:
         self.no_of_rows = 0
 
 
+
     def update_input_size(self):
         self.input_size = len(self.x_columns) + 1
     def map_x_columns(self):

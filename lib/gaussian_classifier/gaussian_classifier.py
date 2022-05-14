@@ -587,16 +587,18 @@ class GaussianClassifier:
 
     def __init_vector_tables(self,no_rows):
         for row in list(range(no_rows)):
-            sql_statement = self.sql_templates['drop_table'].render(
-                table='gaussian_' + self.model.id + '_vector_' + str(row) )
-            logging.debug("SQL: " + str(sql_statement))
-            self.db_connection.execute(sql_statement)
+            for y in self.__get_targets():
 
-            sql_statement = self.sql_templates['init_inverse_table'].render(
-                table='gaussian_' + self.model.id + '_vector_' + str(row) ,
-                row_name="i", col_name= "k")
-            logging.debug("SQL: " + str(sql_statement))
-            self.db_connection.execute(sql_statement)
+                sql_statement = self.sql_templates['drop_table'].render(
+                    table='gaussian_' + self.model.id + '_vector_' + str(row) + "_" +str(y) )
+                logging.debug("SQL: " + str(sql_statement))
+                self.db_connection.execute(sql_statement)
+
+                sql_statement = self.sql_templates['init_inverse_table'].render(
+                    table='gaussian_' + self.model.id + '_vector_' + str(row) + "_" +str(y) ,
+                    row_name="i", col_name= "k")
+                logging.debug("SQL: " + str(sql_statement))
+                self.db_connection.execute(sql_statement)
 
 
     def __get_diff_from_mean(self):

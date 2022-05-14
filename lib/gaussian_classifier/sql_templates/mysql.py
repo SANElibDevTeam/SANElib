@@ -306,12 +306,14 @@ VALUES ({{ row }}, {{ column }}, {{ actual_value }})
 ''')
 tmpl_mysql['insert_vector'] = Template('''
 {% for n in row_no %}
-INSERT INTO {{ vector_table }}{{ n }} (i, k, actual_value)
+{% for y in y_classes%}
+INSERT INTO {{ vector_table }}{{ n }}_{{y}} (i, k, actual_value)
 VALUES
 {% for element in x_columns %}
 {% if loop.index > 1 %}, {% endif %}
 (1, {{ loop.index }},(SELECT {{ element }} FROM {{ input_table }} LIMIT {{ n }},1))
 {% endfor %};
+{% endfor %}
 {% endfor %}
 
 ''')
@@ -325,11 +327,11 @@ INSERT INTO {{ estimation_table }} (row_no, y, mahalonobis_distance)
 SELECT  {{ n }} as row_no,  {{ y }} as y, SUM(MatrixD.actual_value * vector_transformed.actual_value) as mahalonobis_distance
   FROM 
 
- (SELECT i, j as k, SUM({{ vector_table }}{{ n }}.actual_value * {{ covariance_matrix }}_{{ y }}_inverse.actual_value) as actual_value
-  FROM {{ vector_table }}{{ n }}, {{ covariance_matrix }}_{{ y }}_inverse
- WHERE {{ vector_table }}{{ n }}.k ={{ covariance_matrix }}_{{ y }}_inverse.k
+ (SELECT i, j as k, SUM({{ vector_table }}{{ n }}_{{y}}.actual_value * {{ covariance_matrix }}_{{ y }}_inverse.actual_value) as actual_value
+  FROM {{ vector_table }}{{ n }}_{{y}}, {{ covariance_matrix }}_{{ y }}_inverse
+ WHERE {{ vector_table }}{{ n }}_{{y}}.k ={{ covariance_matrix }}_{{ y }}_inverse.k
  GROUP BY i, j) AS MatrixD,
- (SELECT k, i as j,actual_value FROM {{ vector_table }}{{ n }}) as vector_transformed
+ (SELECT k, i as j,actual_value FROM {{ vector_table }}{{ n }}_{{y}}) as vector_transformed
  
  WHERE MatrixD.k = vector_transformed.k
  GROUP BY i, j ;
