@@ -527,7 +527,7 @@ class GaussianClassifier:
         self.__init_vector_tables(self.model.no_of_rows)
         for y_class in y_classes:
             self.__get_matrix_inverse(matrix,f"gaussian_{self.model.id }_covariance_matrix_{y_class}")
-        self.__multiply_vector_matrix()
+        self.__get_mahalonibis_distance()
 
 
     def __create_matrix(self):
@@ -788,7 +788,7 @@ class GaussianClassifier:
 
 
 
-    def __multiply_vector_matrix(self):
+    def __get_mahalonibis_distance(self):
         n= list(range(self.model.no_of_rows))
         sql_statement = self.sql_templates['insert_vector'].render(
                     vector_table='gaussian_' + self.model.id + '_vector_',
