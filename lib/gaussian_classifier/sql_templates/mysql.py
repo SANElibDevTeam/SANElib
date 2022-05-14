@@ -359,7 +359,7 @@ tmpl_mysql['calculate_multivariate_density'] = Template('''
 {% for y in y_classes %}
 UPDATE {{ table }} SET probability =
 (SELECT (1/(power(2*PI(),{{ k }})*(SELECT determinante from {{ determinante_table}} where id = "gaussian_m0_covariance_matrix_{{ y }}")))
-* EXP(0.5 * SELECT mahalonobis_distance from {{ table }} where y = {{ y }} and row_no ={{ n }})))
+* EXP(0.5 * (SELECT mahalonobis_distance from {{ table }} where y = {{ y }} and row_no ={{ n }})))
 WHERE y = {{ y }} and row_no ={{ n }};
 {% endfor %}
 {% endfor %}
