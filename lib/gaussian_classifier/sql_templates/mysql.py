@@ -2,6 +2,16 @@ from jinja2 import Template
 
 tmpl_mysql = {}
 
+
+tmpl_mysql["_train"] = Template('''
+create table {{ train_table }} as 
+(select * from {{ input_table }} where rand ({{ input_seed }}) < {{ input_ratio }});
+''')
+
+tmpl_mysql["_eval"] = Template('''
+create table {{ train_table }} as 
+(select * from {{ input_table }} where rand ({{ input_seed }}) >= {{ input_ratio }});
+''')
 tmpl_mysql['select_x_from'] = Template('''
             SELECT {{ x }} FROM {{ database }}.{{ table }};
             ''')
@@ -68,7 +78,8 @@ tmpl_mysql['save_model'] = Template('''
                 y_column = '{{ y_column }}',
                 prediction_columns = '{{ prediction_columns }}',
                 input_size = {{ input_size }},
-                no_of_rows = {{ no_of_rows }};
+                no_of_rows_input = {{ no_of_rows_input }},
+                no_of_rows_prediction = {{ no_of_rows_prediction }};
             ''')
 
 tmpl_mysql['get_model_list'] = Template('''
@@ -87,7 +98,8 @@ tmpl_mysql['init_model_table'] = Template('''
                 y_column VARCHAR(45) NULL,
                 prediction_columns TEXT NULL,
                 input_size INT NULL,
-                no_of_rows INT NULL,
+                no_of_rows_input INT NULL,
+                no_of_rows_prediction INT NULL,
                 
             PRIMARY KEY (id),
             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
