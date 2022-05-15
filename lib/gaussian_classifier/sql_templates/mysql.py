@@ -2,7 +2,6 @@ from jinja2 import Template
 
 tmpl_mysql = {}
 
-
 tmpl_mysql["_train"] = Template('''
 create table {{ train_table }} as 
 (select * from {{ input_table }} where rand ({{ input_seed }}) < {{ input_ratio }});
@@ -347,16 +346,25 @@ tmpl_mysql['insert_inverse'] = Template('''
 INSERT INTO {{ inverse_table }} (k, j, actual_value)
 VALUES ({{ row }}, {{ column }}, {{ actual_value }})
 ''')
-# tmpl_mysql['insert_target'] = Template('''
-# INSERT INTO {{ table }} ({{ column }})
-# SELECT {{ y_column }}
-# FROM {{ input_table }} LIMIT {{ row_no }};
-# ''')
+tmpl_mysql['insert_target'] = Template('''
+{%for n in row_no%}
+UPDATE {{ table }} SET {{ column }} = (SELECT {{ y_column }}
+FROM {{ input_table }} LIMIT {{ n }},1) WHERE id = {{ n }};
+{%endfor%}
+''')
 #
-# tmpl_mysql['insert_score'] = Template('''
-# INSERT INTO {{ table }} ({{ column }})
-# SELECT IF( y_prediction - y = 0,1,0);
-# ''')
+tmpl_mysql['insert_score'] = Template('''
+UPDATE {{ table }} SET {{ column }} =
+CASE
+   WHEN {{ column }} = 0 THEN 1
+   ELSE 0
+END
+''')
+
+tmpl_mysql['substract_columns'] = Template('''
+UPDATE {{ table }} SET {{column}} = ({{ feature_1 }} - {{ feature_2 }}
+    ) 
+''')
 
 tmpl_mysql['insert_vector'] = Template('''
 {% for n in row_no %}

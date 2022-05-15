@@ -13,7 +13,7 @@ def run_example(table_name="covtypall", prediction_table_name="prediction_covtyp
     y_column = ['Cover_Type']
     gc.estimate(table_name, x_columns, y_column)
     gc.predict()
-    # gc.score()
+    gc.score()
     timer.end()
 
 

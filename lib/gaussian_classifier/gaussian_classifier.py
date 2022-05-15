@@ -142,7 +142,9 @@ class GaussianClassifier:
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
 
-        sql_statement = self.sql_templates['_train'].render(train_table='gaussian_' + self.model.id + '_train', input_table=self.model.input_table, input_seed=seed, input_ratio=ratio)
+        sql_statement = self.sql_templates['_train'].render(train_table='gaussian_' + self.model.id + '_train',
+                                                            input_table=self.model.input_table, input_seed=seed,
+                                                            input_ratio=ratio)
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
 
@@ -151,14 +153,13 @@ class GaussianClassifier:
         self.db_connection.execute(sql_statement)
 
         sql_statement = self.sql_templates['_eval'].render(train_table='gaussian_' + self.model.id + '_eval',
-                                                            input_table=self.model.input_table, input_seed=seed, input_ratio=ratio)
+                                                           input_table=self.model.input_table, input_seed=seed,
+                                                           input_ratio=ratio)
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
 
-        self.model.input_table= 'gaussian_' + self.model.id + '_train'
+        self.model.input_table = 'gaussian_' + self.model.id + '_train'
         self.model.prediction_table = 'gaussian_' + self.model.id + '_eval'
-
-
 
     def estimate(self, table=None, x_columns=None, y_column=None, multivariate=True):
         logging.info("\n-----\nESTIMATING")
@@ -209,7 +210,6 @@ class GaussianClassifier:
         self.__drop_vector_tables(self.model.no_of_rows_prediction)
         self.__drop_determinante_table('gaussian_' + self.model.id + "_determinante")
 
-
         self.__init_prediction_table("gaussian_" + self.model.id + "_prediction")
 
         sql_statement = self.sql_templates['predict'].render(table="gaussian_" + self.model.id + "_prediction",
@@ -232,7 +232,36 @@ class GaussianClassifier:
         elif self.model.state < 2:
             raise Exception('No predictions available! Please use predict method first!')
 
+        sql_statement = self.sql_templates['add_column'].render(table="gaussian_" + self.model.id + "_prediction",
+                                                                column="y", type="DOUBLE NULL")
+        logging.debug("SQL: " + str(sql_statement))
+        self.db_connection.execute(sql_statement)
 
+        sql_statement = self.sql_templates['add_column'].render(table="gaussian_" + self.model.id + "_prediction",
+                                                                column="score", type="DOUBLE NULL")
+        logging.debug("SQL: " + str(sql_statement))
+        self.db_connection.execute(sql_statement)
+
+        sql_statement = self.sql_templates['insert_target'].render(table="gaussian_" + self.model.id + "_prediction",
+                                                                   column="y", input_table=self.model.input_table,
+                                                                   row_no=list(range(self.model.no_of_rows_prediction)),
+                                                                   y_column=self.model.y_column[0])
+        for statement in sqlparse.split(sql_statement):
+            if statement:
+                logging.debug("SQL: " + str(statement))
+                self.db_connection.execute(statement)
+
+        sql_statement = self.sql_templates['substract_columns'].render(
+            table="gaussian_" + self.model.id + "_prediction",
+            column="score", feature_1="y", feature_2="y_prediction")
+        logging.debug("SQL: " + str(sql_statement))
+        self.db_connection.execute(sql_statement)
+
+        sql_statement = self.sql_templates['insert_score'].render(
+            table="gaussian_" + self.model.id + "_prediction",
+            column="score")
+        logging.debug("SQL: " + str(sql_statement))
+        self.db_connection.execute(sql_statement)
 
         # self.__init_score_table("gaussian_" + self.model.id + "_score")
         # sql_statement = self.sql_templates['calculate_save_score'].render(table_id='gaussian_' + self.model.id,
@@ -432,7 +461,7 @@ class GaussianClassifier:
             data.append(element[0])
         return np.asarray(data)
 
-    def __get_no_of_rows(self,table):
+    def __get_no_of_rows(self, table):
         logging.info("GETTING NUMBER OF ROWS")
         sql_statement = self.sql_templates['get_no_of_rows'].render(table=table)
         logging.debug("SQL: " + str(sql_statement))
@@ -463,7 +492,8 @@ class GaussianClassifier:
         logging.info("CALCULATING MEANS")
         sql_statement = self.sql_templates['calculate_means_overall'].render(
             table='gaussian_' + self.model.id + '_mean_overall', input_table=self.model.prediction_table,
-            x_columns_means=self.model.prediction_columns, x_columns=self.model.prediction_columns, target=self.model.y_column[0])
+            x_columns_means=self.model.prediction_columns, x_columns=self.model.prediction_columns,
+            target=self.model.y_column[0])
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
 
