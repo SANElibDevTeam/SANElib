@@ -101,6 +101,16 @@ tmpl_mysql['init_calculation_table'] = Template('''
             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
             ''')
 
+tmpl_mysql['init_mean_overall_table'] = Template('''
+            CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
+                id INT NOT NULL AUTO_INCREMENT,
+                {% for x in x_columns %}
+                    {{ x }} DOUBLE NULL,
+                {% endfor %}
+            PRIMARY KEY (id),
+            UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
+            ''')
+
 tmpl_mysql['init_uni_gauss_prob_table'] = Template('''
             CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
                 id INT NOT NULL AUTO_INCREMENT,
@@ -172,6 +182,17 @@ tmpl_mysql['calculate_means'] = Template('''
                 ({% for x in x_columns_means %}999,{% endfor %}999);
             ''')
 
+tmpl_mysql['calculate_means_overall'] = Template('''
+            INSERT INTO {{ table }}({% for x in x_columns_means %}{% if loop.index > 1 %}, {% endif %}{{ x }} {% endfor %}) 
+            VALUES
+                    ({% for x in x_columns %}
+                    {% if loop.index > 1 %}, {% endif %}
+                        (SELECT AVG({{ x }}) FROM {{ input_table }})
+
+                {% endfor %} );
+                
+            ''')
+
 tmpl_mysql['calculate_variances'] =  Template('''
             INSERT INTO {{ table }}({% for x in x_columns_variances %}{{ x }}, {% endfor %}y) 
             VALUES
@@ -230,6 +251,12 @@ UPDATE {{ table }} SET {{column}} = ({{ feature_1 }}
     -(SELECT {{ feature_1 }}
     from {{ mean_table }}
     where y={{ y_class }})) 
+''')
+
+tmpl_mysql['diff_mean_overall']= Template('''
+UPDATE {{ table }} SET {{column}} = ({{ feature_1 }}
+    -(SELECT {{ feature_1 }}
+    from {{ mean_table }})) 
 ''')
 
 tmpl_mysql["insert_id"]= Template('''
@@ -310,11 +337,11 @@ VALUES ({{ row }}, {{ column }}, {{ actual_value }})
 tmpl_mysql['insert_vector'] = Template('''
 {% for n in row_no %}
 {% for y in y_classes%}
-INSERT INTO {{ vector_table }}{{ n }}_{{y}} (i, k, actual_value)
+INSERT INTO {{ vector_table }}{{ n }} (i, k, actual_value)
 VALUES
 {% for element in x_columns %}
 {% if loop.index > 1 %}, {% endif %}
-(1, {{ loop.index }},(SELECT {{ element }}_diff_mean_{{ y }} FROM {{ input_table }} LIMIT {{ n }},1))
+(1, {{ loop.index }},(SELECT {{ element }}_diff_mean FROM {{ input_table }} LIMIT {{ n }},1))
 {% endfor %};
 {% endfor %}
 {% endfor %}
@@ -330,11 +357,11 @@ INSERT INTO {{ estimation_table }} (row_no, y, mahalonobis_distance)
 SELECT  {{ n }} as row_no,  {{ y }} as y, SUM(MatrixD.actual_value * vector_transformed.actual_value) as mahalonobis_distance
   FROM 
 
- (SELECT i, j as k, SUM({{ vector_table }}{{ n }}_{{y}}.actual_value * {{ covariance_matrix }}_{{ y }}_inverse.actual_value) as actual_value
-  FROM {{ vector_table }}{{ n }}_{{y}}, {{ covariance_matrix }}_{{ y }}_inverse
- WHERE {{ vector_table }}{{ n }}_{{y}}.k ={{ covariance_matrix }}_{{ y }}_inverse.k
+ (SELECT i, j as k, SUM({{ vector_table }}{{ n }}.actual_value * {{ covariance_matrix }}_{{ y }}_inverse.actual_value) as actual_value
+  FROM {{ vector_table }}{{ n }}, {{ covariance_matrix }}_{{ y }}_inverse
+ WHERE {{ vector_table }}{{ n }}.k ={{ covariance_matrix }}_{{ y }}_inverse.k
  GROUP BY i, j) AS MatrixD,
- (SELECT k, i as j,actual_value FROM {{ vector_table }}{{ n }}_{{y}}) as vector_transformed
+ (SELECT k, i as j,actual_value FROM {{ vector_table }}{{ n }}) as vector_transformed
  
  WHERE MatrixD.k = vector_transformed.k
  GROUP BY i, j ;
@@ -376,7 +403,7 @@ VALUES
 
 ({{ n }},(SELECT y
 FROM {{ estimation_table }}
-WHERE (y,probability) in (select y, max(probability)
+WHERE (probability) in (select max(probability)
                                 from {{ estimation_table }}
                                 WHERE row_no = {{ n }}
                                 )))
