@@ -10,8 +10,9 @@ def run_example(table_name="covtypall", prediction_table_name="prediction_covtyp
     print("SIMPLE Gaussian")
     x_columns = ['Elevation','Horizontal_Distance_To_Fire_Points','Horizontal_Distance_To_Hydrology']
     y_column = ['Cover_Type']
-    gc.estimate(table_name, x_columns, y_column)
-    gc.predict()
+    gc.load_model()
+    # gc.estimate(table_name, x_columns, y_column)
+    # gc.predict()
     timer.end()
 if __name__ == '__main__':
     run_example()

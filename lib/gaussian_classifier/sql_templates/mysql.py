@@ -64,10 +64,11 @@ tmpl_mysql['save_model'] = Template('''
                 input_table = '{{ input_table }}',
                 prediction_table = '{{ prediction_table }}',
                 x_columns = '{{ x_columns }}',
+                y_classes = '{{ y_classes }}',
                 y_column = '{{ y_column }}',
                 prediction_columns = '{{ prediction_columns }}',
                 input_size = {{ input_size }},
-                ohe_columns = '{{ ohe_columns }}';
+                no_of_rows = {{ no_of_rows }};
             ''')
 
 tmpl_mysql['get_model_list'] = Template('''
@@ -82,10 +83,12 @@ tmpl_mysql['init_model_table'] = Template('''
                 input_table VARCHAR(45) NULL,
                 prediction_table VARCHAR(45) NULL,
                 x_columns TEXT NULL,
+                y_classes TEXT NULL,
                 y_column VARCHAR(45) NULL,
                 prediction_columns TEXT NULL,
                 input_size INT NULL,
-                ohe_columns TEXT NULL,
+                no_of_rows INT NULL,
+                
             PRIMARY KEY (id),
             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
             ''')

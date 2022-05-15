@@ -11,8 +11,8 @@ class Model:
         self.x_map = self.map_x_columns()
         self.prediction_columns = self.x_columns
         self.input_size = len(x_columns)
-        self.ohe_columns = []
-        self.ohe_options = {}
+        # self.ohe_columns = []
+        # self.ohe_options = {}
         self.no_of_rows = 0
         self.y_classes = []
 

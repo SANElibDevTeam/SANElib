@@ -44,7 +44,7 @@ class GaussianClassifier:
             self.model.id = "m" + str(next_model_id)
             self.model.name = model_name
 
-        self.__manage_one_hot_encoding()
+
         self.__save_model()
         logging.info("\nMODEL CREATED\n-----")
         return self
@@ -64,15 +64,19 @@ class GaussianClassifier:
         x_columns = []
         for x in data[5].split(','):
             x_columns.append(x)
-        y_column = [data[6]]
+
+        y_classes = []
+        for y in data[6].split(','):
+            if y != '':
+                y_classes.append(int(y))
+
+        y_column = [data[7]]
 
         prediction_columns = []
-        for x in data[7].split(','):
+        for x in data[8].split(','):
             prediction_columns.append(x)
 
-        ohe_columns = []
-        for x in data[9].split(','):
-            prediction_columns.append(x)
+
 
         self.model = Model(data[3], x_columns[:-1], y_column)
         self.model.id = data[0]
@@ -80,8 +84,10 @@ class GaussianClassifier:
         self.model.state = int(data[2])
         self.model.prediction_table = data[4]
         self.model.prediction_columns = prediction_columns[:-1]
-        self.model.input_size = int(data[8])
-        self.model.ohe_columns = ohe_columns[:-1]
+        self.model.input_size = int(data[9])
+        self.model.no_of_rows = int(data[10])
+        self.model.y_classes = y_classes[:-1]
+
         logging.info("\nMODEL LOADED\n-----")
         return self
 
@@ -214,19 +220,6 @@ class GaussianClassifier:
         logging.info("\nPREDICTION ARRAY RECEIVED\n-----")
         return np.asarray(data)
 
-    def get_coefficients(self):
-        logging.info("\n-----\nGETTING COEFFICIENTS")
-        if self.model is None:
-            raise Exception('No model parameters available! Please load/create a model!')
-        elif self.model.state < 1:
-            raise Exception('Model not trained! Please use estimate method first!')
-
-        sql_statement = self.sql_templates['select_x_from'].render(x='theta', database=self.database,
-                                                                   table='gaussian_' + self.model.id + '_result')
-        logging.debug("SQL: " + str(sql_statement))
-        data = self.db_connection.execute_query(sql_statement)
-        logging.info("\nCOEFFICIENTS RECEIVED\n-----")
-        return np.asarray(data)
 
     def get_score(self):
         logging.info("\n-----\nGETTING SCORE")
@@ -242,70 +235,6 @@ class GaussianClassifier:
         logging.info("\nSCORE RECEIVED\n-----")
         return np.asarray(data)[0][0]
 
-    def __manage_one_hot_encoding(self):
-        logging.info("MANAGING ONE HOT ENCODING")
-        self.__manage_ohe_columns(self.model.input_table, self.model.x_columns)
-
-        # Update input_size
-        self.model.update_input_size()
-
-    # def __manage_prediction_one_hot_encoding(self):
-    #     logging.info("MANAGING ONE HOT ENCODING FOR PREDICTION")
-    #     self.__manage_ohe_columns(self.model.prediction_table, self.model.prediction_columns)
-
-    def __manage_ohe_columns(self, table, columns):
-        # Check all columns
-        for x in columns:
-            sql_statement = self.sql_templates['column_type'].render(table=table, column=x)
-            logging.debug("SQL: " + str(sql_statement))
-            column_type = np.asarray(self.db_connection.execute_query(sql_statement))[0][0]
-
-            # Check if ohe necessary
-            ohe_options = []
-            if column_type == 'varchar':
-                if x not in self.model.ohe_columns:
-                    self.model.ohe_columns.append(x)
-                sql_statement = self.sql_templates['select_x_from'].render(database=self.database,
-                                                                           table=table, x=x)
-                logging.debug("SQL: " + str(sql_statement))
-                data = np.asarray(self.db_connection.execute_query(sql_statement))[:, 0]
-                for y in data:
-                    if y not in ohe_options:
-                        ohe_options.append(y)
-
-            # Save ohe options per column
-            if x in self.model.ohe_columns:
-                self.model.ohe_options[x] = ohe_options
-
-            # Create and fill in ohe columns
-            sql_statement = self.sql_templates['set_safe_updates'].render(value=0)
-            logging.debug("SQL: " + str(sql_statement))
-            self.db_connection.execute(sql_statement)
-            for z in ohe_options:
-                # Add ohe column to columns
-                if 'gaussian_ohe_' + x + '_' + z not in columns:
-                    columns.append('gaussian_ohe_' + x + '_' + z)
-
-                # Add ohe columns in table
-                if 'gaussian_ohe_' + x + '_' + z not in self.__get_column_names(table):
-                    sql_statement = self.sql_templates['add_column'].render(table=table,
-                                                                            column='gaussian_ohe_' + x + '_' + z,
-                                                                            type='INT')
-                    logging.debug("SQL: " + str(sql_statement))
-                    self.db_connection.execute(sql_statement)
-                sql_statement = self.sql_templates['set_ohe_column'].render(table=table,
-                                                                            ohe_column='gaussian_ohe_' + x + '_' + z,
-                                                                            input_column=x, value=z)
-                logging.debug("SQL: " + str(sql_statement))
-                self.db_connection.execute(sql_statement)
-            sql_statement = self.sql_templates['set_safe_updates'].render(value=1)
-            logging.debug("SQL: " + str(sql_statement))
-            self.db_connection.execute(sql_statement)
-
-        # Remove varchar columns from columns
-        for x in self.model.ohe_columns:
-            if x in columns:
-                columns.remove(x)
 
     def __save_model(self):
         logging.info("SAVING MODEL")
@@ -315,37 +244,32 @@ class GaussianClassifier:
         for x in self.model.x_columns:
             x_columns_string = x_columns_string + x + ","
 
+        y_classes_string = ""
+        for y in self.model.y_classes:
+            y_classes_string = y_classes_string + str(y) + ","
+
         y_column_string = self.model.y_column[0]
 
         prediction_columns_string = ""
         for x in self.model.x_columns:
             prediction_columns_string = prediction_columns_string + x + ","
 
-        ohe_columns_string = ""
-        for x in self.model.ohe_columns:
-            ohe_columns_string = ohe_columns_string + x + ","
 
         sql_statement = self.sql_templates['save_model'].render(id=self.model.id, name=self.model.name,
                                                                 state=self.model.state,
                                                                 input_table=self.model.input_table,
                                                                 prediction_table=self.model.prediction_table,
                                                                 x_columns=x_columns_string,
+                                                                y_classes=y_classes_string,
                                                                 y_column=y_column_string,
                                                                 prediction_columns=prediction_columns_string,
                                                                 input_size=self.model.input_size,
-                                                                ohe_columns=ohe_columns_string)
+                                                                no_of_rows=self.model.no_of_rows)
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
 
         return self
 
-    def __get_equations(self):
-        logging.info("GETTING EQUATIONS")
-        sql_statement = self.sql_templates['get_all_from'].render(database=self.database,
-                                                                  table="gaussian_" + self.model.id + "_calculation")
-        logging.debug("SQL: " + str(sql_statement))
-        data = self.db_connection.execute_query(sql_statement)
-        return np.asarray(data, dtype='double')
 
     def __get_column_names(self, table):
         logging.info("GETTING COLUMN NAMES")
@@ -402,8 +326,6 @@ class GaussianClassifier:
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
 
-
-
         sql_statement = self.sql_templates['init_uni_gauss_prob_table'].render(database=self.database,
                                                                        table='gaussian_' + self.model.id + '_uni_gauss_prob', x_columns= self.model.x_columns)
         logging.debug("SQL: " + str(sql_statement))
@@ -428,8 +350,8 @@ class GaussianClassifier:
         sql_statement = self.sql_templates['init_score_table'].render(database=self.database, table=table)
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
-    def __add_ones_column(self):
-        return self
+    # def __add_ones_column(self):
+    #     return self
 
     def __get_targets(self):
         logging.info("GETTING TARGET CLASSES")
@@ -519,22 +441,15 @@ class GaussianClassifier:
 
 
     def __calculate_gaussian_probabilities_multivariate(self):
-
         y_classes = self.model.y_classes
         matrix = self.__create_matrix()
-
         # self.__get_diff_from_mean()
         # self.__multiply_columns(matrix)
         # self.__init_covariance_matrix_table(y_classes)
         # self.__fill_covariance_matrix(matrix,y_classes)
-
-
-
-        #
-        self.__init_overall_mean_table()
-        self.__calculate_overall_means()
-        self.__get_diff_from_mean_overall()
-
+        # self.__init_overall_mean_table()
+        # self.__calculate_overall_means()
+        # self.__get_diff_from_mean_overall()
         self.__init_determinante_table('gaussian_' + self.model.id + "_determinante")
         self.__init_inverse_covariance_matrix_table(y_classes)
         self.__init_vector_tables(self.model.no_of_rows)
@@ -544,11 +459,7 @@ class GaussianClassifier:
         self.__multivariate_probability()
         self.__drop_vector_tables(self.model.no_of_rows)
         self.__drop_determinante_table('gaussian_' + self.model.id + "_determinante")
-
-
-
-
-
+#TODO: Uncomment this lines
         # self.__drop_inverse_covariance_matrix_table(y_classes)
         # self.__drop_covariance_matrix_table(y_classes)
 
@@ -835,7 +746,6 @@ class GaussianClassifier:
         self.__rearrange_inverse(covariance_table)
 
 
-
     def __rearrange_inverse(self,covariance_table):
         for row in self.model.x_columns:
             for column in self.model.x_columns:
@@ -863,9 +773,6 @@ class GaussianClassifier:
 
 
 
-
-
-
     def __get_mahalonibis_distance(self):
         n= list(range(self.model.no_of_rows))
         sql_statement = self.sql_templates['insert_vector'].render(
@@ -886,8 +793,7 @@ class GaussianClassifier:
         self.db_connection.execute(sql_statement)
 
         sql_statement = self.sql_templates['init_multi_gauss_prob_table'].render(
-            table='gaussian_' + self.model.id + '_estimation'
-        )
+            table='gaussian_' + self.model.id + '_estimation')
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
 
