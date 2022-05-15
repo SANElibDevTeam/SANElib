@@ -291,18 +291,19 @@ class GaussianClassifier:
         logging.info("\nPREDICTION ARRAY RECEIVED\n-----")
         return np.asarray(data)
 
-    def get_score(self):
-        logging.info("\n-----\nGETTING SCORE")
+    def get_accuracy(self):
+        logging.info("\n-----\nGETTING ACCURACY")
         if self.model is None:
             raise Exception('No model parameters available! Please load/create a model!')
         elif self.model.state < 3:
             raise Exception('No score available! Please use score method first!')
 
-        sql_statement = self.sql_templates['select_x_from'].render(x='score', database=self.database,
-                                                                   table='gaussian_' + self.model.id + '_score')
+        sql_statement = self.sql_templates['get_accuracy'].render(x='score', database=self.database,
+                                                                   table='gaussian_' + self.model.id + '_prediction',
+                                                                  no_rows_prediction=self.model.no_of_rows_prediction)
         logging.debug("SQL: " + str(sql_statement))
         data = self.db_connection.execute_query(sql_statement)
-        logging.info("\nSCORE RECEIVED\n-----")
+        logging.info("\nACCURACY RECEIVED\n-----")
         return np.asarray(data)[0][0]
 
     def __save_model(self):

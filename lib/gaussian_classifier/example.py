@@ -14,6 +14,7 @@ def run_example(table_name="covtypall", prediction_table_name="prediction_covtyp
     gc.estimate(table_name, x_columns, y_column)
     gc.predict()
     gc.score()
+    print(gc.get_accuracy())
     timer.end()
 
 

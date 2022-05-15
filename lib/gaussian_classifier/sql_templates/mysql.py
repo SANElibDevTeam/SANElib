@@ -15,6 +15,10 @@ tmpl_mysql['select_x_from'] = Template('''
             SELECT {{ x }} FROM {{ database }}.{{ table }};
             ''')
 
+tmpl_mysql['get_accuracy'] = Template('''
+            SELECT SUM({{ x }})/{{ no_rows_prediction }} FROM {{ database }}.{{ table }};
+            ''')
+
 tmpl_mysql['select_x_from_where'] = Template('''
             SELECT {{ x }} FROM {{ table }} WHERE id = '{{ where_statement }}';
             ''')
