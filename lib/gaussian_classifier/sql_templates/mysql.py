@@ -168,6 +168,8 @@ tmpl_mysql['init_prediction_table'] = Template('''
 # tmpl_mysql['init_score_table'] = Template('''
 #             CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
 #                 id INT NOT NULL AUTO_INCREMENT,
+#                 y_prediction DOUBLE NULL,
+#                 y DOUBLE NULL,
 #                 score DOUBLE NULL,
 #             PRIMARY KEY (id),
 #             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
@@ -196,7 +198,7 @@ tmpl_mysql['calculate_means_overall'] = Template('''
                 
             ''')
 
-tmpl_mysql['calculate_variances'] =  Template('''
+tmpl_mysql['calculate_variances'] = Template('''
             INSERT INTO {{ table }}({% for x in x_columns_variances %}{{ x }}, {% endfor %}y) 
             VALUES
                 {% for class in y_classes%}
@@ -249,32 +251,32 @@ tmpl_mysql['copy_table'] = Template('''
 INSERT INTO {{new_table}} SELECT * FROM {{original_table}};
 ''')
 
-tmpl_mysql['diff_mean']= Template('''
+tmpl_mysql['diff_mean'] = Template('''
 UPDATE {{ table }} SET {{column}} = ({{ feature_1 }}
     -(SELECT {{ feature_1 }}
     from {{ mean_table }}
     where y={{ y_class }})) 
 ''')
 
-tmpl_mysql['diff_mean_overall']= Template('''
+tmpl_mysql['diff_mean_overall'] = Template('''
 UPDATE {{ table }} SET {{column}} = ({{ feature_1 }}
     -(SELECT {{ feature_1 }}
     from {{ mean_table }})) 
 ''')
 
-tmpl_mysql["insert_id"]= Template('''
+tmpl_mysql["insert_id"] = Template('''
 INSERT INTO {{ table }} (id) VALUES({{ id }})''')
 
-tmpl_mysql['multiply_columns']= Template('''
+tmpl_mysql['multiply_columns'] = Template('''
 UPDATE {{ table }} SET {{column}} = ({{ feature_1 }} * {{ feature_2 }}
     ) 
 ''')
 
-tmpl_mysql['rename_column']= Template('''
+tmpl_mysql['rename_column'] = Template('''
 ALTER TABLE {{ table }} RENAME {{ column }} TO {{ new_column }};
 ''')
 
-tmpl_mysql['divide_by_total']= Template('''
+tmpl_mysql['divide_by_total'] = Template('''
 UPDATE {{ table }} SET {{column}} = ({{ column }} / (select count(*)
      from {{ input_table }}
      where {{ y_column }} = {{ y_class }}) 
@@ -282,11 +284,10 @@ UPDATE {{ table }} SET {{column}} = ({{ column }} / (select count(*)
 ''')
 
 tmpl_mysql['fill_covariance_matrix'] = Template('''
-UPDATE {{ table }} SET {{ feature_2 }} = ((SELECT SUM({{ covariance }}) FROM {{ gaussian_input_table }})/(select count(*)
-     from {{ gaussian_input_table }}) ) WHERE id= {{ feature_1 }};
+UPDATE {{ table }} SET {{ feature_2 }} = ((SELECT SUM({{ covariance }}) FROM {{ gaussian_input_table }})/ {{ no_rows }} ) WHERE id= {{ feature_1 }};
 ''')
 
-tmpl_mysql['determinante']= Template('''
+tmpl_mysql['determinante'] = Template('''
 SELECT ({{ m00 }}) * ({{ m11 }}) - ({{ m10 }}) * ({{ m01 }}) as determinante
      from {{ covariance_matrix }} 
 ''')
@@ -330,12 +331,20 @@ INSERT INTO {{ determinante_table }} (id,determinante)
 VALUES ({{ table }}, {{ determinante }})
 ''')
 
-
 tmpl_mysql['insert_inverse'] = Template('''
 INSERT INTO {{ inverse_table }} (k, j, actual_value)
 VALUES ({{ row }}, {{ column }}, {{ actual_value }})
 ''')
-
+# tmpl_mysql['insert_target'] = Template('''
+# INSERT INTO {{ table }} ({{ column }})
+# SELECT {{ y_column }}
+# FROM {{ input_table }} LIMIT {{ row_no }};
+# ''')
+#
+# tmpl_mysql['insert_score'] = Template('''
+# INSERT INTO {{ table }} ({{ column }})
+# SELECT IF( y_prediction - y = 0,1,0);
+# ''')
 
 tmpl_mysql['insert_vector'] = Template('''
 {% for n in row_no %}
@@ -350,7 +359,6 @@ VALUES
 {% endfor %}
 
 ''')
-
 
 tmpl_mysql['calculate_mahalonobis_distance'] = Template('''
 
@@ -386,7 +394,6 @@ tmpl_mysql['init_multi_gauss_prob_table'] = Template('''
             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
             ''')
 
-
 tmpl_mysql['calculate_multivariate_density'] = Template('''
 {% for n in row_no %}
 {% for y in y_classes %}
@@ -415,8 +422,6 @@ WHERE (probability) in (select max(probability)
 {%endfor %};
             ''')
 
-
-
 tmpl_mysql['p_y'] = Template('''
 {%for y in y_classes %}
 UPDATE {{ table }} SET p_y = ((SELECT COUNT(*) FROM {{ input_table }} WHERE {{ y_column }} = {{ y }})/ {{ row_no}})
@@ -424,4 +429,3 @@ WHERE y = {{ y }};
 
 {%endfor%}
 ''')
-

@@ -1,6 +1,7 @@
 import sanelib
 import util.timer as timer
 
+
 def run_example(table_name="covtypall", prediction_table_name="prediction_covtyp"):
     timer.start()
     gc = sanelib.gc
@@ -8,11 +9,13 @@ def run_example(table_name="covtypall", prediction_table_name="prediction_covtyp
 
     # Simple linear regression
     print("SIMPLE Gaussian")
-    x_columns = ['Elevation','Horizontal_Distance_To_Fire_Points','Horizontal_Distance_To_Hydrology']
+    x_columns = ['Elevation', 'Horizontal_Distance_To_Fire_Points', 'Horizontal_Distance_To_Hydrology']
     y_column = ['Cover_Type']
-    gc.load_model()
-    # gc.estimate(table_name, x_columns, y_column)
-    # gc.predict()
+    gc.estimate(table_name, x_columns, y_column)
+    gc.predict()
+    # gc.score()
     timer.end()
+
+
 if __name__ == '__main__':
     run_example()
