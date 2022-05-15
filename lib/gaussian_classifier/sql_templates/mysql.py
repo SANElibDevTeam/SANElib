@@ -136,6 +136,9 @@ tmpl_mysql['init_uni_gauss_prob_table'] = Template('''
                 {% for x in x_columns %}
                     {{ x }} DOUBLE NULL,
                 {% endfor %}
+                gaussian_distribution DOUBLE NULL,
+                p_y DOUBLE NULL,
+                probability DOUBLE NULL,
                 y DOUBLE NULL,
             PRIMARY KEY (id),
             UNIQUE INDEX id_UNIQUE (id ASC) VISIBLE);
@@ -235,7 +238,7 @@ tmpl_mysql['calculate_gauss_prob_univariate'] = Template('''
                 {% for gauss_statement in gauss_statements %}
                     {{ gauss_statement }}
                 {% endfor %}
-                ({% for x in x_columns %}999,{% endfor %}999,999);    
+                ;    
             
             ''')
 
@@ -428,6 +431,10 @@ WHERE y = {{ y }} and row_no ={{ n }};
 {% endfor %}
 {% endfor %}
 
+''')
+
+tmpl_mysql['calculate_univariate_density'] = Template('''
+UPDATE {{ table }} SET {{column}} = ({{ multiplication_string }})
 ''')
 tmpl_mysql['predict'] = Template('''
 INSERT INTO {{ table }} (id,y_prediction)

@@ -165,6 +165,7 @@ class GaussianClassifier:
         logging.info("\n-----\nESTIMATING")
         if table is not None or x_columns is not None or y_column is not None:
             self.model = Model(table, x_columns, y_column)
+            self.model.multivariate = multivariate
             self.train_test_split()
             ##TODO: Revert real number of rows
             # self.model.no_of_rows_input = self.__get_no_of_rows(self.model.input_table)
@@ -180,11 +181,11 @@ class GaussianClassifier:
 
         # self.__init_mean_table()
         # self.__calculate_means()
-        if multivariate:
+        if self.model.multivariate:
             self.__calculate_gaussian_probabilities_multivariate()
         else:
-            self.__init_variance_table()
-            self.__calculate_variances()
+            # self.__init_variance_table()
+            # self.__calculate_variances()
             self.__init_uni_gauss_prob_table()
             self.__calculate_gaussian_probabilities_univariate()
 
@@ -201,22 +202,35 @@ class GaussianClassifier:
         elif self.model.state < 1:
             raise Exception('Model not trained! Please use estimate method first!')
 
-        self.__init_overall_mean_table()
-        self.__calculate_overall_means()
-        self.__get_diff_from_mean_overall()
-        self.__init_vector_tables(self.model.no_of_rows_prediction)
-        self.__get_mahalonibis_distance()
-        self.__multivariate_probability()
-        self.__drop_vector_tables(self.model.no_of_rows_prediction)
-        self.__drop_determinante_table('gaussian_' + self.model.id + "_determinante")
+        if self.model.multivariate:
 
-        self.__init_prediction_table("gaussian_" + self.model.id + "_prediction")
+            self.__init_overall_mean_table()
+            self.__calculate_overall_means()
+            self.__get_diff_from_mean_overall()
+            self.__init_vector_tables(self.model.no_of_rows_prediction)
+            self.__get_mahalonibis_distance()
+            self.__multivariate_probability()
+            self.__drop_vector_tables(self.model.no_of_rows_prediction)
+            self.__drop_determinante_table('gaussian_' + self.model.id + "_determinante")
 
-        sql_statement = self.sql_templates['predict'].render(table="gaussian_" + self.model.id + "_prediction",
-                                                             row_no=list(range(self.model.no_of_rows_prediction)),
-                                                             estimation_table="gaussian_" + self.model.id + "_estimation")
-        logging.debug("SQL: " + str(sql_statement))
-        self.db_connection.execute(sql_statement)
+            self.__init_prediction_table("gaussian_" + self.model.id + "_prediction")
+
+            sql_statement = self.sql_templates['predict'].render(table="gaussian_" + self.model.id + "_prediction",
+                                                                 row_no=list(range(self.model.no_of_rows_prediction)),
+                                                                 estimation_table="gaussian_" + self.model.id + "_estimation")
+            logging.debug("SQL: " + str(sql_statement))
+            self.db_connection.execute(sql_statement)
+
+
+        else:
+            self.__init_prediction_table("gaussian_" + self.model.id + "_prediction")
+
+            sql_statement = self.sql_templates['predict'].render(table="gaussian_" + self.model.id + "_prediction",
+                                                                 row_no=list(range(self.model.no_of_rows_prediction)),
+                                                                 estimation_table='gaussian_' + self.model.id + '_uni_gauss_prob')
+            logging.debug("SQL: " + str(sql_statement))
+            self.db_connection.execute(sql_statement)
+
 
         if self.model.state < 2:
             self.model.state = 2
@@ -513,7 +527,7 @@ class GaussianClassifier:
     def __calculate_gaussian_probabilities_univariate(self):
         logging.info("CALCULATING GAUSSIAN PROBABILITIES")
         y_classes = self.model.y_classes
-        rows = self.model.no_of_rows_input
+        rows = self.model.no_of_rows_prediction
         no_of_rows = list(range(0, rows))
 
         for n in no_of_rows:
@@ -522,19 +536,55 @@ class GaussianClassifier:
                 gauss_prob = []
                 for x in self.model.x_columns:
                     gauss_prob.append(
-                        f"(SELECT (1 / SQRT(2*PI()*(SELECT {x} from gaussian_{self.model.id}_variance where y = {y}))*EXP(-POW((SELECT {x} from {self.model.input_table} LIMIT {n},1)-(SELECT {x} from  gaussian_{self.model.id}_mean where y = {y}),2)/(2*(SELECT {x} from gaussian_{self.model.id}_variance where y = {y}))))),"
+                        f"(SELECT (1 / SQRT(2*PI()*(SELECT {x} from gaussian_{self.model.id}_variance where y = {y}))*EXP(-POW((SELECT {x} from {self.model.prediction_table} LIMIT {n},1)-(SELECT {x} from  gaussian_{self.model.id}_mean where y = {y}),2)/(2*(SELECT {x} from gaussian_{self.model.id}_variance where y = {y}))))),"
                     )
                 str_gauss_prob = ''.join(str(e) for e in gauss_prob)
                 gauss_statements.append(f"({n}," + str_gauss_prob + f"{y}),"
 
                                         )
 
+            gauss_statements[-1] = gauss_statements[-1][:-1]
             sql_statement = self.sql_templates['calculate_gauss_prob_univariate'].render(
                 table='gaussian_' + self.model.id + '_uni_gauss_prob', x_columns=self.model.x_columns,
                 gauss_statements=gauss_statements)
             logging.debug("SQL: " + str(sql_statement))
             self.db_connection.execute(sql_statement)
-            self.__remove_help_row('gaussian_' + self.model.id + '_uni_gauss_prob')
+            # self.__remove_help_row('gaussian_' + self.model.id + '_uni_gauss_prob')
+
+
+            multiplication_string = ""
+            for x in self.model.x_columns:
+                multiplication_string = multiplication_string + x + " * "
+            multiplication_string = multiplication_string[:-2]
+
+            sql_statement = self.sql_templates['calculate_univariate_density'].render(
+                table='gaussian_' + self.model.id + '_uni_gauss_prob', column="gaussian_distribution",
+                multiplication_string=multiplication_string)
+            logging.debug("SQL: " + str(sql_statement))
+            self.db_connection.execute(sql_statement)
+
+            sql_statement = self.sql_templates['p_y'].render(
+                table='gaussian_' + self.model.id + '_uni_gauss_prob',
+                y_column=self.model.y_column[0],
+                y_classes=self.model.y_classes,
+                input_table=self.model.input_table,
+                row_no=self.model.no_of_rows_input)
+
+            for statement in sqlparse.split(sql_statement):
+                if statement:
+                    logging.debug("SQL: " + str(statement))
+                    self.db_connection.execute(statement)
+
+            sql_statement = self.sql_templates['multiply_columns'].render(
+                table='gaussian_' + self.model.id + '_uni_gauss_prob',
+                column="probability",
+                feature_1="p_y",
+                feature_2="gaussian_distribution"
+            )
+            logging.debug("SQL: " + str(sql_statement))
+            self.db_connection.execute(sql_statement)
+
+
 
     def __calculate_gaussian_probabilities_multivariate(self):
         y_classes = self.model.y_classes
