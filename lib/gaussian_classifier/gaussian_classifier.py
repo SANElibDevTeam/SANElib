@@ -284,13 +284,6 @@ class GaussianClassifier:
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
 
-        # self.__init_score_table("gaussian_" + self.model.id + "_score")
-        # sql_statement = self.sql_templates['calculate_save_score'].render(table_id='gaussian_' + self.model.id,
-        #                                                                   input_table=self.model.input_table,
-        #                                                                   y=self.model.y_column[0])
-        # logging.debug("SQL: " + str(sql_statement))
-        # self.db_connection.execute(sql_statement)
-
         if self.model.state < 3:
             self.model.state = 3
             self.__save_model()
@@ -444,47 +437,6 @@ class GaussianClassifier:
         sql_statement = self.sql_templates['init_prediction_table'].render(database=self.database, table=table)
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
-
-    # def __init_score_table(self, table):
-    #     logging.info("INITIALIZING SCORE TABLE")
-    #     sql_statement = self.sql_templates['drop_table'].render(table=table)
-    #     logging.debug("SQL: " + str(sql_statement))
-    #     self.db_connection.execute(sql_statement)
-    #
-    #     sql_statement = self.sql_templates['create_table_like'].render(new_table=table,
-    #                                                                    original_table="gaussian_" + self.model.id + "_prediction")
-    #     logging.debug("SQL: " + str(sql_statement))
-    #     self.db_connection.execute(sql_statement)
-    #
-    #     sql_statement = self.sql_templates['copy_table'].render(new_table=table,
-    #                                                             original_table="gaussian_" + self.model.id + "_prediction")
-    #     logging.debug("SQL: " + str(sql_statement))
-    #     self.db_connection.execute(sql_statement)
-    #
-    #     sql_statement = self.sql_templates['add_column'].render(table=table,
-    #                                                             column="y", type="DOUBLE NULL")
-    #     logging.debug("SQL: " + str(sql_statement))
-    #     self.db_connection.execute(sql_statement)
-    #
-    #     sql_statement = self.sql_templates['add_column'].render(table=table,
-    #                                                             column="score", type="DOUBLE NULL")
-    #     logging.debug("SQL: " + str(sql_statement))
-    #     self.db_connection.execute(sql_statement)
-    #
-    #     sql_statement = self.sql_templates['insert_target'].render(table=table,
-    #                                                                column="y", input_table=self.model.input_table,
-    #                                                                row_no=self.model.no_of_rows_input,
-    #                                                                y_column=self.model.y_column[0])
-    #     logging.debug("SQL: " + str(sql_statement))
-    #     self.db_connection.execute(sql_statement)
-    #
-    #     sql_statement = self.sql_templates['insert_score'].render(table=table,
-    #                                                               column="score")
-    #     logging.debug("SQL: " + str(sql_statement))
-    #     self.db_connection.execute(sql_statement)
-
-    # def __add_ones_column(self):
-    #     return self
 
     def __get_targets(self):
         logging.info("GETTING TARGET CLASSES")
@@ -989,7 +941,7 @@ class GaussianClassifier:
             vector_table='gaussian_' + self.model.id + '_vector_',
             covariance_matrix=f"gaussian_{self.model.id}_covariance_matrix",
             k=self.model.input_size,
-            id= 'gaussian_' + self.model.id
+            id='gaussian_' + self.model.id
 
         )
         for statement in sqlparse.split(sql_statement):
