@@ -2,10 +2,10 @@ import sanelib
 import util.timer as timer
 
 
-def run_example(table_name="covtypall", prediction_table_name="prediction_covtyp"):
+def run_example(table_name="sample_cover_type_0_01", prediction_table_name="prediction_covtyp"):
     timer.start()
     gc = sanelib.gc
-    gc.set_log_level("DEBUG")
+    gc.set_log_level("INFO")
 
     # Univariate Gaussian
     print("Univariate Gaussian")
