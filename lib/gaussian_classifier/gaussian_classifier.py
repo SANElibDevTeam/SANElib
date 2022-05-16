@@ -174,11 +174,8 @@ class GaussianClassifier:
         if self.model.multivariate:
             self.model.id = "m0m"
             self.train_test_split()
-            ##TODO: Revert real number of rows
             self.model.no_of_rows_input = self.__get_no_of_rows(self.model.input_table)
             self.model.no_of_rows_prediction = self.__get_no_of_rows(self.model.prediction_table)
-            # self.model.no_of_rows_input = 20
-            # self.model.no_of_rows_prediction = 4
             self.__init_mean_table()
             self.__calculate_means()
             self.__calculate_gaussian_probabilities_multivariate()
@@ -188,11 +185,8 @@ class GaussianClassifier:
         else:
             self.model.id = "m0u"
             self.train_test_split()
-            ##TODO: Revert real number of rows
             self.model.no_of_rows_input = self.__get_no_of_rows(self.model.input_table)
             self.model.no_of_rows_prediction = self.__get_no_of_rows(self.model.prediction_table)
-            # self.model.no_of_rows_input = 20
-            # self.model.no_of_rows_prediction = 4
             self.__init_mean_table()
             self.__calculate_means()
             self.__init_variance_table()
@@ -219,9 +213,6 @@ class GaussianClassifier:
             self.__get_mahalonibis_distance()
             self.__multivariate_probability()
 
-            #TODO: Create cleanup function
-            self.__drop_vector_tables(self.model.no_of_rows_prediction)
-            self.__drop_determinante_table('gaussian_' + self.model.id + "_determinante")
             self.__init_prediction_table("gaussian_" + self.model.id + "_prediction")
 
             sql_statement = self.sql_templates['predict'].render(table="gaussian_" + self.model.id + "_prediction",
@@ -230,8 +221,7 @@ class GaussianClassifier:
             logging.debug("SQL: " + str(sql_statement))
             self.db_connection.execute(sql_statement)
 
-            self.__drop_inverse_covariance_matrix_table(self.model.y_classes)
-            self.__drop_covariance_matrix_table(self.model.y_classes)
+
 
 
         else:
@@ -249,6 +239,12 @@ class GaussianClassifier:
 
         logging.info("\nPREDICTING FINISHED\n-----")
         return self
+
+    def clean_up(self):
+        self.__drop_vector_tables(self.model.no_of_rows_prediction)
+        self.__drop_determinante_table('gaussian_' + self.model.id + "_determinante")
+        self.__drop_inverse_covariance_matrix_table(self.model.y_classes)
+        self.__drop_covariance_matrix_table(self.model.y_classes)
 
     def score(self):
         logging.info("\n-----\nCALCULATING SCORE")

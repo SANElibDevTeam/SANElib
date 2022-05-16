@@ -4,7 +4,7 @@ import util.timer as timer
 
 
 def run_example(table_name="sample_cover_type_0_01", prediction_table_name="prediction_covtyp"):
-    for i in range(1):
+    for i in range(5):
         timer.start()
         gc = sanelib.gc
         gc.set_log_level("INFO")
@@ -43,6 +43,7 @@ def run_example(table_name="sample_cover_type_0_01", prediction_table_name="pred
         y_pred_float = gc.get_prediction_array()
         y_float = gc.get_target_array()
         timer.end()
+        gc.clean_up()
         y_float = y_float[y_float != np.array(None)]
         y_pred_float = y_pred_float[y_pred_float != np.array(None)]
         y = y_float.astype(int)
