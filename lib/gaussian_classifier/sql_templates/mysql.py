@@ -69,6 +69,11 @@ tmpl_mysql['get_targets'] = Template('''
             
             ''')
 
+tmpl_mysql['get_target_array'] = Template('''
+            SELECT {{ y }} FROM {{ database }}.{{ table }};
+
+            ''')
+
 tmpl_mysql['save_model'] = Template('''
             REPLACE INTO gaussian_model
                 SET id = '{{ id }}',
