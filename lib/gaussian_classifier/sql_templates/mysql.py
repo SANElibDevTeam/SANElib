@@ -4,12 +4,12 @@ tmpl_mysql = {}
 
 tmpl_mysql["_train"] = Template('''
 create table {{ train_table }} as 
-(select * from {{ input_table }} where rand ({{ input_seed }}) < {{ input_ratio }});
+(select * from {{ database }}.{{ input_table }} where rand ({{ input_seed }}) < {{ input_ratio }});
 ''')
 
 tmpl_mysql["_eval"] = Template('''
 create table {{ train_table }} as 
-(select * from {{ input_table }} where rand ({{ input_seed }}) >= {{ input_ratio }});
+(select * from {{ database }}.{{ input_table }} where rand ({{ input_seed }}) >= {{ input_ratio }});
 ''')
 tmpl_mysql['select_x_from'] = Template('''
             SELECT {{ x }} FROM {{ database }}.{{ table }};
@@ -20,7 +20,7 @@ tmpl_mysql['get_accuracy'] = Template('''
             ''')
 
 tmpl_mysql['select_x_from_where'] = Template('''
-            SELECT {{ x }} FROM {{ table }} WHERE id = '{{ where_statement }}';
+            SELECT {{ x }} FROM {{ database }}.{{ table }} WHERE id = '{{ where_statement }}';
             ''')
 tmpl_mysql['get_all_from'] = Template('''
             SELECT * FROM {{ database }}.{{ table }};
@@ -31,7 +31,7 @@ tmpl_mysql['get_all_from_where_id'] = Template('''
             ''')
 
 tmpl_mysql['delete_from_table_where_id'] = Template('''
-            DELETE FROM {{ table }} WHERE id='{{ where_statement }}';
+            DELETE FROM {{ database }}.{{ table }} WHERE id='{{ where_statement }}';
             ''')
 tmpl_mysql['set_safe_updates'] = Template('''
             SET SQL_SAFE_UPDATES = {{ value }};
@@ -48,24 +48,24 @@ tmpl_mysql['column_type'] = Template('''
             ''')
 
 tmpl_mysql['drop_table'] = Template('''
-            DROP TABLE IF EXISTS {{ table }};
+            DROP TABLE IF EXISTS {{ database }}.{{ table }};
             ''')
 
 tmpl_mysql['add_ones_column'] = Template('''
-            ALTER TABLE {{ table }} ADD COLUMN {{ column }} INT DEFAULT 1;
+            ALTER TABLE {{ database }}.{{ table }} ADD COLUMN {{ column }} INT DEFAULT 1;
             ''')
 
 tmpl_mysql['add_column'] = Template('''
-            ALTER TABLE {{ table }} ADD COLUMN {{ column }} {{ type }};
+            ALTER TABLE {{ database }}.{{ table }} ADD COLUMN {{ column }} {{ type }};
             ''')
 
 tmpl_mysql['set_ohe_column'] = Template('''
-            UPDATE {{ table }}
+            UPDATE {{ database }}.{{ table }}
             SET {{ ohe_column }} = IF({{ input_column }}='{{ value }}', 1, 0);
             ''')
 
 tmpl_mysql['get_targets'] = Template('''
-            SELECT DISTINCT({{ y }}) FROM {{ table }} order by {{ y }} ASC;
+            SELECT DISTINCT({{ y }}) FROM {{ database }}.{{ table }} order by {{ y }} ASC;
             
             ''')
 
@@ -150,7 +150,7 @@ tmpl_mysql['init_uni_gauss_prob_table'] = Template('''
             ''')
 
 tmpl_mysql['init_covariance_table'] = Template('''
-            CREATE TABLE IF NOT EXISTS {{ table }} (
+            CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
                 id varchar(255) NOT NULL,
                 {% for x in x_columns %}
                     {{ x }} DOUBLE NULL,
@@ -161,7 +161,7 @@ tmpl_mysql['init_covariance_table'] = Template('''
             ''')
 
 tmpl_mysql['init_inverse_table'] = Template('''
-            CREATE TABLE IF NOT EXISTS {{ table }} (
+            CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
                 id INT NOT NULL AUTO_INCREMENT,
                 {{ row_name }} DOUBLE NULL,
                 {{ col_name }} DOUBLE NULL,
@@ -173,7 +173,7 @@ tmpl_mysql['init_inverse_table'] = Template('''
             ''')
 
 tmpl_mysql['init_determinante_table'] = Template('''
-            CREATE TABLE IF NOT EXISTS {{ table }} (
+            CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
                 id varchar(255) NOT NULL,
                 determinante DOUBLE NULL,
             PRIMARY KEY (id),
@@ -199,19 +199,19 @@ tmpl_mysql['init_prediction_table'] = Template('''
 #             ''')
 
 tmpl_mysql['calculate_means'] = Template('''
-            INSERT INTO {{ table }}({% for x in x_columns_means %}{{ x }}, {% endfor %}y) 
+            INSERT INTO {{ database }}.{{ table }}({% for x in x_columns_means %}{{ x }}, {% endfor %}y) 
             VALUES
                 {% for class in y_classes%}
                     
                     ({% for x in x_columns %}
-                        (SELECT AVG({{ x }}) FROM {{ input_table }} WHERE {{ target }} = {{ class }}),{% endfor %}{{class}}),
+                        (SELECT AVG({{ x }}) FROM {{ database }}.{{ input_table }} WHERE {{ target }} = {{ class }}),{% endfor %}{{class}}),
                     
                 {% endfor %}
                 ({% for x in x_columns_means %}999,{% endfor %}999);
             ''')
 
 tmpl_mysql['calculate_means_overall'] = Template('''
-            INSERT INTO {{ table }}({% for x in x_columns_means %}{% if loop.index > 1 %}, {% endif %}{{ x }} {% endfor %}) 
+            INSERT INTO {{ database }}.{{ table }}({% for x in x_columns_means %}{% if loop.index > 1 %}, {% endif %}{{ x }} {% endfor %}) 
             VALUES
                     ({% for x in x_columns %}
                     {% if loop.index > 1 %}, {% endif %}
@@ -222,23 +222,23 @@ tmpl_mysql['calculate_means_overall'] = Template('''
             ''')
 
 tmpl_mysql['calculate_variances'] = Template('''
-            INSERT INTO {{ table }}({% for x in x_columns_variances %}{{ x }}, {% endfor %}y) 
+            INSERT INTO {{ database }}.{{ table }}({% for x in x_columns_variances %}{{ x }}, {% endfor %}y) 
             VALUES
                 {% for class in y_classes%}
                     
                     ({% for x in x_columns %}
-                        (SELECT VARIANCE({{ x }}) FROM {{ input_table }} WHERE {{ target }} = {{ class }}),{% endfor %}{{class}}),
+                        (SELECT VARIANCE({{ x }}) FROM {{ database }}.{{ input_table }} WHERE {{ target }} = {{ class }}),{% endfor %}{{class}}),
                     
                 {% endfor %}
                 ({% for x in x_columns_variances %}999,{% endfor %}999);
             ''')
 
 tmpl_mysql['drop_row'] = Template('''
-            DELETE FROM {{table}} WHERE y = 999;
+            DELETE FROM {{ database }}.{{table}} WHERE y = 999;
             ''')
 
 tmpl_mysql['calculate_gauss_prob_univariate'] = Template('''
-            INSERT INTO {{ table }}(row_no,{% for x in x_columns %}{{ x }},{% endfor %}y) 
+            INSERT INTO {{ database }}.{{ table }}(row_no,{% for x in x_columns %}{{ x }},{% endfor %}y) 
             VALUES
                 {% for gauss_statement in gauss_statements %}
                     {{ gauss_statement }}
@@ -248,77 +248,77 @@ tmpl_mysql['calculate_gauss_prob_univariate'] = Template('''
             ''')
 
 tmpl_mysql['get_no_of_rows'] = Template('''
-SELECT COUNT(*) FROM {{ table }};
+SELECT COUNT(*) FROM {{ database }}.{{ table }};
 ''')
 
 tmpl_mysql['calculate_covariance'] = Template('''
 SELECT SUM(({{ feature_1 }}
     -(SELECT{{ feature_1 }}
-    from {{ mean_table }}
+    from {{ database }}.{{ mean_table }}
     where y={{ class }})) 
     * 
     ({{ feature2 }}
     -(SELECT {{ feature_2 }}
-    from {{ mean_table }}
+    from {{ database }}.{{ mean_table }}
     where y={{ class }})))
      / (select count(*)
-     from {{ input_table }}
+     from {{ database }}.{{ input_table }}
      where {{ y_column }} = {{ class }}) as Covariance
-from {{ input_table }} where {{ y_column }} = {{ class }};
+from {{ database }}.{{ input_table }} where {{ y_column }} = {{ class }};
 ''')
 
 tmpl_mysql['create_table_like'] = Template('''
 CREATE TABLE {{new_table}} LIKE {{original_table}};
 ''')
 tmpl_mysql['copy_table'] = Template('''
-INSERT INTO {{new_table}} SELECT * FROM {{original_table}};
+INSERT INTO {{ database }}.{{new_table}} SELECT * FROM {{ database }}.{{original_table}};
 ''')
 
 tmpl_mysql['diff_mean'] = Template('''
-UPDATE {{ table }} SET {{column}} = ({{ feature_1 }}
+UPDATE {{ database }}.{{ table }} SET {{column}} = ({{ feature_1 }}
     -(SELECT {{ feature_1 }}
     from {{ mean_table }}
     where y={{ y_class }})) 
 ''')
 
 tmpl_mysql['diff_mean_overall'] = Template('''
-UPDATE {{ table }} SET {{column}} = ({{ feature_1 }}
+UPDATE {{ database }}.{{ table }} SET {{column}} = ({{ feature_1 }}
     -(SELECT {{ feature_1 }}
-    from {{ mean_table }})) 
+    from {{ database }}.{{ mean_table }})) 
 ''')
 
 tmpl_mysql["insert_id"] = Template('''
-INSERT INTO {{ table }} (id) VALUES({{ id }})''')
+INSERT INTO {{ database }}.{{ table }} (id) VALUES({{ id }})''')
 
 tmpl_mysql['multiply_columns'] = Template('''
-UPDATE {{ table }} SET {{column}} = ({{ feature_1 }} * {{ feature_2 }}
+UPDATE {{ database }}.{{ table }} SET {{column}} = ({{ feature_1 }} * {{ feature_2 }}
     ) 
 ''')
 
 tmpl_mysql['rename_column'] = Template('''
-ALTER TABLE {{ table }} RENAME {{ column }} TO {{ new_column }};
+ALTER TABLE {{ database }}.{{ table }} RENAME {{ column }} TO {{ new_column }};
 ''')
 
 tmpl_mysql['divide_by_total'] = Template('''
-UPDATE {{ table }} SET {{column}} = ({{ column }} / (select count(*)
-     from {{ input_table }}
+UPDATE {{ database }}.{{ table }} SET {{column}} = ({{ column }} / (select count(*)
+     from {{ database }}.{{ input_table }}
      where {{ y_column }} = {{ y_class }}) 
     ) 
 ''')
 
 tmpl_mysql['fill_covariance_matrix'] = Template('''
-UPDATE {{ table }} SET {{ feature_2 }} = ((SELECT SUM({{ covariance }}) FROM {{ gaussian_input_table }})/ {{ no_rows }} ) WHERE id= {{ feature_1 }};
+UPDATE {{ database }}.{{ table }} SET {{ feature_2 }} = ((SELECT SUM({{ covariance }}) FROM {{ database }}.{{ gaussian_input_table }})/ {{ no_rows }} ) WHERE id= {{ feature_1 }};
 ''')
 
 tmpl_mysql['determinante'] = Template('''
 SELECT ({{ m00 }}) * ({{ m11 }}) - ({{ m10 }}) * ({{ m01 }}) as determinante
-     from {{ covariance_matrix }} 
+     from {{ database }}.{{ covariance_matrix }} 
 ''')
 
-tmpl_mysql['m0c'] = Template(''' SELECT {{ m0c1 }} from {{ covariance_matrix }} WHERE id= {{ m0c0 }};  ''')
+tmpl_mysql['m0c'] = Template(''' SELECT {{ m0c1 }} from {{ database }}.{{ covariance_matrix }} WHERE id= {{ m0c0 }};  ''')
 
 tmpl_mysql['transpose_matrix'] = Template('''
-REPLACE INTO {{ inverse_matrix }} (id,{% for feature in features %} {% if loop.index > 1 %}, {% endif %} {{feature}} {%endfor%} )
+REPLACE INTO {{ database }}.{{ inverse_matrix }} (id,{% for feature in features %} {% if loop.index > 1 %}, {% endif %} {{feature}} {%endfor%} )
 select id_t, {% for feature in features %}
     {% if loop.index > 1 %}, {% endif %}
     max(IF(id = {{"'"}}{{ feature }}{{"'"}}, amount, null)) AS {{ feature }}
@@ -326,20 +326,20 @@ select id_t, {% for feature in features %}
     from (
     {% for feature in features %}
     {% if loop.index > 1 %}union {% endif %}
-        select id, {{"'"}}{{ feature }}{{"'"}} id_t, {{ feature }} as amount from {{ covariance_matrix }}
+        select id, {{"'"}}{{ feature }}{{"'"}} id_t, {{ feature }} as amount from {{ database }}.{{ covariance_matrix }}
         
     {% endfor %}
   ) t
   group by id_t;
 ''')
 tmpl_mysql['insert_inverse_2_2'] = Template('''
-INSERT INTO {{ inverse_matrix }} (id,{% for feature in features %} {% if loop.index > 1 %}, {% endif %} {{feature}} {%endfor%} )
+INSERT INTO {{ database }}.{{ inverse_matrix }} (id,{% for feature in features %} {% if loop.index > 1 %}, {% endif %} {{feature}} {%endfor%} )
 VALUES ({{"'"}}{{features[0]}}{{"'"}},({{ m11 }}), ({{ m01 }})),
         ({{"'"}}{{features[1]}}{{"'"}},({{ m10 }}), ({{ m00 }}))
 ''')
 
 tmpl_mysql['insert_inverse_n_n'] = Template('''
-INSERT INTO {{ inverse_matrix }} (id,{% for feature in features %} {% if loop.index > 1 %}, {% endif %} {{feature}} {%endfor%} )
+INSERT INTO {{ database }}.{{ inverse_matrix }} (id,{% for feature in features %} {% if loop.index > 1 %}, {% endif %} {{feature}} {%endfor%} )
 VALUES 
     {% for row in cofactor_matrix %}
     {% if loop.index > 1 %}, {% endif %}
@@ -350,23 +350,23 @@ VALUES
 ''')
 
 tmpl_mysql['insert_determinante'] = Template('''
-INSERT INTO {{ determinante_table }} (id,determinante)
+INSERT INTO {{ database }}.{{ determinante_table }} (id,determinante)
 VALUES ({{ table }}, {{ determinante }})
 ''')
 
 tmpl_mysql['insert_inverse'] = Template('''
-INSERT INTO {{ inverse_table }} (k, j, actual_value)
+INSERT INTO {{ database }}.{{ inverse_table }} (k, j, actual_value)
 VALUES ({{ row }}, {{ column }}, {{ actual_value }})
 ''')
 tmpl_mysql['insert_target'] = Template('''
 {%for n in row_no%}
-UPDATE {{ table }} SET {{ column }} = (SELECT {{ y_column }}
+UPDATE {{ database }}.{{ table }} SET {{ column }} = (SELECT {{ y_column }}
 FROM {{ input_table }} LIMIT {{ n }},1) WHERE id = {{ n }};
 {%endfor%}
 ''')
 #
 tmpl_mysql['insert_score'] = Template('''
-UPDATE {{ table }} SET {{ column }} =
+UPDATE {{ database }}.{{ table }} SET {{ column }} =
 CASE
    WHEN {{ column }} = 0 THEN 1
    ELSE 0
@@ -374,18 +374,18 @@ END
 ''')
 
 tmpl_mysql['substract_columns'] = Template('''
-UPDATE {{ table }} SET {{column}} = ({{ feature_1 }} - {{ feature_2 }}
+UPDATE {{ database }}.{{ table }} SET {{column}} = ({{ feature_1 }} - {{ feature_2 }}
     ) 
 ''')
 
 tmpl_mysql['insert_vector'] = Template('''
 {% for n in row_no %}
 {% for y in y_classes%}
-INSERT INTO {{ vector_table }}{{ n }} (i, k, actual_value)
+INSERT INTO {{ database }}.{{ vector_table }}{{ n }} (i, k, actual_value)
 VALUES
 {% for element in x_columns %}
 {% if loop.index > 1 %}, {% endif %}
-(1, {{ loop.index }},(SELECT {{ element }}_diff_mean FROM {{ input_table }} LIMIT {{ n }},1))
+(1, {{ loop.index }},(SELECT {{ element }}_diff_mean FROM {{ database }}.{{ input_table }} LIMIT {{ n }},1))
 {% endfor %};
 {% endfor %}
 {% endfor %}
@@ -396,15 +396,15 @@ tmpl_mysql['calculate_mahalonobis_distance'] = Template('''
 
 {% for n in row_no %}
 {% for y in y_classes %}
-INSERT INTO {{ estimation_table }} (row_no, y, mahalonobis_distance)
+INSERT INTO {{ database }}.{{ estimation_table }} (row_no, y, mahalonobis_distance)
 SELECT  {{ n }} as row_no,  {{ y }} as y, SUM(MatrixD.actual_value * vector_transformed.actual_value) as mahalonobis_distance
   FROM 
 
  (SELECT i, j as k, SUM({{ vector_table }}{{ n }}.actual_value * {{ covariance_matrix }}_{{ y }}_inverse.actual_value) as actual_value
-  FROM {{ vector_table }}{{ n }}, {{ covariance_matrix }}_{{ y }}_inverse
+  FROM {{ database }}.{{ vector_table }}{{ n }}, {{ database }}.{{ covariance_matrix }}_{{ y }}_inverse
  WHERE {{ vector_table }}{{ n }}.k ={{ covariance_matrix }}_{{ y }}_inverse.k
  GROUP BY i, j) AS MatrixD,
- (SELECT k, i as j,actual_value FROM {{ vector_table }}{{ n }}) as vector_transformed
+ (SELECT k, i as j,actual_value FROM {{ database }}.{{ vector_table }}{{ n }}) as vector_transformed
  
  WHERE MatrixD.k = vector_transformed.k
  GROUP BY i, j ;
@@ -414,7 +414,7 @@ SELECT  {{ n }} as row_no,  {{ y }} as y, SUM(MatrixD.actual_value * vector_tran
 ''')
 
 tmpl_mysql['init_multi_gauss_prob_table'] = Template('''
-            CREATE TABLE IF NOT EXISTS {{ table }} (
+            CREATE TABLE IF NOT EXISTS {{ database }}.{{ table }} (
                 id INT NOT NULL AUTO_INCREMENT,
                 row_no INT NULL,
                 mahalonobis_distance DOUBLE NULL,
@@ -429,9 +429,9 @@ tmpl_mysql['init_multi_gauss_prob_table'] = Template('''
 tmpl_mysql['calculate_multivariate_density'] = Template('''
 {% for n in row_no %}
 {% for y in y_classes %}
-UPDATE {{ table }} SET gaussian_distribution =
-(SELECT (1/(power(2*PI(),{{ k }})*(SELECT determinante from {{ determinante_table}} where id = "{{ id }}_covariance_matrix_{{ y }}")))
-* EXP(0.5 * (SELECT mahalonobis_distance from (SELECT * from {{ table }}) as tmp_table where y = {{ y }} and row_no ={{ n }})))
+UPDATE {{ database }}.{{ table }} SET gaussian_distribution =
+(SELECT (1/(power(2*PI(),{{ k }})*(SELECT determinante from {{ database }}.{{ determinante_table}} where id = "{{ id }}_covariance_matrix_{{ y }}")))
+* EXP(0.5 * (SELECT mahalonobis_distance from (SELECT * from {{ database }}.{{ table }}) as tmp_table where y = {{ y }} and row_no ={{ n }})))
 WHERE y = {{ y }} and row_no ={{ n }};
 {% endfor %}
 {% endfor %}
@@ -439,20 +439,22 @@ WHERE y = {{ y }} and row_no ={{ n }};
 ''')
 
 tmpl_mysql['calculate_univariate_density'] = Template('''
-UPDATE {{ table }} SET {{column}} = ({{ multiplication_string }})
+UPDATE {{ database }}.{{ table }} SET {{column}} = ({{ multiplication_string }})
 ''')
 tmpl_mysql['predict'] = Template('''
-INSERT INTO {{ table }} (id,y_prediction)
+INSERT INTO {{ database }}.{{ table }} (id,y_prediction)
 VALUES
 {% for n in row_no %}
 {% if loop.index > 1 %}, {% endif %}
 
 ({{ n }},(SELECT y
-FROM {{ estimation_table }}
+FROM {{ database }}.{{ estimation_table }}
 WHERE (probability) in (select max(probability)
-                                from {{ estimation_table }}
+                                from {{ database }}.{{ estimation_table }}
                                 WHERE row_no = {{ n }}
-                                )))
+                                )
+                                AND row_no = {{ n }}
+                                ))
 
 
 {%endfor %};
@@ -460,7 +462,7 @@ WHERE (probability) in (select max(probability)
 
 tmpl_mysql['p_y'] = Template('''
 {%for y in y_classes %}
-UPDATE {{ table }} SET p_y = ((SELECT COUNT(*) FROM {{ input_table }} WHERE {{ y_column }} = {{ y }})/ {{ row_no}})
+UPDATE {{ database }}.{{ table }} SET p_y = ((SELECT COUNT(*) FROM {{ database }}.{{ input_table }} WHERE {{ y_column }} = {{ y }})/ {{ row_no}})
 WHERE y = {{ y }};
 
 {%endfor%}
