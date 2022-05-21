@@ -782,20 +782,20 @@ class GaussianClassifier:
             if data[0] == 0.0:
                 data[0] = 0.0001
             return data[0]
-
-        determinant = 0
-        for c in range(len(m)):
-            sql_statement = self.sql_templates['m0c'].render(
-                covariance_matrix=covariance_table,
-                m0c0='"' + m[0][c][0] + '"',
-                m0c1=m[0][c][1],database=self.database)
-            logging.debug("SQL: " + str(sql_statement))
-            m0c = list(self.db_connection.execute_query(sql_statement)[0])
-            determinant += ((-1) ** c) * m0c[0] * self.__get_matrix_determinante(self.__get_matrix_minor(m, 0, c),
-                                                                                 covariance_table)
-        if determinant == 0:
-            determinant = 0.0001
-        return determinant
+        else:
+            determinant = 0
+            for c in range(len(m)):
+                sql_statement = self.sql_templates['m0c'].render(
+                    covariance_matrix=covariance_table,
+                    m0c0='"' + m[0][c][0] + '"',
+                    m0c1=m[0][c][1],database=self.database)
+                logging.debug("SQL: " + str(sql_statement))
+                m0c = list(self.db_connection.execute_query(sql_statement)[0])
+                determinant += ((-1) ** c) * m0c[0] * self.__get_matrix_determinante(self.__get_matrix_minor(m, 0, c),
+                                                                                     covariance_table)
+            if determinant == 0:
+                determinant = 0.0001
+            return determinant
 
     def __get_matrix_minor(self, m, i, j):
         return [row[:j] + row[j + 1:] for row in (m[:i] + m[i + 1:])]
