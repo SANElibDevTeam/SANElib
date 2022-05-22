@@ -179,8 +179,8 @@ class GaussianClassifier:
             self.__init_mean_table()
             self.__calculate_means()
             self.__calculate_gaussian_probabilities_multivariate()
-            self.__init_overall_mean_table()
-            self.__calculate_overall_means()
+            # self.__init_overall_mean_table()
+            # self.__calculate_overall_means()
 
         else:
             self.model.id = "m0u"
@@ -208,7 +208,7 @@ class GaussianClassifier:
             raise Exception('Model not trained! Please use estimate method first!')
 
         if self.model.multivariate:
-            self.__get_diff_from_mean_overall()
+            # self.__get_diff_from_mean_overall()
             self.__init_vector_tables(self.model.no_of_rows_prediction)
             self.__get_mahalonibis_distance()
             self.__multivariate_probability()
@@ -644,24 +644,25 @@ class GaussianClassifier:
 
     def __init_vector_tables(self, no_rows):
         logging.info("INITIALIZING VECTOR TABLES")
-        for row in list(range(no_rows)):
-            sql_statement = self.sql_templates['drop_table'].render(
-                table='gaussian_' + self.model.id + '_vector_' + str(row),database=self.database)
-            logging.debug("SQL: " + str(sql_statement))
-            self.db_connection.execute(sql_statement)
+        for y in self.model.y_classes:
+            for row in list(range(no_rows)):
+                sql_statement = self.sql_templates['drop_table'].render(
+                    table='gaussian_' + self.model.id + '_vector_' + str(row)+ "_" + str(y),database=self.database)
+                logging.debug("SQL: " + str(sql_statement))
+                self.db_connection.execute(sql_statement)
 
-            sql_statement = self.sql_templates['init_inverse_table'].render(
-                table='gaussian_' + self.model.id + '_vector_' + str(row),
-                row_name="i", col_name="k",database=self.database)
-            logging.debug("SQL: " + str(sql_statement))
-            self.db_connection.execute(sql_statement)
+                sql_statement = self.sql_templates['init_inverse_table'].render(
+                    table='gaussian_' + self.model.id + '_vector_' + str(row)+ "_" + str(y),
+                    row_name="i", col_name="k",database=self.database)
+                logging.debug("SQL: " + str(sql_statement))
+                self.db_connection.execute(sql_statement)
 
     def __drop_vector_tables(self, no_rows):
         logging.info("DROPPING VECTOR TABLES")
         for row in list(range(no_rows)):
             for y in self.model.y_classes:
                 sql_statement = self.sql_templates['drop_table'].render(
-                    table='gaussian_' + self.model.id + '_vector_' + str(row),database=self.database)
+                    table='gaussian_' + self.model.id + '_vector_' + str(row)+ "_" + str(y),database=self.database)
                 logging.debug("SQL: " + str(sql_statement))
                 self.db_connection.execute(sql_statement)
 
@@ -697,37 +698,37 @@ class GaussianClassifier:
                 logging.debug("SQL: " + str(sql_statement))
                 self.db_connection.execute(sql_statement)
 
-    def __get_diff_from_mean_overall(self):
-        logging.info("CALCULATING feature - avg(feature)")
-
-        sql_statement = self.sql_templates['drop_table'].render(
-            table='gaussian_' + self.model.id + '_mean_diff_overall',database=self.database)
-        logging.debug("SQL: " + str(sql_statement))
-        self.db_connection.execute(sql_statement)
-
-        sql_statement = self.sql_templates['create_table_like'].render(
-            new_table='gaussian_' + self.model.id + '_mean_diff_overall', original_table=self.model.prediction_table,database=self.database)
-        logging.debug("SQL: " + str(sql_statement))
-        self.db_connection.execute(sql_statement)
-
-        sql_statement = self.sql_templates['copy_table'].render(
-            new_table='gaussian_' + self.model.id + '_mean_diff_overall', original_table=self.model.prediction_table,database=self.database)
-        logging.debug("SQL: " + str(sql_statement))
-        self.db_connection.execute(sql_statement)
-
-        for column in self.model.prediction_columns:
-            sql_statement = self.sql_templates['add_column'].render(
-                table='gaussian_' + self.model.id + '_mean_diff_overall', column=column + '_diff_mean',
-                type="DOUBLE NULL",database=self.database)
-            logging.debug("SQL: " + str(sql_statement))
-            self.db_connection.execute(sql_statement)
-
-            sql_statement = self.sql_templates['diff_mean_overall'].render(
-                table='gaussian_' + self.model.id + '_mean_diff_overall',
-                column=column + '_diff_mean', feature_1=column,
-                mean_table='gaussian_' + self.model.id + '_mean_overall',database=self.database)
-            logging.debug("SQL: " + str(sql_statement))
-            self.db_connection.execute(sql_statement)
+    # def __get_diff_from_mean_overall(self):
+    #     logging.info("CALCULATING feature - avg(feature)")
+    #
+    #     sql_statement = self.sql_templates['drop_table'].render(
+    #         table='gaussian_' + self.model.id + '_mean_diff_overall',database=self.database)
+    #     logging.debug("SQL: " + str(sql_statement))
+    #     self.db_connection.execute(sql_statement)
+    #
+    #     sql_statement = self.sql_templates['create_table_like'].render(
+    #         new_table='gaussian_' + self.model.id + '_mean_diff_overall', original_table=self.model.prediction_table,database=self.database)
+    #     logging.debug("SQL: " + str(sql_statement))
+    #     self.db_connection.execute(sql_statement)
+    #
+    #     sql_statement = self.sql_templates['copy_table'].render(
+    #         new_table='gaussian_' + self.model.id + '_mean_diff_overall', original_table=self.model.prediction_table,database=self.database)
+    #     logging.debug("SQL: " + str(sql_statement))
+    #     self.db_connection.execute(sql_statement)
+    #
+    #     for column in self.model.prediction_columns:
+    #         sql_statement = self.sql_templates['add_column'].render(
+    #             table='gaussian_' + self.model.id + '_mean_diff_overall', column=column + '_diff_mean',
+    #             type="DOUBLE NULL",database=self.database)
+    #         logging.debug("SQL: " + str(sql_statement))
+    #         self.db_connection.execute(sql_statement)
+    #
+    #         sql_statement = self.sql_templates['diff_mean_overall'].render(
+    #             table='gaussian_' + self.model.id + '_mean_diff_overall',
+    #             column=column + '_diff_mean', feature_1=column,
+    #             mean_table='gaussian_' + self.model.id + '_mean_overall',database=self.database)
+    #         logging.debug("SQL: " + str(sql_statement))
+    #         self.db_connection.execute(sql_statement)
 
     def __multiply_columns(self, matrix):
         y_classes = self.model.y_classes
@@ -902,7 +903,7 @@ class GaussianClassifier:
             x_columns=self.model.x_columns,
             row_no=n,
             y_classes=self.model.y_classes,
-            input_table='gaussian_' + self.model.id + '_mean_diff_overall',database=self.database
+            input_table='gaussian_' + self.model.id + '_covariance_input',database=self.database, target=self.model.y_column[0]
         )
         for statement in sqlparse.split(sql_statement):
             if statement:
