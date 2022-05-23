@@ -269,7 +269,7 @@ class GaussianClassifier:
         self.db_connection.execute(sql_statement)
 
         sql_statement = self.sql_templates['insert_target'].render(table="gaussian_" + self.model.id + "_prediction",
-                                                                   column="y", input_table=self.model.input_table,
+                                                                   column="y", input_table=self.model.prediction_table,
                                                                    row_no=list(range(self.model.no_of_rows_prediction)),
                                                                    y_column=self.model.y_column[0],database=self.database)
         for statement in sqlparse.split(sql_statement):
