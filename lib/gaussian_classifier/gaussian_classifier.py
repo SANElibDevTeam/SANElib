@@ -211,7 +211,7 @@ class GaussianClassifier:
             self.__get_mahalonibis_distance()
             self.__multivariate_probability()
 
-            self.__init_prediction_table("gaussian_" + self.model.id + "_prediction")
+            self.__drop_prediction_table("gaussian_" + self.model.id + "_prediction")
 
             sql_statement = self.sql_templates['predict'].render(table="gaussian_" + self.model.id + "_prediction",
                                                                  row_no=list(range(self.model.no_of_rows_prediction)),
@@ -223,7 +223,7 @@ class GaussianClassifier:
 
 
         else:
-            self.__init_prediction_table("gaussian_" + self.model.id + "_prediction")
+            self.__drop_prediction_table("gaussian_" + self.model.id + "_prediction")
 
             sql_statement = self.sql_templates['predict'].render(table="gaussian_" + self.model.id + "_prediction",
                                                                  row_no=list(range(self.model.no_of_rows_prediction)),
@@ -269,7 +269,7 @@ class GaussianClassifier:
         self.db_connection.execute(sql_statement)
 
         sql_statement = self.sql_templates['insert_target'].render(table="gaussian_" + self.model.id + "_prediction",
-                                                                   column="y", input_table=self.model.input_table,
+                                                                   column="y", input_table=self.model.prediction_table,
                                                                    row_no=list(range(self.model.no_of_rows_prediction)),
                                                                    y_column=self.model.y_column[0],database=self.database)
         for statement in sqlparse.split(sql_statement):
@@ -421,15 +421,12 @@ class GaussianClassifier:
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
 
-    def __init_prediction_table(self, table):
+    def __drop_prediction_table(self, table):
         logging.info("INITIALIZING PREDICTION TABLE")
         sql_statement = self.sql_templates['drop_table'].render(table=table,database=self.database)
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
 
-        sql_statement = self.sql_templates['init_prediction_table'].render(database=self.database, table=table)
-        logging.debug("SQL: " + str(sql_statement))
-        self.db_connection.execute(sql_statement)
 
     def __get_targets(self):
         logging.info("GETTING TARGET CLASSES")
