@@ -47,6 +47,10 @@ tmpl_mysql['column_type'] = Template('''
             WHERE table_name = '{{ table }}' and column_name='{{ column }}';
             ''')
 
+tmpl_mysql['get_columns'] = Template('''
+SELECT * FROM {{ database }}.{{ table }} LIMIT 1;
+''')
+
 tmpl_mysql['drop_table'] = Template('''
             DROP TABLE IF EXISTS {{ database }}.{{ table }};
             ''')
@@ -296,7 +300,7 @@ UPDATE {{ database }}.{{ table }} SET {{column}} = ({{ feature_1 }} * {{ feature
 ''')
 
 tmpl_mysql['rename_column'] = Template('''
-ALTER TABLE {{ database }}.{{ table }} RENAME {{ column }} TO {{ new_column }};
+ALTER TABLE {{ database }}.{{ table }} RENAME COLUMN {{ column }} TO {{ new_column }};
 ''')
 
 tmpl_mysql['divide_by_total'] = Template('''
@@ -377,6 +381,34 @@ tmpl_mysql['substract_columns'] = Template('''
 UPDATE {{ database }}.{{ table }} SET {{column}} = ({{ feature_1 }} - {{ feature_2 }}
     ) 
 ''')
+
+tmpl_mysql['_encodeTableTrainEval'] =Template('''
+ALTER TABLE {{ input.input_table }} ADD column `rownum` INT NOT NULL AUTO_INCREMENT unique first;
+create table {{ input.input_table_encoded }} as
+select *,
+{% for key in input.catFeatures %}
+{% if loop.index > 1 %}, {% endif %}\
+(case
+    {% for value in input.catFeatures[key] %}
+        when {{ key }}_orig = '{{ value[0] }}' then {{ loop.index }}
+    {% endfor %}
+end) as {{ key }}
+{% endfor %}
+from {{ input.input_table }} as train
+group by rownum;
+
+alter table {{ input.input_table }} drop column `rownum`;
+alter table {{ input.input_table_encoded }} drop column `rownum`;
+alter table {{ input.input_table_encoded }}
+{% for key in input.catFeatures %}
+{% if loop.index > 1 %}, {% endif %}
+drop column {{ key }}_orig
+{% endfor %};
+
+''')
+# SET GLOBAL max_allowed_packet=1073741824;
+
+
 
 tmpl_mysql['insert_vector'] = Template('''
 {% for n in row_no %}

@@ -166,7 +166,25 @@ class GaussianClassifier:
         if table is not None or x_columns is not None or y_column is not None:
             self.model = Model(table, x_columns, y_column)
             self.model.multivariate = multivariate
+
+            # Feature Selection
+            # Get first row of dataset to see the which features are numerical, which are not
+            sql_statement =  self.sql_templates['get_columns'].render(table=self.model.input_table,database=self.database)
+            logging.debug("SQL: " + str(sql_statement))
+            features = self.db_connection.execute_query(sql_statement,True)
+            # Select only the non numerical features and putting them into a dataframe
+            self.model.catFeatures = list(features.select_dtypes(include='object').columns)
+            self.catFeaturesX = []
+            for f in self.model.catFeatures:
+                if f in self.model.x_columns:
+                    self.catFeaturesX.append(f)
+                if f in self.model.y_column:
+                    self.catFeaturesX.append(f)
+            self.model.catFeatures = self.catFeaturesX
+            if self.model.catFeatures != []:
+                self.__feature_encoding()
             self.model.y_classes = self.__get_targets()
+            # self.numFeatures = list(features.drop(columns=self.target).select_dtypes(exclude='object').columns)
         elif self.model is None:
             raise Exception(
                 'No model parameters available! Please load/create a model or provide table, x_columns and y_column as parameters to this function!')
@@ -952,3 +970,51 @@ class GaussianClassifier:
         )
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
+
+
+
+    def __feature_encoding(self):
+        print("Encoding categorical values into ordinal values")
+        self.model.input_table_encoded = f"{self.model.input_table}_encoded"
+        sql_statement = self.sql_templates['drop_table'].render(database=self.database,table=self.model.input_table_encoded)
+        logging.debug("SQL: " + str(sql_statement))
+        self.db_connection.execute(sql_statement)
+        # Get all characteristics of each categorical feature
+        features = {}
+        for f in self.model.catFeatures:
+            sql_statement = self.sql_templates['get_targets'].render(table=self.model.input_table, y=f,
+                                                                     database=self.database)
+            logging.debug("SQL: " + str(sql_statement))
+            features[f] =np.array(self.db_connection.execute_query(sql_statement))
+        self.model.catFeatures = features
+
+        # rename categorical columns since the reformatted will have the same name and the originals
+        # temporary column will be dropped later on
+        for key in self.model.catFeatures:
+            sql_statement = self.sql_templates['rename_column'].render(database=self.database,table=self.model.input_table,column=key,new_column=key + '_orig')
+            logging.debug("SQL: " + str(sql_statement))
+            self.db_connection.execute(sql_statement)
+
+
+        # in the encode table train eval template, the categorical features will be encoded
+        # according to the capabilities of each database technology
+        # since each database engine connector has different SQL capabilities, the _encodeTableTrainEval entry
+        # has several array items. they need to be iterated, since a connector can't handle multiple statements
+        # depending on the database engine
+        sql_statement = self.sql_templates['_encodeTableTrainEval'].render(input=self.model)
+
+        for statement in sqlparse.split(sql_statement):
+            if statement:
+                logging.debug("SQL: " + str(statement))
+                self.db_connection.execute(statement)
+
+        # for i in self.sql_template.tmplt['_encodeTableTrainEval']:
+        #     self.db_connection.execute(
+        #         Template(i).render(input=self))
+        for key in self.model.catFeatures:
+            sql_statement = self.sql_templates['rename_column'].render(database=self.database,table=self.model.input_table,column=key + '_orig',new_column=key)
+            logging.debug("SQL: " + str(sql_statement))
+            self.db_connection.execute(sql_statement)
+
+        self.model.catFeatures = list(self.model.catFeatures.keys())
+        self.model.input_table = self.model.input_table_encoded
