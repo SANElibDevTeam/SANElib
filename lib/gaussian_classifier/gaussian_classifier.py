@@ -427,9 +427,9 @@ class GaussianClassifier:
         logging.debug("SQL: " + str(sql_statement))
         self.db_connection.execute(sql_statement)
 
-        sql_statement = self.sql_templates['init_prediction_table'].render(database=self.database, table=table)
-        logging.debug("SQL: " + str(sql_statement))
-        self.db_connection.execute(sql_statement)
+        # sql_statement = self.sql_templates['init_prediction_table'].render(database=self.database, table=table)
+        # logging.debug("SQL: " + str(sql_statement))
+        # self.db_connection.execute(sql_statement)
 
     def __get_targets(self):
         logging.info("GETTING TARGET CLASSES")

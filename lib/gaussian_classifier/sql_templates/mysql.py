@@ -442,22 +442,19 @@ tmpl_mysql['calculate_univariate_density'] = Template('''
 UPDATE {{ database }}.{{ table }} SET {{column}} = ({{ multiplication_string }})
 ''')
 tmpl_mysql['predict'] = Template('''
-INSERT INTO {{ database }}.{{ table }} (id,y_prediction)
-VALUES
-{% for n in row_no %}
-{% if loop.index > 1 %}, {% endif %}
 
-({{ n }},(SELECT y
-FROM {{ database }}.{{ estimation_table }}
-WHERE (probability) in (select max(probability)
-                                from {{ database }}.{{ estimation_table }}
-                                WHERE row_no = {{ n }}
-                                )
-                                AND row_no = {{ n }}
-                                ))
+CREATE TABLE {{ database }}.{{ table }} AS
 
+                                
+(SELECT row_no as id, y as y_prediction
+    FROM (
+        SELECT  row_no,
+                ROW_NUMBER() OVER(PARTITION BY row_no ORDER BY probability DESC) AS n,
+                y, probability
+            FROM {{ database }}.{{ estimation_table }}
+         ) x
+    WHERE n <= 1);
 
-{%endfor %};
             ''')
 
 tmpl_mysql['p_y'] = Template('''
