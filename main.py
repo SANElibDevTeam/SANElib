@@ -6,7 +6,7 @@ from lib.linear_regression.example import run_bmi_example
 from lib.mdh.example import run
 from util import timer
 from util.database_functions.mysql import multiply_matrices
-
+from lib.gaussian_classifier.example import run_example
 # Run MDH example
 # mdh = sanelib.mdh
 # run(mdh)
@@ -20,3 +20,6 @@ from util.database_functions.mysql import multiply_matrices
 # Run DecisionTreeClassifier example
 # dtc_iris_example()
 # dtc_covertype_example()
+
+#Run Gaussian Classifier example
+# run_example()
